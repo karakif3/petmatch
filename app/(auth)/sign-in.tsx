@@ -9,8 +9,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { BrandMark } from "../../components/brand-mark";
+import { translateAuthError } from "../../core/domain/auth-errors";
 import { useAuthStore } from "../../stores/auth";
 
 type Mode = "sign-in" | "sign-up";
@@ -19,6 +21,8 @@ export default function SignInScreen() {
   const configured = useAuthStore((s) => s.configured);
   const signInWithEmail = useAuthStore((s) => s.signInWithEmail);
   const signUpWithEmail = useAuthStore((s) => s.signUpWithEmail);
+  const resendSignupConfirmation = useAuthStore((s) => s.resendSignupConfirmation);
+  const params = useLocalSearchParams<{ authError?: string; notice?: string }>();
 
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
@@ -26,11 +30,13 @@ export default function SignInScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [emailUnconfirmed, setEmailUnconfirmed] = useState(false);
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setEmailUnconfirmed(false);
     try {
       if (mode === "sign-in") {
         await signInWithEmail(email.trim(), password);
@@ -39,7 +45,9 @@ export default function SignInScreen() {
         setNotice("Hesabını doğrulamak için e-postana gönderilen bağlantıya tıkla.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bir şeyler ters gitti.");
+      const message = translateAuthError(err);
+      setError(message);
+      setEmailUnconfirmed(message === "E-posta adresini doğrulamalısın.");
     } finally {
       setBusy(false);
     }
@@ -55,6 +63,7 @@ export default function SignInScreen() {
           <BrandMark size={82} />
         </View>
         <Text className="text-text-primary text-3xl font-bold">PetMatch</Text>
+        <Text className="text-brand font-semibold mt-1">For pets. For their people.</Text>
         <Text className="text-text-secondary text-base mt-2 mb-8">
           Kedin veya köpeğin için yakınında oyun arkadaşı bul.
         </Text>
@@ -88,8 +97,34 @@ export default function SignInScreen() {
           className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-5"
         />
 
-        {error ? <Text className="text-danger text-sm mb-3">{error}</Text> : null}
-        {notice ? <Text className="text-accent-dark text-sm mb-3">{notice}</Text> : null}
+        {error || params.authError ? (
+          <Text className="text-danger text-sm mb-3">{error ?? params.authError}</Text>
+        ) : null}
+        {notice || params.notice ? (
+          <Text className="text-accent-dark text-sm mb-3">{notice ?? params.notice}</Text>
+        ) : null}
+
+        {emailUnconfirmed ? (
+          <Pressable
+            onPress={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                await resendSignupConfirmation(email.trim());
+                setNotice("Doğrulama e-postası yeniden gönderildi.");
+                setEmailUnconfirmed(false);
+              } catch (err) {
+                setError(translateAuthError(err));
+              } finally {
+                setBusy(false);
+              }
+            }}
+            disabled={busy || !email.trim()}
+            className="border border-brand rounded-xl py-3 items-center mb-3 disabled:opacity-50"
+          >
+            <Text className="text-brand font-semibold">Doğrulama e-postasını yeniden gönder</Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           onPress={submit}
@@ -105,16 +140,29 @@ export default function SignInScreen() {
           )}
         </Pressable>
 
+        {mode === "sign-in" ? (
+          <Pressable onPress={() => router.push("/(auth)/forgot-password")} className="py-4">
+            <Text className="text-brand text-sm text-center font-semibold">Şifremi unuttum</Text>
+          </Pressable>
+        ) : null}
+
         <Pressable
           onPress={() => {
             setMode(mode === "sign-in" ? "sign-up" : "sign-in");
             setError(null);
             setNotice(null);
           }}
-          className="py-4 items-center"
+          className="py-3 items-center"
         >
           <Text className="text-text-secondary text-sm">
             {mode === "sign-in" ? "Hesabın yok mu? Kayıt ol" : "Zaten hesabın var mı? Giriş yap"}
+          </Text>
+        </Pressable>
+
+        <Pressable onPress={() => router.push("/(auth)/legal")} className="mt-5 px-3 py-2">
+          <Text className="text-center text-xs leading-5 text-text-tertiary">
+            Devam ederek Kullanım Koşulları, Gizlilik Politikası ve KVKK
+            Aydınlatma Metni’ne erişebildiğini onaylarsın. Metinleri aç
           </Text>
         </Pressable>
       </ScrollView>

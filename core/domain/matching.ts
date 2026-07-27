@@ -99,6 +99,12 @@ export type EligibilityContext = {
   candidateOwnerVisible: boolean;
   /** Karşı tarafın sahip fotoğrafı var mı. */
   candidateOwnerHasPhoto: boolean;
+  /** Karşı taraf pet buluşmasında sosyalleşmeye açık mı. */
+  candidateOwnerSocialOpen: boolean;
+  /** Karşı tarafın sahip + pet doğrulaması onaylı mı. */
+  candidateOwnerVerified: boolean;
+  /** İzleyici pet buluşmasında sosyalleşmeye açık mı. */
+  viewerOwnerSocialOpen: boolean;
   /** Karşı taraf da "sadece sahibi görünenler" zorunluluğu koymuş mu. */
   candidateRequiresVisibleOwner: boolean;
   /** İzleyici "sadece sahibi görünenler" zorunluluğu koymuş mu. */
@@ -142,6 +148,13 @@ export function isEligible(candidate: Pet, ctx: EligibilityContext): boolean {
   if (preferences.requireOwnerPhoto && !(ctx.candidateOwnerHasPhoto && ctx.candidateOwnerVisible)) {
     return false;
   }
+  if (
+    preferences.requireOwnerSocial &&
+    !(ctx.viewerOwnerSocialOpen && ctx.candidateOwnerSocialOpen)
+  ) {
+    return false;
+  }
+  if (preferences.requireVerifiedOwner && !ctx.candidateOwnerVerified) return false;
 
   return true;
 }

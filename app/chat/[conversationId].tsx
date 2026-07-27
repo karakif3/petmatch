@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   loadConversation,
+  loadConversationOwnerProfile,
   loadMessages,
   markConversationRead,
   sendMessage,
@@ -82,6 +83,12 @@ export default function ChatScreen() {
     queryKey: ["messages", conversationId],
     queryFn: () => loadMessages(conversationId),
     enabled: Boolean(conversationId),
+  });
+
+  const ownerProfile = useQuery({
+    queryKey: ["conversation-owner", conversationId],
+    queryFn: () => loadConversationOwnerProfile(conversationId),
+    enabled: Boolean(conversationId && conversation.data?.isActive),
   });
 
   useEffect(() => {
@@ -216,6 +223,54 @@ export default function ChatScreen() {
             <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
           </Pressable>
         </View>
+
+        {ownerProfile.data ? (
+          <View className="border-b border-border bg-bg-secondary px-4 py-3">
+            <View className="flex-row items-center">
+              {ownerProfile.data.photoUrl ? (
+                <Image
+                  source={ownerProfile.data.photoUrl}
+                  contentFit="cover"
+                  style={{ width: 44, height: 44, borderRadius: 22 }}
+                />
+              ) : (
+                <View className="h-11 w-11 items-center justify-center rounded-full bg-bg-tertiary">
+                  <Ionicons name="person-outline" color="#9A8B82" size={20} />
+                </View>
+              )}
+              <View className="ml-3 flex-1">
+                <View className="flex-row items-center gap-1.5">
+                  <Text className="font-bold text-text-primary">
+                    {ownerProfile.data.displayName ?? "Pet sahibi"}
+                  </Text>
+                  {ownerProfile.data.verified ? (
+                    <Ionicons name="shield-checkmark" color="#2FB8A6" size={16} />
+                  ) : null}
+                </View>
+                <Text className="mt-0.5 text-xs text-text-secondary">
+                  {[
+                    ownerProfile.data.gender === "female"
+                      ? "Kadın"
+                      : ownerProfile.data.gender === "male"
+                        ? "Erkek"
+                        : ownerProfile.data.gender === "other"
+                          ? "Diğer"
+                          : null,
+                    ownerProfile.data.ageBucket,
+                    ownerProfile.data.socialOpen ? "Sosyalleşmeye açık" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "Sahip profili eşleşmeyle açıldı"}
+                </Text>
+              </View>
+            </View>
+            {ownerProfile.data.bio ? (
+              <Text className="mt-2 text-xs leading-4 text-text-secondary" numberOfLines={2}>
+                {ownerProfile.data.bio}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {conversation.isLoading || messages.isLoading ? (
           <View className="flex-1 items-center justify-center">

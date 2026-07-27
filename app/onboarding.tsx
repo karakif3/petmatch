@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { router } from "expo-router";
 
 import { BrandMark } from "../components/brand-mark";
 import { completeOnboarding, type OnboardingPhoto } from "../core/api/onboarding";
@@ -97,6 +98,9 @@ export default function OnboardingScreen() {
   const [isNeutered, setIsNeutered] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [photos, setPhotos] = useState<OnboardingPhoto[]>([]);
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [locationConsent, setLocationConsent] = useState(false);
+  const [publicProfileConsent, setPublicProfileConsent] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
@@ -176,6 +180,18 @@ export default function OnboardingScreen() {
       setError("En az bir pet fotoğrafı eklemelisin.");
       return;
     }
+    if (!legalAccepted) {
+      setError("Kullanım koşullarını kabul edip gizlilik/KVKK metnini okuduğunu onaylamalısın.");
+      return;
+    }
+    if (coordinates && !locationConsent) {
+      setError("Yaklaşık konumu kullanmak için ayrı açık rıza seçimini yapmalısın.");
+      return;
+    }
+    if (ownerVisibility === "public" && !publicProfileConsent) {
+      setError("Sahip profilini herkese açık yapmak için ayrı açık rıza seçimini yapmalısın.");
+      return;
+    }
 
     setBusy(true);
     setError(null);
@@ -198,6 +214,13 @@ export default function OnboardingScreen() {
           coordinates,
         },
         photos,
+        legal: {
+          termsAccepted: legalAccepted,
+          privacyNoticeAcknowledged: legalAccepted,
+          locationConsent: coordinates !== null && locationConsent,
+          publicProfileConsent:
+            ownerVisibility === "public" && publicProfileConsent,
+        },
       });
       setOnboarded(true);
     } catch (err) {
@@ -448,6 +471,48 @@ export default function OnboardingScreen() {
                 </Text>
               )}
             </Pressable>
+
+            <View className="mt-6 rounded-2xl border border-border bg-surface p-4">
+              <Pressable
+                onPress={() => setLegalAccepted((value) => !value)}
+                className="flex-row items-start"
+              >
+                <Text className="mr-3 text-xl">{legalAccepted ? "☑" : "☐"}</Text>
+                <Text className="flex-1 text-sm leading-5 text-text-secondary">
+                  Kullanım koşullarını kabul ediyor; gizlilik politikası ve KVKK
+                  aydınlatma metnini okuduğumu onaylıyorum.
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => router.push("/(auth)/legal")} className="mt-3">
+                <Text className="text-sm font-semibold text-brand">Metinleri aç</Text>
+              </Pressable>
+
+              {coordinates ? (
+                <Pressable
+                  onPress={() => setLocationConsent((value) => !value)}
+                  className="mt-4 flex-row items-start border-t border-border pt-4"
+                >
+                  <Text className="mr-3 text-xl">{locationConsent ? "☑" : "☐"}</Text>
+                  <Text className="flex-1 text-sm leading-5 text-text-secondary">
+                    Yaklaşık konumumun mesafe bazlı keşfet için işlenmesine açık rıza
+                    veriyorum. Bu özellik isteğe bağlıdır.
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              {ownerVisibility === "public" ? (
+                <Pressable
+                  onPress={() => setPublicProfileConsent((value) => !value)}
+                  className="mt-4 flex-row items-start border-t border-border pt-4"
+                >
+                  <Text className="mr-3 text-xl">{publicProfileConsent ? "☑" : "☐"}</Text>
+                  <Text className="flex-1 text-sm leading-5 text-text-secondary">
+                    Sahip profilimin keşfette herkese açık gösterilmesine açık rıza
+                    veriyorum. Bu görünürlüğü sonradan kapatabilirim.
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           </>
         ) : null}
 

@@ -83,6 +83,13 @@ iki SECURITY DEFINER fonksiyonu kondu:
   düzenlenebilir profil alanlarını doğrulayıp günceller
 - `replace_pet_photo_order(pet_id, paths)` → sahipliği ve storage yol önekini
   doğrulayıp 1–6 fotoğrafın sırasını tek transaction'da değiştirir
+- `update_my_owner_details(...)` → sahip avatar yolunu, görünürlüğü ve sosyal
+  modun ad+foto+public profil önkoşullarını tek transaction'da doğrular
+- `update_owner_discovery_filters(...)` → fotoğraflı, sosyalleşmeye açık ve
+  doğrulanmış sahip filtrelerini dar kolonlarla günceller
+- `get_conversation_owner_profile(conversation_id)` → yalnızca aktif
+  katılımcıya, karşı tarafın görünürlük tercihinin izin verdiği sahip özetini
+  döndürür
 
 `supabase/functions/send-notification` istemcinin oturum JWT'sini tekrar
 doğrular, bildirime konu match/message kaydının gerçekten çağırana ait
@@ -93,10 +100,16 @@ SELECT ettirilmez; teslimat ve geçersiz-token temizliği `service_role` ile
 Edge Function içinde kalır.
 
 `supabase/functions/delete-account` da oturum JWT'sini yeniden doğrular.
-Kullanıcının pet ve avatar dosyalarını Storage'dan temizledikten sonra Auth
+Kullanıcının pet, avatar ve verification dosyalarını Storage'dan temizledikten sonra Auth
 kullanıcısını Admin API ile siler; profil ilişkilerindeki `on delete cascade`
 kuralları uygulama verilerini aynı işlem zincirinde kaldırır. Service role
 anahtarı istemciye çıkmaz.
+
+`owner-avatars` ve `verification-photos` private bucket'lardır. Avatar signed
+URL politikası own/public/active-match durumlarını ve block ilişkisini tekrar
+kontrol eder. Keşfet RPC'si kesin doğum tarihini döndürmez; yalnızca
+`owner_age_bucket()` çıktısı gider. Cinsiyet ve yaş filtre seçimleri Postgres'e
+yazılmaz, cihaz storage'ında tutulup RPC parametresi olarak gönderilir.
 
 Kural: **bir tabloda tek bir kolonun değişmesi bekleniyorsa UPDATE politikası
 değil RPC yaz.**
@@ -163,7 +176,7 @@ Başka bir hesaba geçiş:
 
 ```bash
 supabase link --project-ref <yeni-ref>
-supabase db push          # 4 migration sırayla uygulanır
+supabase db push          # migration'ların tamamı sırayla uygulanır
 # .env içindeki URL + anon key + SUPABASE_PROJECT_ID güncelle
 npm run gen:types
 ```

@@ -323,6 +323,29 @@ export default function ProfileScreen() {
           </View>
 
           <Text className="mb-4 text-lg font-bold text-text-primary">Temel bilgiler</Text>
+          <Pressable
+            onPress={() => router.push("/profile/owner")}
+            className="mb-5 flex-row items-center rounded-2xl border border-border bg-surface p-4"
+          >
+            {profile.data.ownerAvatar ? (
+              <Image
+                source={profile.data.ownerAvatar.url}
+                contentFit="cover"
+                style={{ width: 58, height: 58, borderRadius: 29 }}
+              />
+            ) : (
+              <View className="h-[58px] w-[58px] items-center justify-center rounded-full bg-bg-tertiary">
+                <Ionicons name="person-outline" color="#9A8B82" size={26} />
+              </View>
+            )}
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-text-primary">Sahip profilini düzenle</Text>
+              <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                Fotoğraf, bio, yaş/cinsiyet paylaşımı, sosyalleşme ve doğrulama
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" color="#9A8B82" size={21} />
+          </Pressable>
           <Field
             label="Senin adın (opsiyonel)"
             hint="Boş bırakırsan sahip adı karşı tarafa gösterilmez."
@@ -460,6 +483,13 @@ export default function ProfileScreen() {
             className="mt-8 items-center rounded-xl border border-border py-4"
           >
             <Text className="font-semibold text-danger">Çıkış yap</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/(auth)/legal")}
+            className="mt-4 items-center rounded-xl border border-border py-4"
+          >
+            <Text className="font-semibold text-text-primary">Yasal ve gizlilik merkezi</Text>
           </Pressable>
 
           <View className="mt-8 rounded-2xl border border-danger/20 bg-danger/5 p-4">

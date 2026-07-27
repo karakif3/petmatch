@@ -69,6 +69,24 @@ export type Database = {
           },
         ]
       }
+      app_user_roles: {
+        Row: {
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -101,6 +119,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_errors: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          error_name: string
+          id: number
+          message: string
+          route: string | null
+          stack: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          error_name: string
+          id?: never
+          message: string
+          route?: string | null
+          stack?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          error_name?: string
+          id?: never
+          message?: string
+          route?: string | null
+          stack?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       conversation_participants: {
         Row: {
@@ -164,7 +215,10 @@ export type Database = {
           min_age_years: number | null
           notify_on_match: boolean
           notify_on_message: boolean
+          notify_on_new_candidates: boolean
           require_owner_photo: boolean
+          require_owner_social: boolean
+          require_verified_owner: boolean
           species: Database["public"]["Enums"]["species"][]
           updated_at: string
           user_id: string
@@ -176,7 +230,10 @@ export type Database = {
           min_age_years?: number | null
           notify_on_match?: boolean
           notify_on_message?: boolean
+          notify_on_new_candidates?: boolean
           require_owner_photo?: boolean
+          require_owner_social?: boolean
+          require_verified_owner?: boolean
           species?: Database["public"]["Enums"]["species"][]
           updated_at?: string
           user_id: string
@@ -188,7 +245,10 @@ export type Database = {
           min_age_years?: number | null
           notify_on_match?: boolean
           notify_on_message?: boolean
+          notify_on_new_candidates?: boolean
           require_owner_photo?: boolean
+          require_owner_social?: boolean
+          require_verified_owner?: boolean
           species?: Database["public"]["Enums"]["species"][]
           updated_at?: string
           user_id?: string
@@ -202,6 +262,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_acceptances: {
+        Row: {
+          accepted: boolean
+          created_at: string
+          document_type: string
+          document_version: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          accepted: boolean
+          created_at?: string
+          document_type: string
+          document_version: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          accepted?: boolean
+          created_at?: string
+          document_type?: string
+          document_version?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: []
       }
       matches: {
         Row: {
@@ -523,6 +610,30 @@ export type Database = {
           },
         ]
       }
+      product_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: number
+          properties: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: never
+          properties?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: never
+          properties?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -535,6 +646,7 @@ export type Database = {
           id: string
           last_active_at: string
           onboarded_at: string | null
+          owner_social_open: boolean
           owner_visibility: Database["public"]["Enums"]["owner_visibility"]
           require_visible_owner: boolean
           updated_at: string
@@ -554,6 +666,7 @@ export type Database = {
           id: string
           last_active_at?: string
           onboarded_at?: string | null
+          owner_social_open?: boolean
           owner_visibility?: Database["public"]["Enums"]["owner_visibility"]
           require_visible_owner?: boolean
           updated_at?: string
@@ -573,6 +686,7 @@ export type Database = {
           id?: string
           last_active_at?: string
           onboarded_at?: string | null
+          owner_social_open?: boolean
           owner_visibility?: Database["public"]["Enums"]["owner_visibility"]
           require_visible_owner?: boolean
           updated_at?: string
@@ -672,6 +786,16 @@ export type Database = {
       activity_bucket: { Args: { p_last_active: string }; Returns: string }
       block_user: { Args: { p_blocked_id: string }; Returns: undefined }
       blocked_user_ids: { Args: never; Returns: string[] }
+      capture_client_error: {
+        Args: {
+          p_app_version?: string
+          p_error_name: string
+          p_message: string
+          p_route?: string
+          p_stack?: string
+        }
+        Returns: undefined
+      }
       complete_adoption: { Args: { p_interest_id: string }; Returns: undefined }
       confirm_adoption_listing: {
         Args: { p_pet_id: string }
@@ -733,7 +857,14 @@ export type Database = {
           id: string
           is_neutered: boolean
           name: string
+          owner_age_bucket: string
+          owner_avatar_path: string
+          owner_bio: string
+          owner_display_name: string
+          owner_gender: string
           owner_id: string
+          owner_social_open: boolean
+          owner_verified: boolean
           owner_visible: boolean
           photo_paths: string[]
           size: Database["public"]["Enums"]["pet_size"]
@@ -746,6 +877,36 @@ export type Database = {
         Args: { p_note?: string; p_pet_id: string }
         Returns: string
       }
+      get_conversation_owner_profile: {
+        Args: { p_conversation_id: string }
+        Returns: {
+          age_bucket: string
+          avatar_path: string
+          bio: string
+          display_name: string
+          gender: string
+          social_open: boolean
+          user_id: string
+          verified: boolean
+        }[]
+      }
+      get_moderation_queue: {
+        Args: { p_limit?: number }
+        Returns: {
+          age_hours: number
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["moderation_kind"]
+          note: string
+          payload: Json
+          reason: Database["public"]["Enums"]["report_reason"]
+          sla_breached: boolean
+          status: Database["public"]["Enums"]["moderation_status"]
+          subject_pet_id: string
+          subject_user_id: string
+        }[]
+      }
+      get_operations_metrics: { Args: never; Returns: Json }
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
@@ -755,6 +916,7 @@ export type Database = {
         Returns: boolean
       }
       is_match_participant: { Args: { p_match_id: string }; Returns: boolean }
+      is_moderator: { Args: never; Returns: boolean }
       list_adoptable_pets: {
         Args: {
           p_city?: string
@@ -808,11 +970,30 @@ export type Database = {
       my_conversation_ids: { Args: never; Returns: string[] }
       my_match_ids: { Args: never; Returns: string[] }
       my_pet_ids: { Args: never; Returns: string[] }
+      owner_age_bucket: { Args: { p_birth_date: string }; Returns: string }
       owner_response_rate: { Args: { p_owner_id: string }; Returns: number }
       owns_pet: { Args: { p_pet_id: string }; Returns: boolean }
       pause_stale_adoption_listings: {
         Args: { p_days?: number }
         Returns: number
+      }
+      record_legal_acceptances: {
+        Args: {
+          p_document_version: string
+          p_location_consent?: boolean
+          p_privacy_notice_acknowledged: boolean
+          p_public_profile_consent?: boolean
+          p_terms_accepted: boolean
+        }
+        Returns: undefined
+      }
+      record_optional_legal_consent: {
+        Args: {
+          p_accepted: boolean
+          p_consent_type: string
+          p_document_version: string
+        }
+        Returns: undefined
       }
       register_push_token: {
         Args: { p_platform: string; p_token: string }
@@ -835,6 +1016,14 @@ export type Database = {
         Args: { p_accept: boolean; p_interest_id: string }
         Returns: string
       }
+      review_moderation_item: {
+        Args: {
+          p_decision: Database["public"]["Enums"]["moderation_status"]
+          p_item_id: string
+          p_note?: string
+        }
+        Returns: undefined
+      }
       shares_active_match_with: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -852,12 +1041,42 @@ export type Database = {
         Returns: string
       }
       touch_last_active: { Args: never; Returns: undefined }
+      track_product_event: {
+        Args: { p_event_name: string; p_properties?: Json }
+        Returns: undefined
+      }
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
       unmatch_conversation: {
         Args: { p_conversation_id: string }
         Returns: undefined
       }
       unregister_push_token: { Args: { p_token: string }; Returns: undefined }
+      update_my_discovery_filters: {
+        Args: {
+          p_max_age_years: number
+          p_max_distance_km: number
+          p_min_age_years: number
+          p_notify_on_new_candidates: boolean
+          p_require_owner_photo: boolean
+          p_require_owner_social: boolean
+          p_require_verified_owner: boolean
+          p_require_visible_owner: boolean
+          p_species: Database["public"]["Enums"]["species"][]
+        }
+        Returns: undefined
+      }
+      update_my_owner_details: {
+        Args: {
+          p_avatar_path: string
+          p_bio: string
+          p_birth_date: string
+          p_display_name: string
+          p_gender: string
+          p_owner_social_open: boolean
+          p_owner_visibility: Database["public"]["Enums"]["owner_visibility"]
+        }
+        Returns: undefined
+      }
       update_my_pet_profile: {
         Args: {
           p_bio: string
@@ -889,6 +1108,14 @@ export type Database = {
       }
       update_notification_preferences: {
         Args: { p_notify_on_match: boolean; p_notify_on_message: boolean }
+        Returns: undefined
+      }
+      update_owner_discovery_filters: {
+        Args: {
+          p_require_owner_photo: boolean
+          p_require_owner_social: boolean
+          p_require_verified_owner: boolean
+        }
         Returns: undefined
       }
       visible_pet_ids: { Args: never; Returns: string[] }

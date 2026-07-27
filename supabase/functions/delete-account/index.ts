@@ -64,6 +64,24 @@ Deno.serve(async (request) => {
           .remove([...paths]);
         if (storageError) throw storageError;
       }
+
+      const verificationPaths = new Set<string>();
+      for (const petId of petIds) {
+        const { data: verificationFiles, error: verificationListError } =
+          await admin.storage
+            .from("verification-photos")
+            .list(`${userId}/${petId}`, { limit: 100 });
+        if (verificationListError) throw verificationListError;
+        for (const file of verificationFiles ?? []) {
+          verificationPaths.add(`${userId}/${petId}/${file.name}`);
+        }
+      }
+      if (verificationPaths.size) {
+        const { error: verificationDeleteError } = await admin.storage
+          .from("verification-photos")
+          .remove([...verificationPaths]);
+        if (verificationDeleteError) throw verificationDeleteError;
+      }
     }
 
     const { data: avatarFiles, error: avatarListError } = await admin.storage

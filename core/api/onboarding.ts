@@ -1,4 +1,7 @@
 import type { Coordinates, OwnerVisibility, Size, Species } from "../domain/types";
+import { recordLegalAcceptances } from "./legal";
+import { trackProductEvent } from "./observability";
+import { requestNotificationDelivery } from "./notifications";
 import { requireSupabaseClient } from "./supabase.client";
 
 export type OnboardingPhoto = {
@@ -25,6 +28,12 @@ export type OnboardingInput = {
     coordinates: Coordinates | null;
   };
   photos: OnboardingPhoto[];
+  legal: {
+    termsAccepted: boolean;
+    privacyNoticeAcknowledged: boolean;
+    locationConsent: boolean;
+    publicProfileConsent: boolean;
+  };
 };
 
 function fileExtension(photo: OnboardingPhoto): string {
@@ -47,6 +56,7 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
   if (input.photos.length < 1 || input.photos.length > 6) {
     throw new Error("1–6 pet fotoğrafı eklemelisin.");
   }
+  await recordLegalAcceptances(input.legal);
 
   const { error: profileError } = await sb
     .from("profiles")
@@ -145,6 +155,10 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
 
   const { error: finishError } = await sb.rpc("mark_onboarding_complete");
   if (finishError) throw finishError;
+  void trackProductEvent("onboarding_completed");
+  void requestNotificationDelivery({ type: "new_candidate", petId }).catch(
+    (error) => console.error("Yeni pet bildirimi başlatılamadı:", error),
+  );
 
   return petId;
 }

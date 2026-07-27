@@ -110,6 +110,10 @@ export type DiscoveryPreferences = {
   maxAgeYears: number | null;
   /** Sadece sahibi de fotoğraflı ve görünür olanları göster. */
   requireOwnerPhoto: boolean;
+  /** Pet buluşmasında kendisi de sosyalleşmeye açık sahipleri göster. */
+  requireOwnerSocial: boolean;
+  /** Sahip + pet fotoğraf doğrulaması onaylanmış profilleri göster. */
+  requireVerifiedOwner: boolean;
 };
 
 export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferences = {
@@ -118,6 +122,8 @@ export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferences = {
   minAgeYears: null,
   maxAgeYears: null,
   requireOwnerPhoto: false,
+  requireOwnerSocial: false,
+  requireVerifiedOwner: false,
 };
 
 export type SwipeDirection = "like" | "pass";

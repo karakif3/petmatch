@@ -17,6 +17,7 @@ try {
 }
 
 const projectId = process.env.SUPABASE_PROJECT_ID?.trim();
+const supabaseBin = process.env.SUPABASE_BIN?.trim() || "supabase";
 
 if (!projectId) {
   console.error(
@@ -27,8 +28,8 @@ if (!projectId) {
 }
 
 const output = execFileSync(
-  "npx",
-  ["supabase", "gen", "types", "typescript", "--project-id", projectId],
+  supabaseBin,
+  ["gen", "types", "typescript", "--project-id", projectId],
   { encoding: "utf8", maxBuffer: 20 * 1024 * 1024 },
 );
 

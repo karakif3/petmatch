@@ -21,6 +21,7 @@ import {
   syncPushRegistration,
 } from "../core/api/notifications";
 import { useAuthStore } from "../stores/auth";
+import { AppErrorBoundary } from "../components/app-error-boundary";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 configureForegroundNotifications();
@@ -36,21 +37,32 @@ function useAuthGate() {
   const user = useAuthStore((s) => s.user);
   const onboarded = useAuthStore((s) => s.onboarded);
   const loading = useAuthStore((s) => s.loading);
+  const recoveryMode = useAuthStore((s) => s.recoveryMode);
 
   useEffect(() => {
     if (loading || (user && onboarded === null)) return;
 
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
+    const onAuthCallback =
+      segments[0] === "auth" &&
+      (segments as readonly string[])[1] === "callback";
+    const onPasswordReset =
+      inAuthGroup && (segments as readonly string[])[1] === "reset-password";
+    const onLegal = inAuthGroup && (segments as readonly string[])[1] === "legal";
 
-    if (!user && !inAuthGroup) {
+    if (onLegal || onAuthCallback) {
+      return;
+    } else if (!user && !inAuthGroup) {
       router.replace("/(auth)/sign-in");
+    } else if (user && recoveryMode && onPasswordReset) {
+      return;
     } else if (user && !onboarded && !inOnboarding) {
       router.replace("/onboarding");
     } else if (user && onboarded && (inAuthGroup || inOnboarding)) {
       router.replace("/(app)");
     }
-  }, [loading, onboarded, router, segments, user]);
+  }, [loading, onboarded, recoveryMode, router, segments, user]);
 }
 
 function NotificationEffects() {
@@ -84,6 +96,8 @@ function NotificationEffects() {
         });
       } else if (data.type === "match") {
         router.push("/(app)/matches");
+      } else if (data.type === "new_candidate") {
+        router.push("/(app)");
       }
     };
 
@@ -132,22 +146,26 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <NotificationEffects />
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#FFFBF7" },
-          }}
-        >
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="chat/[conversationId]" />
-          <Stack.Screen name="profile/pet" />
-        </Stack>
-      </QueryClientProvider>
+      <AppErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <NotificationEffects />
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: "#FFFBF7" },
+            }}
+          >
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="chat/[conversationId]" />
+            <Stack.Screen name="profile/pet" />
+            <Stack.Screen name="profile/owner" />
+            <Stack.Screen name="moderation/index" />
+          </Stack>
+        </QueryClientProvider>
+      </AppErrorBoundary>
     </GestureHandlerRootView>
   );
 }

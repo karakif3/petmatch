@@ -1,5 +1,6 @@
 import type { Database } from "../../types/database";
 import { requireSupabaseClient } from "./supabase.client";
+import { trackProductEvent } from "./observability";
 
 export type ReportReason = Database["public"]["Enums"]["report_reason"];
 
@@ -29,6 +30,7 @@ export async function reportContent(input: {
     p_note: note,
   });
   if (error) throw error;
+  void trackProductEvent("report_submitted", { reason: input.reason });
   return data;
 }
 
@@ -47,6 +49,7 @@ export async function unmatchConversation(conversationId: string): Promise<void>
 }
 
 export async function deleteAccount(): Promise<void> {
+  await trackProductEvent("account_delete_requested");
   const { error } = await requireSupabaseClient().functions.invoke("delete-account", {
     body: {},
   });

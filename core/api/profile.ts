@@ -6,7 +6,10 @@ import type {
   Size,
   Temperament,
 } from "../domain/types";
+import { STORAGE_BUCKETS } from "./config";
 import { requireSupabaseClient } from "./supabase.client";
+import { trackProductEvent } from "./observability";
+import { recordOptionalConsent } from "./legal";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type PetRow = Database["public"]["Tables"]["pets"]["Row"];
@@ -15,6 +18,16 @@ export type EditableProfile = {
   displayName: ProfileRow["display_name"];
   city: string;
   ownerVisibility: OwnerVisibility;
+  ownerBio: string | null;
+  ownerBirthDate: string;
+  ownerGender: "female" | "male" | "other" | null;
+  ownerSocialOpen: boolean;
+  ownerAvatar: {
+    storagePath: string;
+    url: string;
+  } | null;
+  verificationStatus: ProfileRow["verification_status"];
+  verificationReviewNote: string | null;
   pet: {
     id: string;
     name: string;
@@ -37,6 +50,11 @@ export type EditableProfile = {
   notifications: {
     onMatch: boolean;
     onMessage: boolean;
+  };
+  ownerFilters: {
+    requirePhoto: boolean;
+    requireSocial: boolean;
+    requireVerified: boolean;
   };
 };
 
@@ -66,6 +84,21 @@ export type PetProfileUpdate = {
   bio: string;
 };
 
+export type OwnerProfileUpdate = {
+  userId: string;
+  displayName: string;
+  bio: string;
+  birthDate: string;
+  gender: "female" | "male" | "other" | null;
+  ownerVisibility: OwnerVisibility;
+  ownerSocialOpen: boolean;
+  previousAvatarPath: string | null;
+  avatar:
+    | { kind: "remote"; storagePath: string }
+    | ({ kind: "local" } & LocalProfilePhoto)
+    | null;
+};
+
 export type ProfileUpdate = {
   displayName: string;
   city: string;
@@ -89,10 +122,12 @@ function profilePhoto(storagePath: string): ProfilePhoto {
 
 export async function loadEditableProfile(userId: string): Promise<EditableProfile> {
   const sb = requireSupabaseClient();
-  const [profileResult, petResult, preferencesResult] = await Promise.all([
+  const [profileResult, petResult, preferencesResult, verificationResult] = await Promise.all([
     sb
       .from("profiles")
-      .select("display_name,city,owner_visibility")
+      .select(
+        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,verification_status",
+      )
       .eq("id", userId)
       .single(),
     sb
@@ -105,27 +140,60 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       .maybeSingle(),
     sb
       .from("discovery_preferences")
-      .select("notify_on_match,notify_on_message")
+      .select(
+        "notify_on_match,notify_on_message,require_owner_photo,require_owner_social,require_verified_owner",
+      )
       .eq("user_id", userId)
       .single(),
+    sb
+      .from("moderation_items")
+      .select("note")
+      .eq("created_by", userId)
+      .eq("kind", "verification")
+      .eq("status", "rejected")
+      .order("reviewed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (profileResult.error) throw profileResult.error;
   if (petResult.error) throw petResult.error;
   if (preferencesResult.error) throw preferencesResult.error;
+  if (verificationResult.error) throw verificationResult.error;
   if (!petResult.data) throw new Error("Aktif pet bulunamadı.");
 
-  const { data: photos, error: photoError } = await sb
-    .from("pet_photos")
-    .select("storage_path")
-    .eq("pet_id", petResult.data.id)
-    .order("position");
+  const [{ data: photos, error: photoError }, avatarResult] = await Promise.all([
+    sb
+      .from("pet_photos")
+      .select("storage_path")
+      .eq("pet_id", petResult.data.id)
+      .order("position"),
+    profileResult.data.avatar_url
+      ? sb.storage
+          .from(STORAGE_BUCKETS.ownerAvatars)
+          .createSignedUrl(profileResult.data.avatar_url, 60 * 60)
+      : Promise.resolve({ data: null, error: null }),
+  ]);
   if (photoError) throw photoError;
+  if (avatarResult.error) throw avatarResult.error;
 
   return {
     displayName: profileResult.data.display_name,
     city: profileResult.data.city ?? "",
     ownerVisibility: profileResult.data.owner_visibility,
+    ownerBio: profileResult.data.bio,
+    ownerBirthDate: profileResult.data.birth_date ?? "",
+    ownerGender: profileResult.data.gender as EditableProfile["ownerGender"],
+    ownerSocialOpen: profileResult.data.owner_social_open,
+    ownerAvatar:
+      profileResult.data.avatar_url && avatarResult.data
+        ? {
+            storagePath: profileResult.data.avatar_url,
+            url: avatarResult.data.signedUrl,
+          }
+        : null,
+    verificationStatus: profileResult.data.verification_status,
+    verificationReviewNote: verificationResult.data?.note ?? null,
     pet: {
       id: petResult.data.id,
       name: petResult.data.name,
@@ -150,7 +218,115 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       onMatch: preferencesResult.data.notify_on_match,
       onMessage: preferencesResult.data.notify_on_message,
     },
+    ownerFilters: {
+      requirePhoto: preferencesResult.data.require_owner_photo,
+      requireSocial: preferencesResult.data.require_owner_social,
+      requireVerified: preferencesResult.data.require_verified_owner,
+    },
   };
+}
+
+export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void> {
+  const sb = requireSupabaseClient();
+  const uploadedPaths: string[] = [];
+  let avatarPath = input.avatar?.kind === "remote" ? input.avatar.storagePath : null;
+
+  await recordOptionalConsent(
+    "public_profile_consent",
+    input.ownerVisibility === "public",
+  );
+
+  try {
+    if (input.avatar?.kind === "local") {
+      const extension = fileExtension(input.avatar);
+      avatarPath = `${input.userId}/avatar-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}.${extension}`;
+      const response = await fetch(input.avatar.uri);
+      const { error } = await sb.storage
+        .from(STORAGE_BUCKETS.ownerAvatars)
+        .upload(avatarPath, await response.arrayBuffer(), {
+          contentType: input.avatar.mimeType ?? "image/jpeg",
+          upsert: false,
+        });
+      if (error) throw error;
+      uploadedPaths.push(avatarPath);
+    }
+
+    const { error } = await sb.rpc("update_my_owner_details", {
+      p_display_name: input.displayName,
+      p_bio: input.bio,
+      p_birth_date: input.birthDate,
+      p_gender: input.gender ?? (null as unknown as string),
+      p_owner_visibility: input.ownerVisibility,
+      p_avatar_path: avatarPath ?? (null as unknown as string),
+      p_owner_social_open: input.ownerSocialOpen,
+    });
+    if (error) throw error;
+  } catch (error) {
+    if (uploadedPaths.length) {
+      await sb.storage.from(STORAGE_BUCKETS.ownerAvatars).remove(uploadedPaths);
+    }
+    throw error;
+  }
+
+  if (
+    input.previousAvatarPath &&
+    input.previousAvatarPath !== avatarPath
+  ) {
+    const { error } = await sb.storage
+      .from(STORAGE_BUCKETS.ownerAvatars)
+      .remove([input.previousAvatarPath]);
+    if (error) throw error;
+  }
+}
+
+export async function submitOwnerVerification(input: {
+  userId: string;
+  petId: string;
+  photo: LocalProfilePhoto;
+}): Promise<string> {
+  const sb = requireSupabaseClient();
+  const extension = fileExtension(input.photo);
+  const storagePath = `${input.userId}/${input.petId}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}.${extension}`;
+
+  const response = await fetch(input.photo.uri);
+  const { error: uploadError } = await sb.storage
+    .from(STORAGE_BUCKETS.verificationPhotos)
+    .upload(storagePath, await response.arrayBuffer(), {
+      contentType: input.photo.mimeType ?? "image/jpeg",
+      upsert: false,
+    });
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await sb.rpc("submit_verification", {
+    p_pet_id: input.petId,
+    p_photo_path: storagePath,
+  });
+  if (error) {
+    await sb.storage.from(STORAGE_BUCKETS.verificationPhotos).remove([storagePath]);
+    throw error;
+  }
+  void trackProductEvent("verification_submitted");
+  return data;
+}
+
+export async function updateOwnerDiscoveryFilters(input: {
+  requirePhoto: boolean;
+  requireSocial: boolean;
+  requireVerified: boolean;
+}): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc(
+    "update_owner_discovery_filters",
+    {
+      p_require_owner_photo: input.requirePhoto,
+      p_require_owner_social: input.requireSocial,
+      p_require_verified_owner: input.requireVerified,
+    },
+  );
+  if (error) throw error;
 }
 
 export async function updatePetProfile(input: PetProfileUpdate): Promise<string> {
@@ -254,6 +430,14 @@ export async function updateEditableProfile(input: ProfileUpdate): Promise<strin
   }
   if (!city) throw new Error("Şehir boş bırakılamaz.");
   if (displayName.length > 60) throw new Error("Adın en fazla 60 karakter olabilir.");
+
+  if (input.coordinates) {
+    await recordOptionalConsent("location_consent", true);
+  }
+  await recordOptionalConsent(
+    "public_profile_consent",
+    input.ownerVisibility === "public",
+  );
 
   const { data, error } = await requireSupabaseClient().rpc("update_my_profile", {
     p_city: city,

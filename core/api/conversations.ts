@@ -1,7 +1,9 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import type { Database } from "../../types/database";
+import { STORAGE_BUCKETS } from "./config";
 import { requestNotificationDelivery } from "./notifications";
+import { trackProductEvent } from "./observability";
 import { requireSupabaseClient } from "./supabase.client";
 
 type ConversationRow =
@@ -29,6 +31,17 @@ export type ChatMessage = {
   body: string;
   createdAt: string;
   readAt: string | null;
+};
+
+export type ConversationOwnerProfile = {
+  userId: string;
+  displayName: string | null;
+  photoUrl: string | null;
+  bio: string | null;
+  gender: "female" | "male" | "other" | null;
+  ageBucket: string | null;
+  socialOpen: boolean;
+  verified: boolean;
 };
 
 function publicPhotoUrl(path: string | null): string | null {
@@ -86,6 +99,40 @@ export async function loadMessages(conversationId: string): Promise<ChatMessage[
   return (data ?? []).map(mapMessage);
 }
 
+export async function loadConversationOwnerProfile(
+  conversationId: string,
+): Promise<ConversationOwnerProfile | null> {
+  const sb = requireSupabaseClient();
+  const { data, error } = await sb.rpc("get_conversation_owner_profile", {
+    p_conversation_id: conversationId,
+  });
+  if (error) throw error;
+  const row = data?.[0];
+  if (!row) return null;
+
+  let photoUrl: string | null = null;
+  if (row.avatar_path) {
+    const signed = await sb.storage
+      .from(STORAGE_BUCKETS.ownerAvatars)
+      .createSignedUrl(row.avatar_path, 60 * 30);
+    if (!signed.error) photoUrl = signed.data.signedUrl;
+  }
+
+  return {
+    userId: row.user_id,
+    displayName: row.display_name || null,
+    photoUrl,
+    bio: row.bio || null,
+    gender:
+      row.gender === "female" || row.gender === "male" || row.gender === "other"
+        ? row.gender
+        : null,
+    ageBucket: row.age_bucket || null,
+    socialOpen: row.social_open,
+    verified: row.verified,
+  };
+}
+
 export async function sendMessage(input: {
   conversationId: string;
   senderId: string;
@@ -110,6 +157,7 @@ export async function sendMessage(input: {
       console.error("Mesaj bildirimi gönderilemedi:", notificationError);
     },
   );
+  void trackProductEvent("message_sent");
   return message;
 }
 

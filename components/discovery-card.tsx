@@ -93,6 +93,60 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
           </Text>
         ) : null}
 
+        {card.owner ? (
+          <View className="mt-5 rounded-2xl border border-border bg-bg-secondary p-3">
+            <View className="flex-row items-center">
+              {card.owner.photoUrl ? (
+                <Image
+                  source={card.owner.photoUrl}
+                  contentFit="cover"
+                  style={{ width: 52, height: 52, borderRadius: 26 }}
+                />
+              ) : (
+                <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-bg-tertiary">
+                  <Ionicons name="person-outline" color="#9A8B82" size={23} />
+                </View>
+              )}
+              <View className="ml-3 flex-1">
+                <View className="flex-row flex-wrap items-center gap-1.5">
+                  <Text className="font-bold text-text-primary">
+                    {card.owner.displayName ?? "Pet sahibi"}
+                  </Text>
+                  {card.owner.verified ? (
+                    <Ionicons name="shield-checkmark" color="#2FB8A6" size={17} />
+                  ) : null}
+                </View>
+                <Text className="mt-1 text-xs text-text-secondary">
+                  {[
+                    card.owner.gender === "female"
+                      ? "Kadın"
+                      : card.owner.gender === "male"
+                        ? "Erkek"
+                        : card.owner.gender === "other"
+                          ? "Diğer"
+                          : null,
+                    card.owner.ageBucket,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "Sahip profili görünür"}
+                </Text>
+              </View>
+              {card.owner.socialOpen ? (
+                <View className="rounded-full bg-brand/10 px-2.5 py-1.5">
+                  <Text className="text-[10px] font-bold text-brand-dark">
+                    Sosyalleşmeye açık
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {card.owner.bio ? (
+              <Text className="mt-3 text-xs leading-5 text-text-secondary" numberOfLines={3}>
+                {card.owner.bio}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {activity ? (
           <View className="mt-4 flex-row items-center gap-1.5">
             <View className="h-2 w-2 rounded-full bg-accent" />

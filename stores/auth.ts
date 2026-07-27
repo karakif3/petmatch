@@ -22,12 +22,18 @@ type AuthState = {
   /** null = henüz okunmadı, false = onboarding gerekli. */
   onboarded: boolean | null;
   loading: boolean;
+  /** Şifre kurtarma deep link'i işlenirken auth gate reset ekranını açık tutar. */
+  recoveryMode: boolean;
   /** Supabase env'i tanımlı değilse false — giriş ekranı bunu uyarı olarak gösterir. */
   configured: boolean;
   init: () => Promise<void>;
   setOnboarded: (value: boolean) => void;
+  setRecoveryMode: (value: boolean) => void;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resendSignupConfirmation: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -38,6 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   onboarded: null,
   loading: true,
   configured: true,
+  recoveryMode: false,
 
   init: async () => {
     const sb = getSupabaseClient();
@@ -97,6 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setOnboarded: (value) => set({ onboarded: value }),
+  setRecoveryMode: (value) => set({ recoveryMode: value }),
 
   signInWithEmail: async (email, password) => {
     const sb = requireSupabaseClient();
@@ -106,7 +114,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signUpWithEmail: async (email, password) => {
     const sb = requireSupabaseClient();
-    const { error } = await sb.auth.signUp({ email, password });
+    const { error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: Linking.createURL("auth/callback") },
+    });
+    if (error) throw error;
+  },
+
+  requestPasswordReset: async (email) => {
+    const sb = requireSupabaseClient();
+    const redirectTo = Linking.createURL("auth/callback", {
+      queryParams: { next: "reset-password" },
+    });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+  },
+
+  resendSignupConfirmation: async (email) => {
+    const sb = requireSupabaseClient();
+    const { error } = await sb.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: Linking.createURL("auth/callback") },
+    });
+    if (error) throw error;
+  },
+
+  updatePassword: async (password) => {
+    const sb = requireSupabaseClient();
+    const { error } = await sb.auth.updateUser({ password });
     if (error) throw error;
   },
 
@@ -132,6 +169,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error("Push tokenı kaldırılamadı:", error);
     }
     await sb?.auth.signOut();
-    set({ session: null, user: null, onboarded: null });
+    set({ session: null, user: null, onboarded: null, recoveryMode: false });
   },
 }));

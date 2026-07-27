@@ -38,4 +38,5 @@ export function getSupabaseConfig(): SupabaseConfig | null {
 export const STORAGE_BUCKETS = {
   petPhotos: "pet-photos",
   ownerAvatars: "owner-avatars",
+  verificationPhotos: "verification-photos",
 } as const;

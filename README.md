@@ -1,5 +1,7 @@
 # PetMatch
 
+> **For pets. For their people.**
+>
 > Kedin veya köpeğin için yakınında oyun arkadaşı bul.
 
 Kullanıcılar evcil hayvanlarının profilini oluşturur, yakındaki uyumlu petleri
@@ -25,6 +27,10 @@ kılabilir.
 | [`docs/architecture.md`](docs/architecture.md) | Katmanlar, web'e taşıma yolu, keşfetin neden RPC olduğu |
 | [`docs/services.md`](docs/services.md) | Hangi servis gerekiyor, ne paylaşılıyor — **Supabase kotası burada** |
 | [`docs/brand.md`](docs/brand.md) | Marka işareti, asset kullanımı ve resmi renk paleti |
+| [`docs/backlog.md`](docs/backlog.md) | **Tek numaralı ürün backlog'u** — P0, P1 ve P2 sırası |
+| [`docs/auth-release-checklist.md`](docs/auth-release-checklist.md) | Şifre reset deep link'i ve Supabase redirect URL yayın ayarı |
+| [`docs/legal-release-checklist.md`](docs/legal-release-checklist.md) | Yasal bilgiler, mağaza veri beyanı ve yayın kontrolleri |
+| [`docs/moderation-runbook.md`](docs/moderation-runbook.md) | Moderasyon kuyruğu, 24 saat SLA, push/crash/funnel operasyonu |
 
 ---
 
@@ -86,6 +92,8 @@ supabase/
               0017 inbox sahip gizliliği · 0018 opsiyonel sahip adı + profil
               0019 push tokenları + bildirim tercihleri
               0020 güvenlik işlemleri + tam pet profil yazma yolları
+              0021–0024 sahip profili + sosyal keşfet + yaş kovası
+              0025–0030 hukuk/onay + keşfet + moderasyon + gözlemlenebilirlik
   functions/  güvenli Expo Push göndericisi + hesap/storage silme
 docs/
 ```
@@ -112,20 +120,19 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 - [x] Konum izni + konum güncelleme
 - [x] Şikâyet, engelleme, eşleşmeyi kaldırma ve hesap silme
 - [x] Tam pet profil düzenleme + 1–6 fotoğraf ekleme/silme/sıralama
+- [x] Sahip fotoğrafı/bio/yaş-cinsiyet paylaşımı + sosyal buluşma modu
+- [x] Sahip fotoğrafı, doğrulama ve karşılıklı yaş/cinsiyet keşfet filtreleri
+- [x] Sahip + pet birlikte fotoğraf doğrulama başvurusu
+- [x] Şifre kurtarma/deep link + e-posta doğrulama durumları
+- [x] Uygulama içi yasal merkez + sürümlü KVKK/onay kayıtları
+- [x] Pet türü/yaşı/mesafesi/sahip görünürlüğü keşfet filtreleri
+- [x] Boş deste aksiyonları + filtre uyumlu yeni pet push bildirimi
+- [x] Moderator kuyruğu + 24 saat SLA + push/hata/funnel görünürlüğü
 - [ ] Bildirimler — istemci + Supabase + EAS hazır; fiziksel cihaz build/test bekliyor
 - [x] Marka çalışması — PetMatch adı, palet, app/adaptive/splash icon ve favicon
 
 ### Önümüzdeki plan — öncelik sırası
 
-1. **P0 · Fiziksel cihaz smoke testi:** iOS/Android preview build, eşleşme ve
-   mesaj push'u, bildirime dokununca doğru sohbetin açılması.
-2. **P0 · Auth yaşam döngüsü:** şifre sıfırlama/deep-link akışı ve gerçek test
-   hesabıyla hesap silmenin uçtan uca doğrulanması.
-3. **P0 · Yayın ve hukuk hazırlığı:** gizlilik politikası, kullanım koşulları,
-   KVKK aydınlatma/onay metinleri ve mağaza veri beyanları.
-4. **P1 · Moderasyon operasyonu:** bekleyen şikâyet kuyruğu, inceleme kararı ve
-   kötüye kullanım için denetim izi.
-5. **P1 · Sahip profili ve keşfet:** avatar/bio düzenleme, filtre ekranı ve
-   daha açıklayıcı boş sonuç önerileri.
-6. **P1 · Üretim görünürlüğü:** crash reporting, temel ürün analitiği ve
-   hata/performans alarmları.
+Yetkili ve numaralı plan [`docs/backlog.md`](docs/backlog.md) dosyasındadır.
+1 ve 3 tamamlandı; 2 fiziksel cihaz bekliyor. Kodlama sırası 4 → 9, ardından
+P2 maddeleridir.

@@ -8,9 +8,9 @@
 | Modül | Kapsam | Durum |
 |---|---|---|
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
-| Sahip profili | Opsiyonel ad, avatar, şehir, bio, **görünürlük tercihi** | ✅ onboarding + ad/şehir/görünürlük düzenleme · ⬜ avatar/bio düzenleme |
+| Sahip profili | Opsiyonel ad, avatar, şehir, bio, yaş/cinsiyet açıklaması, görünürlük ve pet buluşmasında sosyalleşme | ✅ tam düzenleme + private avatar + doğrulama başvurusu |
 | Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ tam düzenleme + fotoğraf ekleme/silme/sıralama |
-| Keşfet | Mesafe + tür + yaş filtresi, uyum skoruna göre sıralı playdate destesi | ✅ RPC + güvenli swipe + ekran |
+| Keşfet | Mesafe + pet filtreleri + karşılıklı sahip fotoğrafı/sosyal/verification/yaş/cinsiyet filtreleri | ✅ RPC + güvenli swipe + filtre ekranı |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
 | Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
 | Bildirim | Yeni eşleşme, yeni mesaj | ✅ istemci tercih/token akışı + Edge Function + EAS bağlantısı · ⏳ fiziksel cihaz build/test |
@@ -46,6 +46,24 @@ ikisi ayrışırsa sunucu tarafı bağlayıcıdır.
 `require_visible_owner` simetrik bir kullanıcı kuralı olduğu için yalnızca
 `profiles` tablosunda tutulur. `0012` migration'ı eski
 `discovery_preferences` kopyasını birleştirip kaldırır.
+
+Sahip fotoğrafı private `owner-avatars` bucket'ındadır. Yalnızca sahibi,
+public profil adayını gören oturum veya aktif eşleşmedeki karşı taraf kısa
+ömürlü signed URL üretebilir. `after_match` seçeneği aktif sohbet içinde sahip
+fotoğrafı, bio ve izin verilen yaş/cinsiyet özetini açar.
+
+## Pet buluşmasında sahip sosyalleşmesi
+
+Kullanıcı iki seçenekten birini seçer:
+
+- **Yalnızca petime arkadaş:** ürünün varsayılan pet↔pet akışı.
+- **Pet buluşmasında ben de sosyalleşmeye açığım:** genel arkadaşlık/flört
+  amacı değildir; ortak pet buluşmasındaki insan katmanını açık eder.
+
+İkinci seçenek için ad + sahip fotoğrafı + public sahip profili zorunludur.
+Sahip+pet birlikte fotoğraf doğrulaması ayrı bir güven rozetidir; sosyal modu
+ilk günden kilitlemez. Kullanıcı isterse keşfette yalnızca doğrulanmış sahipleri
+gösterir. Doğrulama onayı moderasyon kuyruğundan verilir.
 
 ## Amaç modeli
 

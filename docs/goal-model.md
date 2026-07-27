@@ -6,8 +6,9 @@
 
 Kurucu ilke tek cümle:
 
-> **Kullanıcıya kendisi hakkında bir niyet sorulmaz. Yalnızca peti hakkında
-> soru sorulur. İnsan katmanı bir beyan değil, bir görünürlük tercihidir.**
+> **Kullanıcıya romantik/ilişkisel bir niyet sorulmaz. Pet buluşması ana
+> bağlamdır; insan katmanı görünürlük ve “bu buluşmada ben de sosyalleşmeye
+> açığım” seçeneğiyle sınırlıdır.**
 
 Bu ilke ürünü jenerik bir "pet dating" uygulamasından ayırıyor, App Store
 konumlandırmasını temizliyor (dating app değil, pet uygulaması) ve en riskli
@@ -58,7 +59,7 @@ Sahiplendirme ayrı bir yüzey (bkz. §4), çünkü karşılıklı beğeni deği
 
 ---
 
-## 2. İnsan katmanı: beyan değil, görünürlük
+## 2. İnsan katmanı: görünürlük + pet buluşmasında sosyalleşme
 
 Aradığımız özellik şemada zaten var — `profiles.owner_visibility`:
 
@@ -69,8 +70,15 @@ Aradığımız özellik şemada zaten var — `profiles.owner_visibility`:
 | `public` | Sahip fotoğrafı ve kısa bio kartta görünür |
 
 Kimse "ilişki arıyorum" demiyor; kendini gösteriyor ya da göstermiyor. Köpek
-parkındaki gibi. Karşı taraftaki tek kontrol "sahibini de gösterenler"
-filtresi. Beyan yok, çıkarım var.
+parkındaki gibi. Karşı taraf "sahibini de gösterenler", "doğrulanmış sahip"
+ve karşılıklı olarak "pet buluşmasında sosyalleşmeye açık" filtrelerini
+kullanabilir.
+
+`owner_social_open` genel bir “kendime arkadaş arıyorum” alanı değildir.
+Yalnızca ortak pet buluşmasında sahibin de sohbete/sosyalleşmeye açık olduğunu
+anlatır. Açılması için sahip adı, private Storage'da sahip fotoğrafı ve
+`owner_visibility = 'public'` zorunludur. Kapanınca sosyal filtre tercihi de
+sunucuda otomatik kapanır.
 
 ### Karşılıklı açıklama kuralı
 
@@ -119,6 +127,10 @@ aralık filtre için fazlasıyla yeterli.
    gereksiz — cinsiyet seçilince görünürlük filtresi otomatik devreye girer.
 3. **UI dili güvenlik tarafında durur.** *"Kimlerle buluşmakta rahatsın?"* —
    *"Kimden hoşlanıyorsun?"* değil. Aynı veriyi toplar, farklı ürün kurar.
+4. **Cinsiyet/yaş filtre tercihi sunucuda saklanmaz.** Cihaz içi saklama
+   kullanıcı deneyimini korur ama hesap verisinden yönelim çıkarılmasını
+   engeller.
+5. **Kesin yaş çıkmaz.** 18–24, 25–29 ve sonrasında on yıllık kovalar görünür.
 
 ### Filtre satırı tek kalıyor
 

@@ -7,7 +7,8 @@ const corsHeaders = {
 
 type EventBody =
   | { type: "match"; matchId: string }
-  | { type: "message"; messageId: string };
+  | { type: "message"; messageId: string }
+  | { type: "new_candidate"; petId: string };
 
 type PushContent = {
   title: string;
@@ -40,7 +41,34 @@ function eventBody(value: unknown): EventBody | null {
   if (body.type === "message" && isUuid(body.messageId)) {
     return { type: "message", messageId: body.messageId };
   }
+  if (body.type === "new_candidate" && isUuid(body.petId)) {
+    return { type: "new_candidate", petId: body.petId };
+  }
   return null;
+}
+
+function haversineKm(
+  latitudeA: number,
+  longitudeA: number,
+  latitudeB: number,
+  longitudeB: number,
+): number {
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const latitudeDelta = radians(latitudeB - latitudeA);
+  const longitudeDelta = radians(longitudeB - longitudeA);
+  const value =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(latitudeA)) *
+      Math.cos(radians(latitudeB)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
+
+function petAgeYears(birthDate: string | null): number | null {
+  if (!birthDate) return null;
+  return (Date.now() - new Date(`${birthDate}T00:00:00Z`).getTime()) /
+    (365.25 * 24 * 60 * 60 * 1000);
 }
 
 async function claimAndSend(
@@ -53,10 +81,14 @@ async function claimAndSend(
   },
 ): Promise<"sent" | "skipped" | "duplicate"> {
   const preferenceColumn =
-    input.eventType === "match" ? "notify_on_match" : "notify_on_message";
+    input.eventType === "match"
+      ? "notify_on_match"
+      : input.eventType === "message"
+        ? "notify_on_message"
+        : "notify_on_new_candidates";
   const { data: preferences, error: preferenceError } = await admin
     .from("discovery_preferences")
-    .select("notify_on_match,notify_on_message")
+    .select("notify_on_match,notify_on_message,notify_on_new_candidates")
     .eq("user_id", input.recipientId)
     .single();
   if (preferenceError) throw preferenceError;
@@ -123,6 +155,20 @@ async function claimAndSend(
       .filter((token: string | null): token is string => Boolean(token));
     if (invalidTokens.length) {
       await admin.from("push_tokens").delete().in("token", invalidTokens);
+    }
+    const ticketErrors = tickets.filter(
+      (ticket: Record<string, unknown>) => ticket.status === "error",
+    );
+    if (ticketErrors.length) {
+      const firstError = ticketErrors[0] as Record<string, unknown>;
+      const details = firstError.details as Record<string, unknown> | undefined;
+      throw new Error(
+        typeof firstError.message === "string"
+          ? firstError.message
+          : typeof details?.error === "string"
+            ? details.error
+            : "Expo push ticket error",
+      );
     }
 
     const firstTicketId =
@@ -214,6 +260,153 @@ Deno.serve(async (request) => {
         },
       });
       return json({ status: result });
+    }
+
+    if (body.type === "new_candidate") {
+      const { data: newPet, error: petError } = await admin
+        .from("pets")
+        .select(
+          "id,owner_id,name,species,birth_date,latitude,longitude,goals,is_active,created_at",
+        )
+        .eq("id", body.petId)
+        .single();
+      if (
+        petError ||
+        !newPet?.is_active ||
+        newPet.owner_id !== authData.user.id ||
+        !newPet.goals?.includes("playdate")
+      ) {
+        return json({ error: "New candidate pet not found" }, 404);
+      }
+
+      const [{ data: ownerProfile }, { data: preferences, error: preferencesError }] =
+        await Promise.all([
+          admin
+            .from("profiles")
+            .select(
+              "owner_visibility,avatar_url,owner_social_open,verification_status,require_visible_owner",
+            )
+            .eq("id", newPet.owner_id)
+            .single(),
+          admin
+            .from("discovery_preferences")
+            .select(
+              "user_id,species,max_distance_km,min_age_years,max_age_years,require_owner_photo,require_owner_social,require_verified_owner,notify_on_new_candidates",
+            )
+            .eq("notify_on_new_candidates", true)
+            .contains("species", [newPet.species])
+            .neq("user_id", newPet.owner_id)
+            .limit(500),
+        ]);
+      if (preferencesError) throw preferencesError;
+      if (!ownerProfile || !preferences?.length) return json({ status: [] });
+
+      const preferenceUserIds = preferences.map(({ user_id }) => user_id);
+      const [
+        { data: viewerPets, error: viewerPetError },
+        { data: viewerProfiles, error: viewerProfileError },
+        { data: blocks, error: blocksError },
+      ] = await Promise.all([
+        admin
+          .from("pets")
+          .select("owner_id,latitude,longitude,is_active,goals")
+          .in("owner_id", preferenceUserIds)
+          .eq("is_active", true),
+        admin
+          .from("profiles")
+          .select("id,owner_visibility")
+          .in("id", preferenceUserIds),
+        admin
+          .from("blocks")
+          .select("blocker_id,blocked_id")
+          .or(`blocker_id.eq.${newPet.owner_id},blocked_id.eq.${newPet.owner_id}`),
+      ]);
+      if (viewerPetError) throw viewerPetError;
+      if (viewerProfileError) throw viewerProfileError;
+      if (blocksError) throw blocksError;
+
+      const blockedIds = new Set(
+        (blocks ?? []).map((block) =>
+          block.blocker_id === newPet.owner_id ? block.blocked_id : block.blocker_id
+        ),
+      );
+      const viewerPetByOwner = new Map(
+        (viewerPets ?? [])
+          .filter((pet) => pet.goals?.includes("playdate"))
+          .map((pet) => [pet.owner_id, pet]),
+      );
+      const viewerProfileById = new Map(
+        (viewerProfiles ?? []).map((profile) => [profile.id, profile]),
+      );
+      const age = petAgeYears(newPet.birth_date);
+      const recipients = preferences.filter((preference) => {
+        const viewerPet = viewerPetByOwner.get(preference.user_id);
+        const viewerProfile = viewerProfileById.get(preference.user_id);
+        if (!viewerPet || !viewerProfile || blockedIds.has(preference.user_id)) {
+          return false;
+        }
+        if (
+          ownerProfile.require_visible_owner &&
+          viewerProfile.owner_visibility === "hidden"
+        ) {
+          return false;
+        }
+        if (
+          preference.require_owner_photo &&
+          (!ownerProfile.avatar_url || ownerProfile.owner_visibility !== "public")
+        ) {
+          return false;
+        }
+        if (preference.require_owner_social && !ownerProfile.owner_social_open) {
+          return false;
+        }
+        if (
+          preference.require_verified_owner &&
+          ownerProfile.verification_status !== "approved"
+        ) {
+          return false;
+        }
+        if (
+          age !== null &&
+          ((preference.min_age_years !== null &&
+            age < Number(preference.min_age_years)) ||
+            (preference.max_age_years !== null &&
+              age > Number(preference.max_age_years)))
+        ) {
+          return false;
+        }
+        if (
+          newPet.latitude !== null &&
+          newPet.longitude !== null &&
+          viewerPet.latitude !== null &&
+          viewerPet.longitude !== null &&
+          haversineKm(
+            newPet.latitude,
+            newPet.longitude,
+            viewerPet.latitude,
+            viewerPet.longitude,
+          ) > preference.max_distance_km
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      const results = await Promise.all(
+        recipients.map(({ user_id }) =>
+          claimAndSend(admin, {
+            eventType: "new_candidate",
+            eventId: newPet.id,
+            recipientId: user_id,
+            content: {
+              title: "Keşfette yeni bir pet var 🐾",
+              body: `${newPet.name} filtrelerine uyuyor. Tanışmak için keşfete göz at.`,
+              data: { type: "new_candidate" },
+            },
+          }),
+        ),
+      );
+      return json({ status: results });
     }
 
     const { data: message, error: messageError } = await admin

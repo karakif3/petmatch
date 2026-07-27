@@ -38,6 +38,9 @@ const baseCtx = {
   preferences: prefs(),
   candidateOwnerVisible: true,
   candidateOwnerHasPhoto: true,
+  candidateOwnerSocialOpen: true,
+  candidateOwnerVerified: true,
+  viewerOwnerSocialOpen: true,
   candidateRequiresVisibleOwner: false,
   viewerRequiresVisibleOwner: false,
   viewerOwnerVisible: true,
@@ -164,6 +167,37 @@ describe("isEligible", () => {
     expect(isEligible(candidate, { ...withPhotoFilter, candidateOwnerHasPhoto: false })).toBe(false);
     // Fotoğrafı var ama profili gizli — filtrenin vaadi "sahibini görebileceğim".
     expect(isEligible(candidate, { ...withPhotoFilter, candidateOwnerVisible: false })).toBe(false);
+  });
+
+  it("sahip sosyalleşmesi filtresini karşılıklı uygular", () => {
+    const viewer = pet();
+    const candidate = pet({ id: "p2", ownerId: "owner-2" });
+    const socialFilter = {
+      viewer,
+      ...baseCtx,
+      preferences: prefs({ requireOwnerSocial: true }),
+    };
+
+    expect(isEligible(candidate, socialFilter)).toBe(true);
+    expect(
+      isEligible(candidate, { ...socialFilter, candidateOwnerSocialOpen: false }),
+    ).toBe(false);
+    expect(
+      isEligible(candidate, { ...socialFilter, viewerOwnerSocialOpen: false }),
+    ).toBe(false);
+  });
+
+  it("doğrulanmış sahip filtresi onaysız profili eler", () => {
+    const viewer = pet();
+    const candidate = pet({ id: "p2", ownerId: "owner-2" });
+    expect(
+      isEligible(candidate, {
+        viewer,
+        ...baseCtx,
+        preferences: prefs({ requireVerifiedOwner: true }),
+        candidateOwnerVerified: false,
+      }),
+    ).toBe(false);
   });
 });
 

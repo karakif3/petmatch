@@ -6,6 +6,13 @@ PetMatch, kedi ve köpek sahiplerinin yakınlarında güvenli oyun arkadaşları
 bulmasına yardımcı olan sıcak ve güvenilir bir tüketici markasıdır. Tonu
 samimi, açık ve hayvan odaklıdır; romantik eşleşme uygulaması diline kaymaz.
 
+## Motto
+
+Birincil motto **“For pets. For their people.”** ifadesidir. Kısa, sahipleri
+ikincil görmeden pet odağını korur. **“Only for pets and their owners.”**
+yalnızca kapsamı açıklayan destek cümlesi olarak kullanılabilir; ana motto
+değildir.
+
 ## İşaret
 
 Marka işareti birbirine dönük bir kedi ve köpeği tek kalp formunda birleştirir.
