@@ -670,6 +670,7 @@ export type Database = {
     }
     Functions: {
       activity_bucket: { Args: { p_last_active: string }; Returns: string }
+      block_user: { Args: { p_blocked_id: string }; Returns: undefined }
       blocked_user_ids: { Args: never; Returns: string[] }
       complete_adoption: { Args: { p_interest_id: string }; Returns: undefined }
       confirm_adoption_listing: {
@@ -817,6 +818,10 @@ export type Database = {
         Args: { p_platform: string; p_token: string }
         Returns: undefined
       }
+      replace_pet_photo_order: {
+        Args: { p_pet_id: string; p_storage_paths: string[] }
+        Returns: undefined
+      }
       report_content: {
         Args: {
           p_note?: string
@@ -848,7 +853,28 @@ export type Database = {
       }
       touch_last_active: { Args: never; Returns: undefined }
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
+      unmatch_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
       unregister_push_token: { Args: { p_token: string }; Returns: undefined }
+      update_my_pet_profile: {
+        Args: {
+          p_bio: string
+          p_birth_date: string
+          p_breed: string
+          p_energy_level: number
+          p_good_with_cats: boolean
+          p_good_with_dogs: boolean
+          p_good_with_kids: boolean
+          p_is_neutered: boolean
+          p_name: string
+          p_pet_id: string
+          p_size: Database["public"]["Enums"]["pet_size"]
+          p_temperaments: string[]
+        }
+        Returns: string
+      }
       update_my_profile: {
         Args: {
           p_city: string

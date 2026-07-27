@@ -75,6 +75,14 @@ iki SECURITY DEFINER fonksiyonu kondu:
 - `register_push_token()` / `unregister_push_token()` → cihaz tokenını oturum
   sahibine bağlayan dar yazma yolları
 - `update_notification_preferences()` → eşleşme ve mesaj tercihlerini günceller
+- `block_user(user_id)` → kendini/olmayan kullanıcıyı reddedip engelleme
+  tetikleyicisini çalıştırır
+- `unmatch_conversation(conversation_id)` → yalnızca katılımcısı olunan aktif
+  eşleşmeyi ve konuşmayı kapatır
+- `update_my_pet_profile(...)` → yalnızca oturum sahibinin aktif petindeki
+  düzenlenebilir profil alanlarını doğrulayıp günceller
+- `replace_pet_photo_order(pet_id, paths)` → sahipliği ve storage yol önekini
+  doğrulayıp 1–6 fotoğrafın sırasını tek transaction'da değiştirir
 
 `supabase/functions/send-notification` istemcinin oturum JWT'sini tekrar
 doğrular, bildirime konu match/message kaydının gerçekten çağırana ait
@@ -83,6 +91,12 @@ olduğunu kontrol eder ve yalnızca karşı katılımcının tokenlarına gönde
 tekrarlarında çift bildirim çıkmasını engeller. Tokenlar hiçbir istemciye
 SELECT ettirilmez; teslimat ve geçersiz-token temizliği `service_role` ile
 Edge Function içinde kalır.
+
+`supabase/functions/delete-account` da oturum JWT'sini yeniden doğrular.
+Kullanıcının pet ve avatar dosyalarını Storage'dan temizledikten sonra Auth
+kullanıcısını Admin API ile siler; profil ilişkilerindeki `on delete cascade`
+kuralları uygulama verilerini aynı işlem zincirinde kaldırır. Service role
+anahtarı istemciye çıkmaz.
 
 Kural: **bir tabloda tek bir kolonun değişmesi bekleniyorsa UPDATE politikası
 değil RPC yaz.**

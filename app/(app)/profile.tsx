@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,12 +17,14 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 import {
   loadEditableProfile,
   updateEditableProfile,
   updateNotificationPreferences,
 } from "../../core/api/profile";
+import { deleteAccount } from "../../core/api/safety";
 import {
   registerForPushNotifications,
   unregisterCurrentPushToken,
@@ -106,6 +109,7 @@ export default function ProfileScreen() {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -195,6 +199,50 @@ export default function ProfileScreen() {
     }
   };
 
+  const removeAccount = async () => {
+    setDeleteBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await deleteAccount();
+      queryClient.clear();
+      await signOut();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : "Hesap silinemedi.",
+      );
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  const confirmAccountDeletion = () => {
+    Alert.alert(
+      "Hesabını silmek istiyor musun?",
+      "Profilin, petlerin, fotoğrafların, eşleşmelerin ve mesajların kalıcı olarak silinir.",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        {
+          text: "Devam et",
+          style: "destructive",
+          onPress: () =>
+            Alert.alert(
+              "Bu işlem geri alınamaz",
+              "Hesabı ve tüm verileri şimdi kalıcı olarak sil?",
+              [
+                { text: "Vazgeç", style: "cancel" },
+                {
+                  text: "Hesabımı sil",
+                  style: "destructive",
+                  onPress: () => void removeAccount(),
+                },
+              ],
+            ),
+        },
+      ],
+    );
+  };
+
   if (profile.isLoading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-bg-primary">
@@ -262,6 +310,15 @@ export default function ProfileScreen() {
               <Text className="mt-1 text-sm text-text-secondary">
                 {profile.data.pet.species === "dog" ? "Köpek" : "Kedi"} · Aktif profil
               </Text>
+              <Pressable
+                onPress={() => router.push("/profile/pet")}
+                className="mt-3 self-start flex-row items-center rounded-lg bg-brand/10 px-3 py-2"
+              >
+                <Ionicons name="create-outline" color="#E0523F" size={16} />
+                <Text className="ml-1.5 text-xs font-bold text-brand-dark">
+                  Pet profilini düzenle
+                </Text>
+              </Pressable>
             </View>
           </View>
 
@@ -399,11 +456,30 @@ export default function ProfileScreen() {
 
           <Pressable
             onPress={signOut}
-            disabled={saveBusy}
+            disabled={saveBusy || deleteBusy}
             className="mt-8 items-center rounded-xl border border-border py-4"
           >
             <Text className="font-semibold text-danger">Çıkış yap</Text>
           </Pressable>
+
+          <View className="mt-8 rounded-2xl border border-danger/20 bg-danger/5 p-4">
+            <Text className="font-bold text-danger">Hesabı sil</Text>
+            <Text className="mt-2 text-xs leading-5 text-text-secondary">
+              Hesabınla birlikte pet profilleri, fotoğraflar, eşleşmeler ve mesajlar
+              kalıcı olarak kaldırılır.
+            </Text>
+            <Pressable
+              onPress={confirmAccountDeletion}
+              disabled={saveBusy || deleteBusy}
+              className="mt-4 items-center rounded-xl border border-danger py-3 disabled:opacity-50"
+            >
+              {deleteBusy ? (
+                <ActivityIndicator color="#E5484D" />
+              ) : (
+                <Text className="font-bold text-danger">Hesabımı kalıcı olarak sil</Text>
+              )}
+            </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

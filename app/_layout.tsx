@@ -145,6 +145,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="(app)" />
           <Stack.Screen name="chat/[conversationId]" />
+          <Stack.Screen name="profile/pet" />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

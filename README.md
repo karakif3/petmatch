@@ -11,7 +11,7 @@ kılabilir.
 |---|---|
 | Platform | Expo (iOS · Android · web) |
 | Backend | Supabase — Postgres + RLS + Storage + Auth |
-| Durum | **Erken MVP** — onboarding, keşfet, eşleşme, sohbet ve temel profil düzenleme hazır |
+| Durum | **Erken MVP** — ana akış, güvenlik işlemleri ve tam pet profil düzenleme hazır |
 
 ---
 
@@ -49,10 +49,12 @@ npm run gen:types
 Migration'lar sırayla temel şemayı, RLS/storage katmanını, amaç ve konuşma
 modelini, moderasyonu, sahiplendirmeyi ve dar RPC yazma yollarını kurar.
 
-Push bildirim göndericisi ayrıca Edge Function olarak dağıtılır:
+Push bildirim göndericisi ve hesap silme işlevi ayrıca Edge Function olarak
+dağıtılır:
 
 ```bash
 supabase functions deploy send-notification --use-api
+supabase functions deploy delete-account --use-api
 ```
 
 EAS projesi bağlıdır. Push bildirimleri Expo Go ve simülatör yerine
@@ -83,7 +85,8 @@ supabase/
               0015 inbox + sohbet yaşam döngüsü · 0016 trigger sırası
               0017 inbox sahip gizliliği · 0018 opsiyonel sahip adı + profil
               0019 push tokenları + bildirim tercihleri
-  functions/  yeni eşleşme/mesaj için güvenli Expo Push göndericisi
+              0020 güvenlik işlemleri + tam pet profil yazma yolları
+  functions/  güvenli Expo Push göndericisi + hesap/storage silme
 docs/
 ```
 
@@ -107,5 +110,22 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 - [x] Keşfet kart destesi (`discover_playdate_pets` RPC → `rankCandidates`)
 - [x] Eşleşme listesi + Realtime sohbet ekranı
 - [x] Konum izni + konum güncelleme
+- [x] Şikâyet, engelleme, eşleşmeyi kaldırma ve hesap silme
+- [x] Tam pet profil düzenleme + 1–6 fotoğraf ekleme/silme/sıralama
 - [ ] Bildirimler — istemci + Supabase + EAS hazır; fiziksel cihaz build/test bekliyor
 - [x] Marka çalışması — PetMatch adı, palet, app/adaptive/splash icon ve favicon
+
+### Önümüzdeki plan — öncelik sırası
+
+1. **P0 · Fiziksel cihaz smoke testi:** iOS/Android preview build, eşleşme ve
+   mesaj push'u, bildirime dokununca doğru sohbetin açılması.
+2. **P0 · Auth yaşam döngüsü:** şifre sıfırlama/deep-link akışı ve gerçek test
+   hesabıyla hesap silmenin uçtan uca doğrulanması.
+3. **P0 · Yayın ve hukuk hazırlığı:** gizlilik politikası, kullanım koşulları,
+   KVKK aydınlatma/onay metinleri ve mağaza veri beyanları.
+4. **P1 · Moderasyon operasyonu:** bekleyen şikâyet kuyruğu, inceleme kararı ve
+   kötüye kullanım için denetim izi.
+5. **P1 · Sahip profili ve keşfet:** avatar/bio düzenleme, filtre ekranı ve
+   daha açıklayıcı boş sonuç önerileri.
+6. **P1 · Üretim görünürlüğü:** crash reporting, temel ürün analitiği ve
+   hata/performans alarmları.

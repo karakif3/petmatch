@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +24,9 @@ import {
   subscribeToConversation,
   type ChatMessage,
 } from "../../core/api/conversations";
+import { ReportModal } from "../../components/report-modal";
+import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { useAuthStore } from "../../stores/auth";
 
 function messageTime(value: string): string {
@@ -64,6 +68,9 @@ export default function ChatScreen() {
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const [body, setBody] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [safetyVisible, setSafetyVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [safetyBusy, setSafetyBusy] = useState(false);
 
   const conversation = useQuery({
     queryKey: ["conversation", conversationId],
@@ -122,6 +129,51 @@ export default function ChatScreen() {
     conversation.data?.counterpartDisplayName ??
     "Konuşma";
 
+  const closeConversation = async (action: "block" | "unmatch") => {
+    const counterpartUserId = conversation.data?.counterpartUserId;
+    if (action === "block" && !counterpartUserId) {
+      setSendError("Engellenecek kullanıcı bulunamadı.");
+      return;
+    }
+    setSafetyBusy(true);
+    setSendError(null);
+    try {
+      if (action === "block") await blockUser(counterpartUserId!);
+      else await unmatchConversation(conversationId);
+      setSafetyVisible(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+        queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+      ]);
+      router.replace("/(app)/matches");
+    } catch (actionError) {
+      setSendError(
+        actionError instanceof Error ? actionError.message : "İşlem tamamlanamadı.",
+      );
+    } finally {
+      setSafetyBusy(false);
+    }
+  };
+
+  const confirmSafetyAction = (action: "block" | "unmatch") => {
+    setSafetyVisible(false);
+    const blocking = action === "block";
+    Alert.alert(
+      blocking ? "Kullanıcı engellensin mi?" : "Eşleşme kaldırılsın mı?",
+      blocking
+        ? "Birbirinizi göremez ve mesajlaşamazsınız. Bu işlem konuşmayı kapatır."
+        : "Konuşma kapanır ve yeni mesaj gönderilemez.",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        {
+          text: blocking ? "Engelle" : "Eşleşmeyi kaldır",
+          style: "destructive",
+          onPress: () => void closeConversation(action),
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">
       <KeyboardAvoidingView
@@ -155,6 +207,14 @@ export default function ChatScreen() {
               {conversation.data?.isActive ? "Konuşma açık" : "Konuşma kapatıldı"}
             </Text>
           </View>
+          <Pressable
+            onPress={() => setSafetyVisible(true)}
+            disabled={safetyBusy || !conversation.data}
+            accessibilityLabel="Konuşma güvenliği"
+            className="h-10 w-10 items-center justify-center rounded-full disabled:opacity-40"
+          >
+            <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
+          </Pressable>
         </View>
 
         {conversation.isLoading || messages.isLoading ? (
@@ -249,6 +309,27 @@ export default function ChatScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
+      <SafetyMenuModal
+        visible={safetyVisible}
+        canUnmatch={conversation.data?.kind === "match" && conversation.data.isActive}
+        busy={safetyBusy}
+        onClose={() => setSafetyVisible(false)}
+        onReport={() => {
+          setSafetyVisible(false);
+          setReportVisible(true);
+        }}
+        onBlock={() => confirmSafetyAction("block")}
+        onUnmatch={() => confirmSafetyAction("unmatch")}
+      />
+      <ReportModal
+        visible={reportVisible}
+        subjectUserId={conversation.data?.counterpartUserId}
+        subjectPetId={conversation.data?.petId}
+        onClose={() => setReportVisible(false)}
+        onReported={() =>
+          Alert.alert("Teşekkürler", "Şikâyetin inceleme kuyruğuna alındı.")
+        }
+      />
     </SafeAreaView>
   );
 }

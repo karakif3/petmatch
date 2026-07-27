@@ -11,7 +11,7 @@ plan kotası (aşağıda).
 |---|---|---|
 | Node + npm | ✅ var | v26.5.0 |
 | Expo CLI | ✅ hesap gerekmez | `npx expo start` giriş istemiyor |
-| Supabase | ✅ proje bağlı | Migration ve generated type akışı hazır |
+| Supabase | ✅ proje bağlı | Migration, generated type ve iki Edge Function akışı hazır |
 | Expo / EAS | ✅ proje bağlı | `@karakif/petmatch`; development/preview/production profilleri hazır |
 
 ## Supabase — tek gerçek kısıt

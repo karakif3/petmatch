@@ -9,12 +9,12 @@
 |---|---|---|
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
 | Sahip profili | Opsiyonel ad, avatar, şehir, bio, **görünürlük tercihi** | ✅ onboarding + ad/şehir/görünürlük düzenleme · ⬜ avatar/bio düzenleme |
-| Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ onboarding + ad/konum düzenleme + fotoğraf · ⬜ diğer ayrıntıları düzenleme |
+| Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ tam düzenleme + fotoğraf ekleme/silme/sıralama |
 | Keşfet | Mesafe + tür + yaş filtresi, uyum skoruna göre sıralı playdate destesi | ✅ RPC + güvenli swipe + ekran |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
 | Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
 | Bildirim | Yeni eşleşme, yeni mesaj | ✅ istemci tercih/token akışı + Edge Function + EAS bağlantısı · ⏳ fiziksel cihaz build/test |
-| Güvenlik | Engelle, şikayet et, hesap silme | ✅ DB · ⬜ ekran |
+| Güvenlik | Engelle, şikayet et, eşleşmeyi kaldır, hesap silme | ✅ DB + keşfet/sohbet/profil ekranları |
 | Ayarlar | Görünürlük, bildirim, konum, dil | ✅ görünürlük + bildirim + konum · ⬜ dil |
 
 Pet adı zorunludur ve ürünün birincil görünen kimliğidir. Sahip adı

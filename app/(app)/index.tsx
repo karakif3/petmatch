@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -9,18 +10,25 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DiscoveryCard } from "../../components/discovery-card";
+import { ReportModal } from "../../components/report-modal";
+import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import { loadDiscoveryDeck, swipePet } from "../../core/api/discovery";
+import { blockUser } from "../../core/api/safety";
 import type { SwipeDirection } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
 
 export default function DiscoverScreen() {
   const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [matchName, setMatchName] = useState<string | null>(null);
+  const [safetyVisible, setSafetyVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [safetyBusy, setSafetyBusy] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const deck = useQuery({
@@ -80,6 +88,42 @@ export default function DiscoverScreen() {
     setMatchName(null);
     setError(null);
     await deck.refetch();
+  };
+
+  const confirmBlock = () => {
+    if (!currentCard) return;
+    setSafetyVisible(false);
+    Alert.alert(
+      "Kullanıcı engellensin mi?",
+      `${currentCard.name} ve sahibi artık keşfette görünmez. Varsa konuşmalarınız kapanır.`,
+      [
+        { text: "Vazgeç", style: "cancel" },
+        {
+          text: "Engelle",
+          style: "destructive",
+          onPress: () => {
+            setSafetyBusy(true);
+            void blockUser(currentCard.ownerId)
+              .then(async () => {
+                setDismissedIds((ids) => [...ids, currentCard.id]);
+                setError(null);
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+                  queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+                ]);
+              })
+              .catch((blockError) => {
+                setError(
+                  blockError instanceof Error
+                    ? blockError.message
+                    : "Kullanıcı engellenemedi.",
+                );
+              })
+              .finally(() => setSafetyBusy(false));
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -177,7 +221,17 @@ export default function DiscoverScreen() {
 
         {currentCard ? (
           <>
-            <DiscoveryCard card={currentCard} />
+            <View>
+              <DiscoveryCard card={currentCard} />
+              <Pressable
+                onPress={() => setSafetyVisible(true)}
+                disabled={safetyBusy}
+                accessibilityLabel="Profil güvenliği"
+                className="absolute right-3 top-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
+              >
+                <Ionicons name="ellipsis-horizontal" color="#FFFFFF" size={23} />
+              </Pressable>
+            </View>
 
             {error ? (
               <View className="mt-4 rounded-xl border border-danger/30 bg-danger/10 p-3">
@@ -210,6 +264,26 @@ export default function DiscoverScreen() {
           </>
         ) : null}
       </ScrollView>
+      <SafetyMenuModal
+        visible={safetyVisible}
+        busy={safetyBusy}
+        onClose={() => setSafetyVisible(false)}
+        onReport={() => {
+          setSafetyVisible(false);
+          setReportVisible(true);
+        }}
+        onBlock={confirmBlock}
+      />
+      <ReportModal
+        visible={reportVisible}
+        subjectUserId={currentCard?.ownerId}
+        subjectPetId={currentCard?.id}
+        onClose={() => setReportVisible(false)}
+        onReported={() => {
+          setError(null);
+          Alert.alert("Teşekkürler", "Şikâyetin inceleme kuyruğuna alındı.");
+        }}
+      />
     </SafeAreaView>
   );
 }
