@@ -489,7 +489,7 @@ export type Database = {
           birth_date: string | null
           city: string | null
           created_at: string
-          display_name: string
+          display_name: string | null
           gender: string | null
           id: string
           last_active_at: string
@@ -508,7 +508,7 @@ export type Database = {
           birth_date?: string | null
           city?: string | null
           created_at?: string
-          display_name: string
+          display_name?: string | null
           gender?: string | null
           id: string
           last_active_at?: string
@@ -527,7 +527,7 @@ export type Database = {
           birth_date?: string | null
           city?: string | null
           created_at?: string
-          display_name?: string
+          display_name?: string | null
           gender?: string | null
           id?: string
           last_active_at?: string
@@ -800,6 +800,18 @@ export type Database = {
       }
       touch_last_active: { Args: never; Returns: undefined }
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
+      update_my_profile: {
+        Args: {
+          p_city: string
+          p_display_name: string
+          p_latitude: number
+          p_longitude: number
+          p_owner_visibility: Database["public"]["Enums"]["owner_visibility"]
+          p_pet_name: string
+          p_update_location: boolean
+        }
+        Returns: string
+      }
       visible_pet_ids: { Args: never; Returns: string[] }
       withdraw_adoption_interest: {
         Args: { p_interest_id: string }

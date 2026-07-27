@@ -8,14 +8,18 @@
 | Modül | Kapsam | Durum |
 |---|---|---|
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
-| Sahip profili | Ad, avatar, şehir, bio, **görünürlük tercihi** | ✅ onboarding temel alanları · ⬜ avatar/bio düzenleme |
-| Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ onboarding temel alanları + fotoğraf · ⬜ ayrıntılı düzenleme |
+| Sahip profili | Opsiyonel ad, avatar, şehir, bio, **görünürlük tercihi** | ✅ onboarding + ad/şehir/görünürlük düzenleme · ⬜ avatar/bio düzenleme |
+| Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ onboarding + ad/konum düzenleme + fotoğraf · ⬜ diğer ayrıntıları düzenleme |
 | Keşfet | Mesafe + tür + yaş filtresi, uyum skoruna göre sıralı playdate destesi | ✅ RPC + güvenli swipe + ekran |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
 | Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
 | Bildirim | Yeni eşleşme, yeni mesaj | ⬜ |
 | Güvenlik | Engelle, şikayet et, hesap silme | ✅ DB · ⬜ ekran |
-| Ayarlar | Görünürlük, bildirim, konum, dil | ⬜ |
+| Ayarlar | Görünürlük, bildirim, konum, dil | ✅ görünürlük + konum · ⬜ bildirim + dil |
+
+Pet adı zorunludur ve ürünün birincil görünen kimliğidir. Sahip adı
+opsiyoneldir; boş bırakıldığında sahibi görünür yapma tercihi diğer profil
+bilgilerini açabilir fakat bir ad metni gösterilmez.
 
 ## Kapsam dışı (sonraki faz)
 

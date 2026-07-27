@@ -47,7 +47,7 @@ export type Coordinates = {
 
 export type OwnerProfile = {
   id: string; // = auth.users.id
-  displayName: string;
+  displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
   city: string | null;

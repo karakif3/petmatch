@@ -106,7 +106,6 @@ export default function OnboardingScreen() {
   const next = () => {
     setError(null);
     if (step === 0) {
-      if (!displayName.trim()) return setError("Adını yazmalısın.");
       if (!isAdultDate(ownerBirthDate)) {
         return setError("Geçerli bir doğum tarihi yazmalısın ve 18 yaşında olmalısın.");
       }
@@ -238,13 +237,16 @@ export default function OnboardingScreen() {
         {step === 0 ? (
           <>
             <Field
-              label="Adın"
+              label="Adın (opsiyonel)"
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Sana nasıl hitap edelim?"
               autoCapitalize="words"
               maxLength={60}
             />
+            <Text className="-mt-2 mb-4 text-xs text-text-tertiary">
+              Petinin adı profilde her zaman görünür; kendi adını paylaşmak zorunda değilsin.
+            </Text>
             <Field
               label="Doğum tarihin"
               value={ownerBirthDate}

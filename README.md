@@ -11,7 +11,7 @@ kılabilir.
 |---|---|
 | Platform | Expo (iOS · Android · web) |
 | Backend | Supabase — Postgres + RLS + Storage + Auth |
-| Durum | **Erken MVP** — şema, auth ve onboarding hazır; ana ürün ekranları yer tutucu |
+| Durum | **Erken MVP** — onboarding, keşfet, eşleşme, sohbet ve temel profil düzenleme hazır |
 
 ---
 
@@ -70,7 +70,7 @@ supabase/
               0011 sahiplendirme ilanları · 0012 bütünlük + konuşma üyeliği
               0013 playdate keşfet + güvenli swipe · 0014 swipe uygunluğu
               0015 inbox + sohbet yaşam döngüsü · 0016 trigger sırası
-              0017 inbox sahip gizliliği
+              0017 inbox sahip gizliliği · 0018 opsiyonel sahip adı + profil
 docs/
 ```
 
@@ -82,8 +82,8 @@ docs/
 npm test
 ```
 
-Eşleşme mantığı (`core/domain/matching.test.ts`) testli — skorlama, eleme
-kuralları ve çift yönlü görünürlük zorunluluğu kapsanıyor.
+Eşleşme mantığı ve tarih kuralları testli — skorlama, eleme, çift yönlü
+görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 
 ---
 
@@ -93,6 +93,6 @@ kuralları ve çift yönlü görünürlük zorunluluğu kapsanıyor.
 - [x] Onboarding + pet profili oluşturma ekranı
 - [x] Keşfet kart destesi (`discover_playdate_pets` RPC → `rankCandidates`)
 - [x] Eşleşme listesi + Realtime sohbet ekranı
-- [ ] Konum izni + konum güncelleme
+- [x] Konum izni + konum güncelleme
 - [ ] Bildirimler
 - [ ] Marka çalışması (isim, palet, ikon) — palet şu an yer tutucu

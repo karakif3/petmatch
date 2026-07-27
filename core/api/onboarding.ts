@@ -9,7 +9,7 @@ export type OnboardingPhoto = {
 
 export type OnboardingInput = {
   userId: string;
-  displayName: string;
+  displayName: string | null;
   ownerBirthDate: string;
   city: string;
   ownerVisibility: OwnerVisibility;
@@ -51,7 +51,7 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
   const { error: profileError } = await sb
     .from("profiles")
     .update({
-      display_name: input.displayName.trim(),
+      display_name: input.displayName?.trim() || null,
       birth_date: input.ownerBirthDate,
       city: input.city.trim(),
       owner_visibility: input.ownerVisibility,

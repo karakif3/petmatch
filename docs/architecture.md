@@ -70,6 +70,8 @@ iki SECURITY DEFINER fonksiyonu kondu:
 - `withdraw_adoption_interest(id)` → yalnızca pending başvuruyu geri çeker
 - `swipe_pet(from, to, direction)` → aktif playdate petlerini doğrulayıp swipe yazar
 - `mark_onboarding_complete()` → 18+, aktif pet ve fotoğraf şartını doğrular
+- `update_my_profile()` → opsiyonel sahip adı, zorunlu pet adı, şehir,
+  görünürlük ve yuvarlanmış konumu tek transaction'da günceller
 
 Kural: **bir tabloda tek bir kolonun değişmesi bekleniyorsa UPDATE politikası
 değil RPC yaz.**
