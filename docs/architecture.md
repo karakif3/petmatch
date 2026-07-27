@@ -72,6 +72,17 @@ iki SECURITY DEFINER fonksiyonu kondu:
 - `mark_onboarding_complete()` → 18+, aktif pet ve fotoğraf şartını doğrular
 - `update_my_profile()` → opsiyonel sahip adı, zorunlu pet adı, şehir,
   görünürlük ve yuvarlanmış konumu tek transaction'da günceller
+- `register_push_token()` / `unregister_push_token()` → cihaz tokenını oturum
+  sahibine bağlayan dar yazma yolları
+- `update_notification_preferences()` → eşleşme ve mesaj tercihlerini günceller
+
+`supabase/functions/send-notification` istemcinin oturum JWT'sini tekrar
+doğrular, bildirime konu match/message kaydının gerçekten çağırana ait
+olduğunu kontrol eder ve yalnızca karşı katılımcının tokenlarına gönderir.
+`notification_deliveries` bir event/alıcı çiftini tekilleştirerek istemci
+tekrarlarında çift bildirim çıkmasını engeller. Tokenlar hiçbir istemciye
+SELECT ettirilmez; teslimat ve geçersiz-token temizliği `service_role` ile
+Edge Function içinde kalır.
 
 Kural: **bir tabloda tek bir kolonun değişmesi bekleniyorsa UPDATE politikası
 değil RPC yaz.**

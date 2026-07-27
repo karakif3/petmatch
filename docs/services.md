@@ -12,6 +12,7 @@ plan kotası (aşağıda).
 | Node + npm | ✅ var | v26.5.0 |
 | Expo CLI | ✅ hesap gerekmez | `npx expo start` giriş istemiyor |
 | Supabase | ✅ proje bağlı | Migration ve generated type akışı hazır |
+| Expo / EAS | ⏳ giriş gerekli | Push için `eas login` + `eas init`; CLI şu anda oturum açmamış |
 
 ## Supabase — tek gerçek kısıt
 
@@ -36,7 +37,7 @@ Seçenekler:
 |---|---|---|
 | Apple Developer | ❌ hayır | Mevcut $99/yıl üyelik; yeni Bundle ID (`com.petmatch.app`) |
 | Google Play Console | ❌ hayır | Mevcut geliştirici hesabı; yeni uygulama kaydı |
-| Expo / EAS | ❌ hayır | Mevcut hesap; yeni slug (`petmatch`) |
+| Expo / EAS | ❌ hayır | Yukarı taşındı: push bildirimleri için artık gerekiyor |
 | Google Sign-In | ❌ hayır | Aynı Google Cloud projesi; yeni bundle için yeni OAuth client ID |
 | Apple Sign-In | ❌ hayır | Aynı Apple hesabı; yeni App ID üzerinde capability |
 | PostHog | ❌ hayır | Mevcut hesap; yeni proje + API key |

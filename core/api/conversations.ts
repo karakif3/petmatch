@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import type { Database } from "../../types/database";
+import { requestNotificationDelivery } from "./notifications";
 import { requireSupabaseClient } from "./supabase.client";
 
 type ConversationRow =
@@ -103,7 +104,13 @@ export async function sendMessage(input: {
     .select()
     .single();
   if (error) throw error;
-  return mapMessage(data);
+  const message = mapMessage(data);
+  void requestNotificationDelivery({ type: "message", messageId: message.id }).catch(
+    (notificationError) => {
+      console.error("Mesaj bildirimi gönderilemedi:", notificationError);
+    },
+  );
+  return message;
 }
 
 export async function markConversationRead(conversationId: string): Promise<void> {

@@ -8,6 +8,7 @@ import {
   type SwipeDirection,
   type Temperament,
 } from "../domain/types";
+import { requestNotificationDelivery } from "./notifications";
 import { requireSupabaseClient } from "./supabase.client";
 
 type PetRow = Database["public"]["Tables"]["pets"]["Row"];
@@ -136,5 +137,12 @@ export async function swipePet(input: {
     p_direction: input.direction,
   });
   if (error) throw error;
+  if (data) {
+    void requestNotificationDelivery({ type: "match", matchId: data }).catch(
+      (notificationError) => {
+        console.error("Eşleşme bildirimi gönderilemedi:", notificationError);
+      },
+    );
+  }
   return data ?? null;
 }

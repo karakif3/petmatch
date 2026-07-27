@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 
+import { unregisterCurrentPushToken } from "../core/api/notifications";
 import { getSupabaseClient, requireSupabaseClient } from "../core/api/supabase.client";
 
 async function readOnboardingStatus(userId: string): Promise<boolean> {
@@ -123,6 +124,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     const sb = getSupabaseClient();
+    try {
+      await unregisterCurrentPushToken();
+    } catch (error) {
+      // Oturum kapatma, token temizliği geçici olarak başarısız olsa bile
+      // engellenmez. Sonraki girişte token yeni kullanıcıya yeniden atanır.
+      console.error("Push tokenı kaldırılamadı:", error);
+    }
     await sb?.auth.signOut();
     set({ session: null, user: null, onboarded: null });
   },

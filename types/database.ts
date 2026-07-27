@@ -364,6 +364,47 @@ export type Database = {
           },
         ]
       }
+      notification_deliveries: {
+        Row: {
+          attempted_at: string
+          event_id: string
+          event_type: string
+          last_error: string | null
+          recipient_id: string
+          sent_at: string | null
+          status: string
+          ticket_id: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          event_id: string
+          event_type: string
+          last_error?: string | null
+          recipient_id: string
+          sent_at?: string | null
+          status?: string
+          ticket_id?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          event_id?: string
+          event_type?: string
+          last_error?: string | null
+          recipient_id?: string
+          sent_at?: string | null
+          status?: string
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_photos: {
         Row: {
           created_at: string
@@ -547,18 +588,21 @@ export type Database = {
           created_at: string
           platform: string
           token: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           platform: string
           token: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           platform?: string
           token?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -769,6 +813,10 @@ export type Database = {
         Args: { p_days?: number }
         Returns: number
       }
+      register_push_token: {
+        Args: { p_platform: string; p_token: string }
+        Returns: undefined
+      }
       report_content: {
         Args: {
           p_note?: string
@@ -800,6 +848,7 @@ export type Database = {
       }
       touch_last_active: { Args: never; Returns: undefined }
       unmatch: { Args: { p_match_id: string }; Returns: undefined }
+      unregister_push_token: { Args: { p_token: string }; Returns: undefined }
       update_my_profile: {
         Args: {
           p_city: string
@@ -811,6 +860,10 @@ export type Database = {
           p_update_location: boolean
         }
         Returns: string
+      }
+      update_notification_preferences: {
+        Args: { p_notify_on_match: boolean; p_notify_on_message: boolean }
+        Returns: undefined
       }
       visible_pet_ids: { Args: never; Returns: string[] }
       withdraw_adoption_interest: {

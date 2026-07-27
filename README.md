@@ -48,6 +48,17 @@ npm run gen:types
 Migration'lar sırayla temel şemayı, RLS/storage katmanını, amaç ve konuşma
 modelini, moderasyonu, sahiplendirmeyi ve dar RPC yazma yollarını kurar.
 
+Push bildirim göndericisi ayrıca Edge Function olarak dağıtılır:
+
+```bash
+supabase functions deploy send-notification --use-api
+```
+
+Gerçek cihaz push tokenı için Expo hesabında `eas login` ve `eas init`
+çalıştırılarak üretilen `extra.eas.projectId` uygulama yapılandırmasına
+eklenmelidir. Push bildirimleri Expo Go yerine development/production build
+üzerinde denenir.
+
 > Yerel geliştirme için `supabase init` ile `config.toml` üretmek gerekir;
 > repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
 > olabilir — portlar çakışırsa `config.toml` içinde değiştir.
@@ -71,6 +82,8 @@ supabase/
               0013 playdate keşfet + güvenli swipe · 0014 swipe uygunluğu
               0015 inbox + sohbet yaşam döngüsü · 0016 trigger sırası
               0017 inbox sahip gizliliği · 0018 opsiyonel sahip adı + profil
+              0019 push tokenları + bildirim tercihleri
+  functions/  yeni eşleşme/mesaj için güvenli Expo Push göndericisi
 docs/
 ```
 
@@ -94,5 +107,5 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 - [x] Keşfet kart destesi (`discover_playdate_pets` RPC → `rankCandidates`)
 - [x] Eşleşme listesi + Realtime sohbet ekranı
 - [x] Konum izni + konum güncelleme
-- [ ] Bildirimler
+- [ ] Bildirimler — istemci + Supabase gönderici hazır; EAS proje bağlantısı bekliyor
 - [ ] Marka çalışması (isim, palet, ikon) — palet şu an yer tutucu

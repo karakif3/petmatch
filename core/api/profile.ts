@@ -16,6 +16,10 @@ export type EditableProfile = {
     photoUrl: string | null;
     hasLocation: boolean;
   };
+  notifications: {
+    onMatch: boolean;
+    onMessage: boolean;
+  };
 };
 
 export type ProfileUpdate = {
@@ -33,7 +37,7 @@ function publicPhotoUrl(path: string | null): string | null {
 
 export async function loadEditableProfile(userId: string): Promise<EditableProfile> {
   const sb = requireSupabaseClient();
-  const [profileResult, petResult] = await Promise.all([
+  const [profileResult, petResult, preferencesResult] = await Promise.all([
     sb
       .from("profiles")
       .select("display_name,city,owner_visibility")
@@ -45,10 +49,16 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       .eq("owner_id", userId)
       .eq("is_active", true)
       .maybeSingle(),
+    sb
+      .from("discovery_preferences")
+      .select("notify_on_match,notify_on_message")
+      .eq("user_id", userId)
+      .single(),
   ]);
 
   if (profileResult.error) throw profileResult.error;
   if (petResult.error) throw petResult.error;
+  if (preferencesResult.error) throw preferencesResult.error;
   if (!petResult.data) throw new Error("Aktif pet bulunamadı.");
 
   const { data: photo, error: photoError } = await sb
@@ -71,6 +81,10 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       photoUrl: publicPhotoUrl(photo?.storage_path ?? null),
       hasLocation:
         petResult.data.latitude !== null && petResult.data.longitude !== null,
+    },
+    notifications: {
+      onMatch: preferencesResult.data.notify_on_match,
+      onMessage: preferencesResult.data.notify_on_message,
     },
   };
 }
@@ -99,4 +113,18 @@ export async function updateEditableProfile(input: ProfileUpdate): Promise<strin
   });
   if (error) throw error;
   return data;
+}
+
+export async function updateNotificationPreferences(input: {
+  onMatch: boolean;
+  onMessage: boolean;
+}): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc(
+    "update_notification_preferences",
+    {
+      p_notify_on_match: input.onMatch,
+      p_notify_on_message: input.onMessage,
+    },
+  );
+  if (error) throw error;
 }

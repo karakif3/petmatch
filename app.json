@@ -52,7 +52,7 @@
         "expo-notifications",
         {
           "color": "#F97362",
-          "defaultChannel": "matches"
+          "defaultChannel": "petmatch"
         }
       ]
     ]

@@ -7,6 +7,7 @@ import {
   RefreshControl,
   SafeAreaView,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   View,
@@ -19,7 +20,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   loadEditableProfile,
   updateEditableProfile,
+  updateNotificationPreferences,
 } from "../../core/api/profile";
+import {
+  registerForPushNotifications,
+  unregisterCurrentPushToken,
+} from "../../core/api/notifications";
 import { coarsenCoordinates } from "../../core/domain/distance";
 import type { Coordinates, OwnerVisibility } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
@@ -52,6 +58,33 @@ function Field({
   );
 }
 
+function NotificationToggle({
+  label,
+  detail,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  detail: string;
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+}) {
+  return (
+    <View className="flex-row items-center py-3">
+      <View className="mr-4 flex-1">
+        <Text className="font-semibold text-text-primary">{label}</Text>
+        <Text className="mt-1 text-xs leading-4 text-text-secondary">{detail}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: "#E8DDD5", true: "#FFB4A8" }}
+        thumbColor={value ? "#F97362" : "#FFFFFF"}
+      />
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
@@ -68,6 +101,8 @@ export default function ProfileScreen() {
   const [city, setCity] = useState("");
   const [ownerVisibility, setOwnerVisibility] =
     useState<OwnerVisibility>("after_match");
+  const [notifyOnMatch, setNotifyOnMatch] = useState(true);
+  const [notifyOnMessage, setNotifyOnMessage] = useState(true);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
@@ -80,6 +115,8 @@ export default function ProfileScreen() {
     setPetName(profile.data.pet.name);
     setCity(profile.data.city);
     setOwnerVisibility(profile.data.ownerVisibility);
+    setNotifyOnMatch(profile.data.notifications.onMatch);
+    setNotifyOnMessage(profile.data.notifications.onMessage);
     setCoordinates(null);
   }, [profile.data]);
 
@@ -114,19 +151,43 @@ export default function ProfileScreen() {
     setError(null);
     setNotice(null);
     try {
-      await updateEditableProfile({
-        displayName,
-        petName,
-        city,
-        ownerVisibility,
-        coordinates,
-      });
+      await Promise.all([
+        updateEditableProfile({
+          displayName,
+          petName,
+          city,
+          ownerVisibility,
+          coordinates,
+        }),
+        updateNotificationPreferences({
+          onMatch: notifyOnMatch,
+          onMessage: notifyOnMessage,
+        }),
+      ]);
+
+      let notificationMessage = "";
+      try {
+        if (notifyOnMatch || notifyOnMessage) {
+          const registration = await registerForPushNotifications();
+          notificationMessage = ` ${registration.message}`;
+        } else {
+          await unregisterCurrentPushToken();
+          notificationMessage = " Bu cihaz için bildirimler kapatıldı.";
+        }
+      } catch (notificationError) {
+        setError(
+          notificationError instanceof Error
+            ? notificationError.message
+            : "Bildirim ayarı cihaza uygulanamadı.",
+        );
+      }
+
       setCoordinates(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["profile", user?.id] }),
         queryClient.invalidateQueries({ queryKey: ["discovery", user?.id] }),
       ]);
-      setNotice("Profilin güncellendi.");
+      setNotice(`Profilin güncellendi.${notificationMessage}`);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Profil güncellenemedi.");
     } finally {
@@ -289,6 +350,28 @@ export default function ProfileScreen() {
                 </Text>
               )}
             </Pressable>
+          </View>
+
+          <Text className="mb-3 text-lg font-bold text-text-primary">Bildirimler</Text>
+          <View className="mb-6 rounded-2xl border border-border bg-surface px-4 py-1">
+            <NotificationToggle
+              label="Yeni eşleşmeler"
+              detail="Karşılıklı beğeni olduğunda haber ver."
+              value={notifyOnMatch}
+              onValueChange={setNotifyOnMatch}
+            />
+            <View className="h-px bg-border" />
+            <NotificationToggle
+              label="Yeni mesajlar"
+              detail="Eşleşmelerinden yeni mesaj geldiğinde haber ver."
+              value={notifyOnMessage}
+              onValueChange={setNotifyOnMessage}
+            />
+            <Text className="pb-3 text-xs leading-4 text-text-tertiary">
+              {Platform.OS === "web"
+                ? "Cihaz izni iOS veya Android uygulamasında verilir."
+                : "İlk etkinleştirmede cihazın bildirim izni istenir."}
+            </Text>
           </View>
 
           {error ? (
