@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "PetMatch",
+    "slug": "petmatch",
+    "description": "Kedin veya köpeğin için yakınında oyun arkadaşı bul.",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "petmatch",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.petmatch.app",
+      "buildNumber": "1",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Evcil hayvanının fotoğrafını profiline eklemek için galeri izni gerekiyor.",
+        "NSLocationWhenInUseUsageDescription": "Yakınındaki oyun arkadaşlarını gösterebilmek için konum izni gerekiyor."
+      }
+    },
+    "android": {
+      "package": "com.petmatch.app",
+      "versionCode": 1,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-apple-authentication",
+      "expo-localization",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Evcil hayvanının fotoğrafını profiline eklemek için galeri izni gerekiyor."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Yakınındaki oyun arkadaşlarını gösterebilmek için konum izni gerekiyor."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#F97362",
+          "defaultChannel": "matches"
+        }
+      ]
+    ]
+  }
+}

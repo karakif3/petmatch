@@ -1,0 +1,20 @@
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Native build çıktıları — prebuild ile üretilir
+/ios
+/android
+
+# Sırlar
+.env
+.env.local
+.env.*.local
+
+# Supabase yerel
+supabase/.temp/
+supabase/.branches/
+
+*.log
+.DS_Store
