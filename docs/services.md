@@ -11,7 +11,7 @@ plan kotası (aşağıda).
 |---|---|---|
 | Node + npm | ✅ var | v26.5.0 |
 | Expo CLI | ✅ hesap gerekmez | `npx expo start` giriş istemiyor |
-| Supabase | ⚠️ **karar gerekiyor** | Aşağıya bak |
+| Supabase | ✅ proje bağlı | Migration ve generated type akışı hazır |
 
 ## Supabase — tek gerçek kısıt
 

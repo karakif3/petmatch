@@ -101,6 +101,8 @@ export type EligibilityContext = {
   candidateOwnerHasPhoto: boolean;
   /** Karşı taraf da "sadece sahibi görünenler" zorunluluğu koymuş mu. */
   candidateRequiresVisibleOwner: boolean;
+  /** İzleyici "sadece sahibi görünenler" zorunluluğu koymuş mu. */
+  viewerRequiresVisibleOwner: boolean;
   /** İzleyicinin kendi sahip profili görünür mü. */
   viewerOwnerVisible: boolean;
   now?: Date;
@@ -133,7 +135,7 @@ export function isEligible(candidate: Pet, ctx: EligibilityContext): boolean {
   }
 
   // Görünürlük zorunluluğu çift yönlü uygulanır.
-  if (preferences.requireVisibleOwner && !ctx.candidateOwnerVisible) return false;
+  if (ctx.viewerRequiresVisibleOwner && !ctx.candidateOwnerVisible) return false;
   if (ctx.candidateRequiresVisibleOwner && !ctx.viewerOwnerVisible) return false;
 
   // "Sahibini de gösterenler": fotoğrafı VAR *ve* profili görünür.

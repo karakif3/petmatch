@@ -4,22 +4,37 @@ import * as Linking from "expo-linking";
 
 import { getSupabaseClient, requireSupabaseClient } from "../core/api/supabase.client";
 
+async function readOnboardingStatus(userId: string): Promise<boolean> {
+  const sb = requireSupabaseClient();
+  const { data, error } = await sb
+    .from("profiles")
+    .select("onboarded_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data?.onboarded_at);
+}
+
 type AuthState = {
   user: User | null;
   session: Session | null;
+  /** null = henüz okunmadı, false = onboarding gerekli. */
+  onboarded: boolean | null;
   loading: boolean;
   /** Supabase env'i tanımlı değilse false — giriş ekranı bunu uyarı olarak gösterir. */
   configured: boolean;
   init: () => Promise<void>;
+  setOnboarded: (value: boolean) => void;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
+  onboarded: null,
   loading: true,
   configured: true,
 
@@ -30,18 +45,57 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
-    const { data } = await sb.auth.getSession();
+    const { data, error: sessionError } = await sb.auth.getSession();
+    if (sessionError) {
+      console.error("Oturum okunamadı:", sessionError);
+      set({ loading: false, configured: true, onboarded: false });
+      return;
+    }
+
+    const user = data.session?.user ?? null;
+    let onboarded: boolean | null = null;
+
+    if (user) {
+      try {
+        onboarded = await readOnboardingStatus(user.id);
+      } catch (error) {
+        // Ağ veya geçici API hatası splash ekranını sonsuza kadar kilitlemesin.
+        console.error("Onboarding durumu okunamadı:", error);
+        onboarded = false;
+      }
+    }
+
     set({
       session: data.session,
-      user: data.session?.user ?? null,
+      user,
+      onboarded,
       loading: false,
       configured: true,
     });
 
     sb.auth.onAuthStateChange((_event, session) => {
-      set({ session, user: session?.user ?? null });
+      const nextUser = session?.user ?? null;
+      set({ session, user: nextUser, onboarded: nextUser ? null : false });
+
+      if (nextUser) {
+        // Supabase, auth callback'i içinde başka Supabase çağrılarının await
+        // edilmemesini önerir. Bir sonraki event-loop turuna ertelemek ayrıca
+        // hızlı sign-out/sign-in yarışında eski kullanıcının sonucunu engeller.
+        setTimeout(() => {
+          void readOnboardingStatus(nextUser.id)
+            .then((value) => {
+              if (get().user?.id === nextUser.id) set({ onboarded: value });
+            })
+            .catch((error) => {
+              console.error("Onboarding durumu okunamadı:", error);
+              if (get().user?.id === nextUser.id) set({ onboarded: false });
+            });
+        }, 0);
+      }
     });
   },
+
+  setOnboarded: (value) => set({ onboarded: value }),
 
   signInWithEmail: async (email, password) => {
     const sb = requireSupabaseClient();
@@ -70,6 +124,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     const sb = getSupabaseClient();
     await sb?.auth.signOut();
-    set({ session: null, user: null });
+    set({ session: null, user: null, onboarded: null });
   },
 }));

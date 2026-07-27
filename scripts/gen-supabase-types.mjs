@@ -6,6 +6,15 @@
  */
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import { loadEnvFile } from "node:process";
+
+// Expo `.env` dosyasını uygulama çalışırken otomatik yükler; bu bağımsız Node
+// script'i ise açıkça yüklemelidir. Mevcut shell değişkenleri önceliğini korur.
+try {
+  loadEnvFile(".env");
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+}
 
 const projectId = process.env.SUPABASE_PROJECT_ID?.trim();
 

@@ -39,9 +39,9 @@ oturumunu kullanır, ayrı bir kimlik sistemi yok.
 
 `pets` tablosunda ham `latitude`/`longitude` var ve **hiçbir istemciye SELECT
 ettirilmiyor** — RLS yalnızca kendi petlerine ve eşleştiklerine izin verir.
-Keşfet listesi `discover_pets()` (SECURITY DEFINER) üzerinden gelir; mesafe
-sunucuda hesaplanıp yalnızca `distance_km` olarak döner. Böylece kimsenin tam
-konumu ağa çıkmaz.
+Keşfet listesi `discover_playdate_pets()` (SECURITY DEFINER) üzerinden gelir;
+mesafe sunucuda hesaplanıp yalnızca kaba bir `distance_bucket` olarak döner.
+Böylece ham koordinat veya üçgenlemeye elverişli kesin mesafe ağa çıkmaz.
 
 RPC önce bounding-box ile eler (`pets_discovery_idx`), sonra kalanlarda
 haversine çalıştırır. PostGIS'e bağımlılık yok — taşınabilirlik için bilinçli.
@@ -65,8 +65,11 @@ Bu yüzden 0005'te ikisinin de UPDATE politikası kaldırıldı; yerine niyeti d
 iki SECURITY DEFINER fonksiyonu kondu:
 
 - `unmatch(match_id)` → yalnızca `is_active = false`
-- `mark_messages_read(match_id)` → yalnızca karşı tarafın okunmamış
+- `mark_messages_read(conversation_id)` → yalnızca karşı tarafın okunmamış
   mesajlarında `read_at`
+- `withdraw_adoption_interest(id)` → yalnızca pending başvuruyu geri çeker
+- `swipe_pet(from, to, direction)` → aktif playdate petlerini doğrulayıp swipe yazar
+- `mark_onboarding_complete()` → 18+, aktif pet ve fotoğraf şartını doğrular
 
 Kural: **bir tabloda tek bir kolonun değişmesi bekleniyorsa UPDATE politikası
 değil RPC yaz.**
@@ -74,6 +77,19 @@ değil RPC yaz.**
 Engelleme de aynı migration'da eşleşmeyi kapatır (`on_block_created`) —
 `shares_active_match_with()` blocks'a bakmadığı için engellenen taraf aksi
 halde profili görmeye ve mesaj atmaya devam ediyordu.
+
+`0015` sonrasında unmatch ve engelleme hem `matches.is_active` hem
+`conversations.is_active` alanını kapatır. Mesaj INSERT politikası conversation
+durumuna baktığı için kapatılmış bir ilişkide yeni mesaj yazılamaz.
+
+## Konuşma üyeliği neden ayrı tabloda
+
+Konuşma üyeliği petin güncel `owner_id` değerinden türetilemez. Pet
+sahiplendirildiğinde bu yöntem yeni sahibin eski mesajları okumasına, eski
+sahibin ise kendi geçmişini kaybetmesine yol açar. `0012` bu yüzden
+`conversation_participants` tablosunu ekler; eşleşme veya kabul edilen
+sahiplendirme başvurusu konuşmayı açarken o andaki kullanıcılar kalıcı olarak
+kaydedilir. Sahiplik değişse de konuşma geçmişinin erişim sınırı değişmez.
 
 ## RLS politikaları neden dizi karşılaştırıyor
 

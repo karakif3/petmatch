@@ -60,7 +60,7 @@ export default function SignInScreen() {
             <Text className="text-text-primary font-medium mb-1">Supabase bağlı değil</Text>
             <Text className="text-text-secondary text-sm">
               .env dosyasına EXPO_PUBLIC_SUPABASE_URL ve EXPO_PUBLIC_SUPABASE_ANON_KEY ekleyip
-              Metro'yu yeniden başlat.
+              Metro’yu yeniden başlat.
             </Text>
           </View>
         ) : null}

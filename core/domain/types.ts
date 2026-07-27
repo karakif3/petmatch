@@ -89,6 +89,7 @@ export type Pet = {
  * mesafeyi kova olarak verir (bkz. 0007, üçgenleme savunması).
  */
 export type DiscoveryCandidate = Pet & {
+  city: string | null;
   distanceBucket: string | null;
   activityBucket: string | null;
   ownerVisible: boolean;
@@ -107,8 +108,6 @@ export type DiscoveryPreferences = {
   /** Petin yaşı — sahibin değil. */
   minAgeYears: number | null;
   maxAgeYears: number | null;
-  /** Sadece sahibi görünür olan petleri göster (çift yönlü uygulanır). */
-  requireVisibleOwner: boolean;
   /** Sadece sahibi de fotoğraflı ve görünür olanları göster. */
   requireOwnerPhoto: boolean;
 };
@@ -118,7 +117,6 @@ export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferences = {
   maxDistanceKm: 25,
   minAgeYears: null,
   maxAgeYears: null,
-  requireVisibleOwner: false,
   requireOwnerPhoto: false,
 };
 
@@ -128,6 +126,8 @@ export type Match = {
   id: string;
   petAId: string;
   petBId: string;
+  /** Eşleşme doğduğunda trigger tarafından açılan konuşma. */
+  conversationId: string | null;
   createdAt: string;
   /** Taraflardan biri eşleşmeyi bozduysa false. */
   isActive: boolean;
@@ -135,7 +135,8 @@ export type Match = {
 
 export type Message = {
   id: string;
-  matchId: string;
+  /** Mesajlar eşleşmeye değil ortak konuşma katmanına bağlıdır. */
+  conversationId: string;
   senderId: string;
   body: string;
   createdAt: string;

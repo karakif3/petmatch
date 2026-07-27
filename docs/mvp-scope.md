@@ -8,11 +8,11 @@
 | Modül | Kapsam | Durum |
 |---|---|---|
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
-| Sahip profili | Ad, avatar, şehir, bio, **görünürlük tercihi** | ⬜ ekran yok |
-| Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ⬜ ekran yok |
-| Keşfet | Mesafe + tür + amaç + yaş filtresi, uyum skoruna göre sıralı deste | ✅ mantık · ⬜ ekran |
-| Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB |
-| Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB · ⬜ ekran |
+| Sahip profili | Ad, avatar, şehir, bio, **görünürlük tercihi** | ✅ onboarding temel alanları · ⬜ avatar/bio düzenleme |
+| Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ onboarding temel alanları + fotoğraf · ⬜ ayrıntılı düzenleme |
+| Keşfet | Mesafe + tür + yaş filtresi, uyum skoruna göre sıralı playdate destesi | ✅ RPC + güvenli swipe + ekran |
+| Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
+| Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
 | Bildirim | Yeni eşleşme, yeni mesaj | ⬜ |
 | Güvenlik | Engelle, şikayet et, hesap silme | ✅ DB · ⬜ ekran |
 | Ayarlar | Görünürlük, bildirim, konum, dil | ⬜ |
@@ -36,22 +36,16 @@ kendi profilin gizliyken ona görünmezsin. Kural `core/domain/matching.ts`
 (`isEligible`) ve `discover_pets()` RPC'sinde birebir aynı yazılıdır —
 ikisi ayrışırsa sunucu tarafı bağlayıcıdır.
 
-> ⚠️ `require_visible_owner` şu an hem `profiles` hem `discovery_preferences`
-> tablosunda duruyor ve `discover_pets()` ikisini karışık okuyor (kendi
-> zorunluluğunu `discovery_preferences`'tan, karşı tarafınkini `profiles`'tan).
-> Kural bu haliyle yarım çalışır. Çözüm [`goal-model.md`](goal-model.md) §3'te:
-> simetrik olduğu için `profiles`'ta kalır, `discovery_preferences`'tan silinir.
+`require_visible_owner` simetrik bir kullanıcı kuralı olduğu için yalnızca
+`profiles` tablosunda tutulur. `0012` migration'ı eski
+`discovery_preferences` kopyasını birleştirip kaldırır.
 
-## Amaç (intent) ayrımı
+## Amaç modeli
 
-`playdate` · `mating` · `both`. `both` her şeyle eşleşir, `playdate` ve
-`mating` birbirleriyle eşleşmez. Bu ayrım baştan konuldu çünkü sonradan
-eklemek tüm eşleşme geçmişini geriye dönük yorumlamayı gerektirirdi.
-
-> ℹ️ Bu bölüm [`goal-model.md`](goal-model.md) ile genişletiliyor: amaç tek
-> değer olmaktan çıkıp dört elemanlı bir kümeye dönüşüyor (hayvan için
-> oyun/eş, sahip için arkadaşlık/ilişki) ve `both` özel durumu kalkıyor.
-> Migration yazılana kadar geçerli olan şema bu bölümdür.
+Pet amaçları küme olarak tutulur: `playdate` ve `adoption`. Üreme amacı MVP'de
+yoktur. Sosyal Keşfet yalnızca `playdate` petlerini gösterir; `adoption` ayrı
+listeleme ve başvuru yüzeyidir. Ayrıntılı gerekçe [`goal-model.md`](goal-model.md)
+içindedir.
 
 ## Kullanıcı başına tek aktif pet — ürün kararı
 
@@ -64,9 +58,9 @@ MVP kararı: **kullanıcının aynı anda tek aktif peti olur.** Birden fazla pe
 kaydedilebilir ama keşfet ve eşleşme her zaman tek bir "aktif pet" üzerinden
 yürür; kullanıcı aktif peti profil ekranından değiştirir.
 
-Bu karar şemayı değiştirmez — `is_active` zaten pets üzerinde var. Ekranlar
-yazılırken uygulanacak; istenirse `create unique index on pets (owner_id)
-where is_active` ile veritabanı düzeyinde de zorlanabilir.
+`0012` migration'ı `(owner_id) where is_active` unique index'iyle bu kararı
+veritabanı düzeyinde zorlar. Sahiplendirme devri yeni sahibin önceki aktif
+petini arşivler; geçmiş konuşmalar kalıcı katılımcı kayıtlarıyla korunur.
 
 Çok petli gerçek destek (sahip çifti başına tekil `conversations` katmanı)
 sonraki faza bırakıldı — o noktada mevcut sohbetlerin birleştirilmesi gerekir.

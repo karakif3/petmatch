@@ -27,19 +27,23 @@ function useAuthGate() {
   const router = useRouter();
   const segments = useSegments();
   const user = useAuthStore((s) => s.user);
+  const onboarded = useAuthStore((s) => s.onboarded);
   const loading = useAuthStore((s) => s.loading);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || (user && onboarded === null)) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = segments[0] === "onboarding";
 
     if (!user && !inAuthGroup) {
       router.replace("/(auth)/sign-in");
-    } else if (user && inAuthGroup) {
+    } else if (user && !onboarded && !inOnboarding) {
+      router.replace("/onboarding");
+    } else if (user && onboarded && (inAuthGroup || inOnboarding)) {
       router.replace("/(app)");
     }
-  }, [loading, router, segments, user]);
+  }, [loading, onboarded, router, segments, user]);
 }
 
 export default function RootLayout() {
@@ -73,7 +77,9 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="(auth)" />
+          <Stack.Screen name="onboarding" />
           <Stack.Screen name="(app)" />
+          <Stack.Screen name="chat/[conversationId]" />
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

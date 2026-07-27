@@ -39,6 +39,7 @@ const baseCtx = {
   candidateOwnerVisible: true,
   candidateOwnerHasPhoto: true,
   candidateRequiresVisibleOwner: false,
+  viewerRequiresVisibleOwner: false,
   viewerOwnerVisible: true,
   now: NOW,
 };
@@ -134,7 +135,7 @@ describe("isEligible", () => {
       isEligible(candidate, {
         viewer,
         ...baseCtx,
-        preferences: prefs({ requireVisibleOwner: true }),
+        viewerRequiresVisibleOwner: true,
         candidateOwnerVisible: false,
       }),
     ).toBe(false);

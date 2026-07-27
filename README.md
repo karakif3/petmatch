@@ -11,7 +11,7 @@ kılabilir.
 |---|---|
 | Platform | Expo (iOS · Android · web) |
 | Backend | Supabase — Postgres + RLS + Storage + Auth |
-| Durum | **İskelet** — şema ve eşleşme mantığı hazır, ekranlar yer tutucu |
+| Durum | **Erken MVP** — şema, auth ve onboarding hazır; ana ürün ekranları yer tutucu |
 
 ---
 
@@ -45,8 +45,8 @@ supabase db push
 npm run gen:types
 ```
 
-Migration'lar sırayla: şema → eşleşme mantığı → RLS → storage →
-RLS sertleştirme → RLS performans.
+Migration'lar sırayla temel şemayı, RLS/storage katmanını, amaç ve konuşma
+modelini, moderasyonu, sahiplendirmeyi ve dar RPC yazma yollarını kurar.
 
 > Yerel geliştirme için `supabase init` ile `config.toml` üretmek gerekir;
 > repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
@@ -67,7 +67,10 @@ supabase/
               0005 RLS sertleştirme · 0006 RLS performans
               0007 konum gizliliği · 0008 amaç modeli
               0009 konuşmalar + sahiplendirme · 0010 moderasyon + doğrulama
-              0011 sahiplendirme ilanları
+              0011 sahiplendirme ilanları · 0012 bütünlük + konuşma üyeliği
+              0013 playdate keşfet + güvenli swipe · 0014 swipe uygunluğu
+              0015 inbox + sohbet yaşam döngüsü · 0016 trigger sırası
+              0017 inbox sahip gizliliği
 docs/
 ```
 
@@ -86,10 +89,10 @@ kuralları ve çift yönlü görünürlük zorunluluğu kapsanıyor.
 
 ## Sırada ne var
 
-- [ ] Supabase projesi kararı ([`docs/services.md`](docs/services.md))
-- [ ] Onboarding + pet profili oluşturma ekranı
-- [ ] Keşfet kart destesi (`discover_pets` RPC → `rankCandidates`)
-- [ ] Eşleşme listesi + sohbet ekranı
+- [x] Supabase proje bağlantısı + migration'lar
+- [x] Onboarding + pet profili oluşturma ekranı
+- [x] Keşfet kart destesi (`discover_playdate_pets` RPC → `rankCandidates`)
+- [x] Eşleşme listesi + Realtime sohbet ekranı
 - [ ] Konum izni + konum güncelleme
 - [ ] Bildirimler
 - [ ] Marka çalışması (isim, palet, ikon) — palet şu an yer tutucu
