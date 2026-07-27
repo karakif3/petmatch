@@ -9,7 +9,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Warm, friendly palette — marka çalışması yapılınca gözden geçirilecek.
+        // PetMatch — sıcak mercan + güven veren teal marka paleti.
         bg: {
           primary: "#FFFBF7",
           secondary: "#FFF4EC",
@@ -22,12 +22,12 @@ module.exports = {
           elevated: "#FFFFFF",
         },
         brand: {
-          DEFAULT: "#F97362", // coral
+          DEFAULT: "#F97362",
           light: "#FF9585",
           dark: "#E0523F",
         },
         accent: {
-          DEFAULT: "#2FB8A6", // teal — eşleşme/olumlu aksiyon
+          DEFAULT: "#2FB8A6",
           light: "#5ED3C3",
           dark: "#1E9384",
         },

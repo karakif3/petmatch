@@ -13,6 +13,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
+import { BrandMark } from "../components/brand-mark";
 import { completeOnboarding, type OnboardingPhoto } from "../core/api/onboarding";
 import { isAdultDate, isPastOrTodayDate } from "../core/domain/date-validation";
 import { coarsenCoordinates } from "../core/domain/distance";
@@ -216,13 +217,20 @@ export default function OnboardingScreen() {
         contentContainerClassName="px-6 pb-12 pt-16"
       >
         <View className="mb-7 flex-row items-center justify-between">
-          <View>
-            <Text className="text-sm font-semibold uppercase tracking-widest text-brand">
-              PetMatch
-            </Text>
-            <Text className="mt-1 text-3xl font-bold text-text-primary">
-              {step === 0 ? "Seni tanıyalım" : step === 1 ? "Petini tanıyalım" : "Son dokunuşlar"}
-            </Text>
+          <View className="mr-4 flex-1 flex-row items-center">
+            <BrandMark size={52} />
+            <View className="ml-3 flex-1">
+              <Text className="text-xs font-semibold uppercase tracking-widest text-brand">
+                PetMatch
+              </Text>
+              <Text className="mt-1 text-2xl font-bold text-text-primary">
+                {step === 0
+                  ? "Seni tanıyalım"
+                  : step === 1
+                    ? "Petini tanıyalım"
+                    : "Son dokunuşlar"}
+              </Text>
+            </View>
           </View>
           <Text className="text-sm font-semibold text-text-tertiary">{progress}</Text>
         </View>

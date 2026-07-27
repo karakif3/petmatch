@@ -24,6 +24,7 @@ kılabilir.
 | [`docs/monetization.md`](docs/monetization.md) | Gelir modeli — faz sırası, kim beğendi / boost kuralları, asla satılmayacaklar |
 | [`docs/architecture.md`](docs/architecture.md) | Katmanlar, web'e taşıma yolu, keşfetin neden RPC olduğu |
 | [`docs/services.md`](docs/services.md) | Hangi servis gerekiyor, ne paylaşılıyor — **Supabase kotası burada** |
+| [`docs/brand.md`](docs/brand.md) | Marka işareti, asset kullanımı ve resmi renk paleti |
 
 ---
 
@@ -107,4 +108,4 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 - [x] Eşleşme listesi + Realtime sohbet ekranı
 - [x] Konum izni + konum güncelleme
 - [ ] Bildirimler — istemci + Supabase + EAS hazır; fiziksel cihaz build/test bekliyor
-- [ ] Marka çalışması (isim, palet, ikon) — palet şu an yer tutucu
+- [x] Marka çalışması — PetMatch adı, palet, app/adaptive/splash icon ve favicon

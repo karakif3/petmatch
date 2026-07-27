@@ -5,12 +5,14 @@
     "description": "Kedin veya köpeğin için yakınında oyun arkadaşı bul.",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "petmatch",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/favicon.png"
     },
     "ios": {
       "supportsTablet": false,
@@ -28,7 +30,12 @@
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_BACKGROUND_LOCATION"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F97362"
+      }
     },
     "plugins": [
       "expo-router",
@@ -46,6 +53,14 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Yakınındaki oyun arkadaşlarını gösterebilmek için konum izni gerekiyor."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F97362",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220
         }
       ],
       [

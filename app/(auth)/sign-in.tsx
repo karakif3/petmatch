@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 
+import { BrandMark } from "../../components/brand-mark";
 import { useAuthStore } from "../../stores/auth";
 
 type Mode = "sign-in" | "sign-up";
@@ -50,6 +51,9 @@ export default function SignInScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12">
+        <View className="mb-6">
+          <BrandMark size={82} />
+        </View>
         <Text className="text-text-primary text-3xl font-bold">PetMatch</Text>
         <Text className="text-text-secondary text-base mt-2 mb-8">
           Kedin veya köpeğin için yakınında oyun arkadaşı bul.

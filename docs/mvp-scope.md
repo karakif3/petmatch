@@ -26,6 +26,9 @@ bilgilerini açabilir fakat bir ad metni gösterilmez.
 Premium/freemium, video profil, grup sohbeti, etkinlik & buluşma organizasyonu,
 veteriner/petshop entegrasyonu, kayıp hayvan modülü.
 
+Marka adı **PetMatch** olarak sabittir. Resmi işaret, asset kuralları ve palet
+[`brand.md`](brand.md) içinde belgelenir.
+
 ## Sahip görünürlüğü — ürün kararı
 
 Kullanıcı iki ayrı ayar tutar:
