@@ -15,9 +15,15 @@ export type Size = (typeof SIZES)[number];
 /** 1 = çok sakin, 5 = çok enerjik */
 export type EnergyLevel = 1 | 2 | 3 | 4 | 5;
 
-/** Kullanıcının bu pet için ne aradığı. */
-export const INTENTS = ["playdate", "mating", "both"] as const;
-export type Intent = (typeof INTENTS)[number];
+/**
+ * Petin ne aradığı. Amaçlar yalnızca pete aittir — kullanıcıya kendisi
+ * hakkında bir niyet sorulmaz (bkz. docs/goal-model.md).
+ *
+ * Küme olarak tutulur: uygunluk kesişimle belirlenir, bu yüzden eski
+ * `both` özel durumuna gerek kalmadı.
+ */
+export const MATCH_GOALS = ["playdate", "adoption"] as const;
+export type MatchGoal = (typeof MATCH_GOALS)[number];
 
 /** Sahibin profilinin karşı tarafa ne zaman görüneceği. */
 export const OWNER_VISIBILITY = ["hidden", "after_match", "public"] as const;
@@ -70,31 +76,50 @@ export type Pet = {
   goodWithCats: boolean;
   goodWithDogs: boolean;
   goodWithKids: boolean;
-  intent: Intent;
+  goals: MatchGoal[];
   bio: string | null;
   photoUrls: string[];
-  location: Coordinates | null;
   isActive: boolean;
 };
 
-/** Keşfet ekranının filtre seti — kullanıcı başına saklanır. */
+/**
+ * Keşfet destesinde dönen aday.
+ *
+ * Ham koordinat YOK — `discover_pets` hiçbir zaman lat/lng döndürmez ve
+ * mesafeyi kova olarak verir (bkz. 0007, üçgenleme savunması).
+ */
+export type DiscoveryCandidate = Pet & {
+  distanceBucket: string | null;
+  activityBucket: string | null;
+  ownerVisible: boolean;
+};
+
+/**
+ * Keşfet ekranının filtre seti — kullanıcı başına saklanır.
+ *
+ * Amaç filtresi YOK: deste, kendi petinin amaçlarıyla kesişenleri gösterir.
+ * Sahip cinsiyeti/yaşı da yok — onlar kalıcı saklanmaz, sorgu parametresidir
+ * (kalıcı saklansaydı çıkarımla yönelim verisi olurdu, KVKK m.6).
+ */
 export type DiscoveryPreferences = {
   species: Species[];
-  intents: Intent[];
   maxDistanceKm: number;
+  /** Petin yaşı — sahibin değil. */
   minAgeYears: number | null;
   maxAgeYears: number | null;
-  /** Sadece sahibi görünür olan petleri göster (kullanıcının koyabildiği zorunluluk). */
+  /** Sadece sahibi görünür olan petleri göster (çift yönlü uygulanır). */
   requireVisibleOwner: boolean;
+  /** Sadece sahibi de fotoğraflı ve görünür olanları göster. */
+  requireOwnerPhoto: boolean;
 };
 
 export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferences = {
   species: ["cat", "dog"],
-  intents: ["playdate"],
   maxDistanceKm: 25,
   minAgeYears: null,
   maxAgeYears: null,
   requireVisibleOwner: false,
+  requireOwnerPhoto: false,
 };
 
 export type SwipeDirection = "like" | "pass";

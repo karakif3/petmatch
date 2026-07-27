@@ -21,9 +21,10 @@ export function distanceKm(a: Coordinates, b: Coordinates): number {
 }
 
 /**
- * Konumu kabaca yuvarlar — tam adres sızmasın diye keşfet ekranında
- * gösterilen mesafeler bu yuvarlanmış değerden hesaplanır.
- * ~0.01 derece ≈ 1.1 km.
+ * Konumu ~1 km'lik ızgaraya oturtur (0.01 derece ≈ 1.1 km).
+ *
+ * Sunucuda `snap_pet_location` trigger'ı aynısını yapıyor — bu, konumu
+ * göndermeden önceki ilk savunma katmanı. Ham GPS hiçbir zaman ağa çıkmamalı.
  */
 export function coarsenCoordinates(coords: Coordinates, precision = 2): Coordinates {
   const factor = 10 ** precision;
@@ -33,8 +34,22 @@ export function coarsenCoordinates(coords: Coordinates, precision = 2): Coordina
   };
 }
 
-/** "1 km'den yakın" / "3 km" gibi kullanıcıya gösterilecek metin. */
-export function formatDistance(km: number): string {
-  if (km < 1) return "1 km'den yakın";
-  return `${Math.round(km)} km`;
+/**
+ * Mesafe kovaları — `discover_pets` bu değerleri döndürür, ham km değil.
+ *
+ * Sürekli ondalık mesafe üçgenlemeye açıktır: saldırgan kendi konumunu üç
+ * noktaya taşıyıp aynı hedefi ölçerse evini bulur. SQL tarafındaki
+ * `distance_bucket()` ile sınırlar birebir aynı olmalı.
+ */
+export const DISTANCE_BUCKETS = ["<1", "1-3", "3-5", "5-10", "10-25", "25+"] as const;
+export type DistanceBucket = (typeof DISTANCE_BUCKETS)[number];
+
+export function distanceBucket(km: number | null): DistanceBucket | null {
+  if (km === null) return null;
+  if (km < 1) return "<1";
+  if (km < 3) return "1-3";
+  if (km < 5) return "3-5";
+  if (km < 10) return "5-10";
+  if (km < 25) return "10-25";
+  return "25+";
 }

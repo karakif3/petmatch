@@ -19,7 +19,9 @@ kılabilir.
 
 | Doküman | İçerik |
 |---|---|
-| [`docs/mvp-scope.md`](docs/mvp-scope.md) | MVP kapsamı, sahip görünürlüğü kararı, amaç (intent) ayrımı |
+| [`docs/mvp-scope.md`](docs/mvp-scope.md) | MVP kapsamı, sahip görünürlüğü kararı, tek aktif pet kararı |
+| [`docs/goal-model.md`](docs/goal-model.md) | **Tasarım önerisi** — hikâye petin etrafında, sahiplendirme, karşılıklı açıklama, satıcı caydırıcılığı, 18+ |
+| [`docs/monetization.md`](docs/monetization.md) | Gelir modeli — faz sırası, kim beğendi / boost kuralları, asla satılmayacaklar |
 | [`docs/architecture.md`](docs/architecture.md) | Katmanlar, web'e taşıma yolu, keşfetin neden RPC olduğu |
 | [`docs/services.md`](docs/services.md) | Hangi servis gerekiyor, ne paylaşılıyor — **Supabase kotası burada** |
 
@@ -43,7 +45,12 @@ supabase db push
 npm run gen:types
 ```
 
-Migration'lar sırayla: şema → eşleşme mantığı → RLS → storage.
+Migration'lar sırayla: şema → eşleşme mantığı → RLS → storage →
+RLS sertleştirme → RLS performans.
+
+> Yerel geliştirme için `supabase init` ile `config.toml` üretmek gerekir;
+> repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
+> olabilir — portlar çakışırsa `config.toml` içinde değiştir.
 
 ---
 
@@ -57,6 +64,10 @@ core/
 stores/       zustand — auth
 supabase/
   migrations/ 0001 şema · 0002 eşleşme · 0003 RLS · 0004 storage
+              0005 RLS sertleştirme · 0006 RLS performans
+              0007 konum gizliliği · 0008 amaç modeli
+              0009 konuşmalar + sahiplendirme · 0010 moderasyon + doğrulama
+              0011 sahiplendirme ilanları
 docs/
 ```
 

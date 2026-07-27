@@ -23,7 +23,7 @@ Seçenekler:
 
 | Yol | Maliyet | Not |
 |---|---|---|
-| **Yerel Supabase** (Docker) | ücretsiz | Bu makinede **Docker kurulu değil**. Docker Desktop kurmak gerekir. Bulut projesi hiç açılmaz, tüm geliştirme yerelde. |
+| **Yerel Supabase** (Docker) | ücretsiz | ✅ Docker bu makinede kurulu ve çalışıyor. `npm run local:start` → bulut projesi hiç açılmadan tüm geliştirme yerelde; `npm run gen:types` de yerel şemadan çalışır. |
 | Pro plana geçiş | org başına $25/ay | Aynı org altında ek proje açılır; slipbook/tellora'yı da kapsar |
 | Bir projeyi duraklat | ücretsiz | Duraklatılmış proje kotaya sayılmaz — ama canlı ürünü duraklatmak makul değil |
 

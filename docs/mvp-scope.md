@@ -36,8 +36,37 @@ kendi profilin gizliyken ona görünmezsin. Kural `core/domain/matching.ts`
 (`isEligible`) ve `discover_pets()` RPC'sinde birebir aynı yazılıdır —
 ikisi ayrışırsa sunucu tarafı bağlayıcıdır.
 
+> ⚠️ `require_visible_owner` şu an hem `profiles` hem `discovery_preferences`
+> tablosunda duruyor ve `discover_pets()` ikisini karışık okuyor (kendi
+> zorunluluğunu `discovery_preferences`'tan, karşı tarafınkini `profiles`'tan).
+> Kural bu haliyle yarım çalışır. Çözüm [`goal-model.md`](goal-model.md) §3'te:
+> simetrik olduğu için `profiles`'ta kalır, `discovery_preferences`'tan silinir.
+
 ## Amaç (intent) ayrımı
 
 `playdate` · `mating` · `both`. `both` her şeyle eşleşir, `playdate` ve
 `mating` birbirleriyle eşleşmez. Bu ayrım baştan konuldu çünkü sonradan
 eklemek tüm eşleşme geçmişini geriye dönük yorumlamayı gerektirirdi.
+
+> ℹ️ Bu bölüm [`goal-model.md`](goal-model.md) ile genişletiliyor: amaç tek
+> değer olmaktan çıkıp dört elemanlı bir kümeye dönüşüyor (hayvan için
+> oyun/eş, sahip için arkadaşlık/ilişki) ve `both` özel durumu kalkıyor.
+> Migration yazılana kadar geçerli olan şema bu bölümdür.
+
+## Kullanıcı başına tek aktif pet — ürün kararı
+
+Şema pet↔pet eşleşme kuruyor: `swipes`, `matches` ve dolayısıyla sohbetler
+petlere bağlı. İki hayvanı olan kullanıcı bu modelde aynı kişiyle **iki ayrı
+eşleşme ve iki ayrı sohbet** açar, keşfette aynı adayı her peti için ayrı
+görür, bir petiyle "pass" dediği profil öbür petiyle geri gelir.
+
+MVP kararı: **kullanıcının aynı anda tek aktif peti olur.** Birden fazla pet
+kaydedilebilir ama keşfet ve eşleşme her zaman tek bir "aktif pet" üzerinden
+yürür; kullanıcı aktif peti profil ekranından değiştirir.
+
+Bu karar şemayı değiştirmez — `is_active` zaten pets üzerinde var. Ekranlar
+yazılırken uygulanacak; istenirse `create unique index on pets (owner_id)
+where is_active` ile veritabanı düzeyinde de zorlanabilir.
+
+Çok petli gerçek destek (sahip çifti başına tekil `conversations` katmanı)
+sonraki faza bırakıldı — o noktada mevcut sohbetlerin birleştirilmesi gerekir.
