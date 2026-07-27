@@ -12,7 +12,7 @@ plan kotası (aşağıda).
 | Node + npm | ✅ var | v26.5.0 |
 | Expo CLI | ✅ hesap gerekmez | `npx expo start` giriş istemiyor |
 | Supabase | ✅ proje bağlı | Migration ve generated type akışı hazır |
-| Expo / EAS | ⏳ giriş gerekli | Push için `eas login` + `eas init`; CLI şu anda oturum açmamış |
+| Expo / EAS | ✅ proje bağlı | `@karakif/petmatch`; development/preview/production profilleri hazır |
 
 ## Supabase — tek gerçek kısıt
 
@@ -51,7 +51,7 @@ Seçenekler:
 
 ## Başka hesaba taşıma
 
-Repoda hiçbir proje ref'i / hesap kimliği hard-code değil. Taşıma:
+Supabase proje ref'i repoda hard-code değil. Taşıma:
 
 ```bash
 supabase link --project-ref <yeni-ref>
@@ -62,3 +62,6 @@ npm run gen:types
 
 Storage bucket'ları migration `0004_storage.sql` ile birlikte gelir; elle
 kurulum gerekmez.
+
+EAS bağlantısının `owner` ve `extra.eas.projectId` alanları `app.json` içinde
+tutulur. Expo projesi değişirse `eas init` bu iki alanı yeniden üretir.

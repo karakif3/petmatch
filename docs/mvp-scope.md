@@ -13,7 +13,7 @@
 | Keşfet | Mesafe + tür + yaş filtresi, uyum skoruna göre sıralı playdate destesi | ✅ RPC + güvenli swipe + ekran |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
 | Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
-| Bildirim | Yeni eşleşme, yeni mesaj | ✅ istemci tercih/token akışı + Edge Function · ⏳ EAS proje bağlantısı/native build |
+| Bildirim | Yeni eşleşme, yeni mesaj | ✅ istemci tercih/token akışı + Edge Function + EAS bağlantısı · ⏳ fiziksel cihaz build/test |
 | Güvenlik | Engelle, şikayet et, hesap silme | ✅ DB · ⬜ ekran |
 | Ayarlar | Görünürlük, bildirim, konum, dil | ✅ görünürlük + bildirim + konum · ⬜ dil |
 

@@ -54,10 +54,9 @@ Push bildirim göndericisi ayrıca Edge Function olarak dağıtılır:
 supabase functions deploy send-notification --use-api
 ```
 
-Gerçek cihaz push tokenı için Expo hesabında `eas login` ve `eas init`
-çalıştırılarak üretilen `extra.eas.projectId` uygulama yapılandırmasına
-eklenmelidir. Push bildirimleri Expo Go yerine development/production build
-üzerinde denenir.
+EAS projesi bağlıdır. Push bildirimleri Expo Go ve simülatör yerine
+`eas.json` içindeki development/preview/production profillerinden üretilen
+fiziksel cihaz build'i üzerinde denenir.
 
 > Yerel geliştirme için `supabase init` ile `config.toml` üretmek gerekir;
 > repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
@@ -107,5 +106,5 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 - [x] Keşfet kart destesi (`discover_playdate_pets` RPC → `rankCandidates`)
 - [x] Eşleşme listesi + Realtime sohbet ekranı
 - [x] Konum izni + konum güncelleme
-- [ ] Bildirimler — istemci + Supabase gönderici hazır; EAS proje bağlantısı bekliyor
+- [ ] Bildirimler — istemci + Supabase + EAS hazır; fiziksel cihaz build/test bekliyor
 - [ ] Marka çalışması (isim, palet, ikon) — palet şu an yer tutucu

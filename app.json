@@ -55,6 +55,13 @@
           "defaultChannel": "petmatch"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d6007ab9-3dc2-496a-9963-8f4921681047"
+      }
+    },
+    "owner": "karakif"
   }
 }
