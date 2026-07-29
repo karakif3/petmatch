@@ -59,6 +59,15 @@ pets_only | friendship | dating | friendship_or_dating
 
 - Mod seçiminde neyin keşfette gösterileceğini açıkla ve sürümlü onay kaydı tut.
 - Yalnız karşılıklı olarak uyumlu modları birbirine göster.
+- Uygulama bağlantı modundan “aynı cinsiyet” veya “karşı cinsiyet” sonucu
+  çıkarmasın. Kullanıcının kimi görmek istediği boş varsayımla başlamalı ve
+  yalnız açık seçimiyle belirlenmeli.
+- Dating için kendi cinsiyet kategorisi ile görmek istediği cinsiyet
+  kategorileri eşleşmenin ücretsiz temel girdisi olsun; bu tercih premium
+  filtresi yapılmasın. Yalnız iki tarafın açık tercihi örtüşüyorsa kart üret.
+- `pets_only` modunda sahip cinsiyeti eşleşmede kullanılmasın. `friendship`
+  modunda varsayılan “herkes” olsun; kullanıcı isterse mevcut karşılıklı
+  açıklama filtresini ücretsiz kullansın.
 - `dating` ve `friendship_or_dating` için ad + sahip fotoğrafı + public profil
   zorunlu olsun.
 - Dating görünürlüğünden önce sahip+pet doğrulamasını tamamlat. Bu rozet
@@ -94,7 +103,7 @@ etiketler eşleşme amacıyla profillenmez. Serbest bio metninden “mindset sko
 |---|---|
 | Bağlantı modu | Açık kullanıcı seçimi, amaçla sınırlı, silinebilir |
 | Sahibin cinsiyeti | Opsiyonel sıradan kişisel veri; karşılıklı açıklama |
-| Kimi görmek istediği | Sunucuda kalıcı tercih olarak tutulmaz; birleşik veri yönelim çıkarımı yaratabilir |
+| Kimi görmek istediği | Mevcut sosyal filtre cihazda ve ücretsiz; dating için karşılıklı eşleşme gerektirdiğinden ancak ayrı hukuki temel, açık rıza ve erişim/silme kontrolleri tamamlanınca sunucuda tutulabilir |
 | Cinsel yönelim/cinsel hayat | MVP'de toplanmaz veya çıkarılmaz |
 | Kesin yaş/doğum tarihi | 18+ kontrolü için private; kartta yalnız yaş kovası |
 | Kesin konum | Gönderilmez; yaklaşık bölge ve mesafe kovası |
@@ -113,11 +122,14 @@ tasarlanmalıdır.
 2. Pets-only kullanıcı dating kartına zorlanmaz ve dating modundakilerce bu
    amaçla filtrelenmez.
 3. Dating görünürlüğü ad/fotoğraf/public profil/doğrulama koşullarını atlayamaz.
-4. İki hesapta karşılıklı niyet + pet uyumu eşleşir; uyumsuz niyet eşleşmez.
-5. Engelleme konuşmayı ve Realtime kanalını kapatır; rapor kuyruğa düşer.
-6. Yaş kapısı ve mağaza reşit olmayan erişim kısıtı fiziksel cihazda sınanır.
-7. Profil, koşullar, gizlilik metni ve mağaza metadata'sı aynı amacı söyler.
-8. Dil değiştirilince UI, native izinler, e-posta/push ve yasal metin aynı dilde
+4. İki hesapta karşılıklı niyet + açık cinsiyet ilgisi + pet uyumu eşleşir;
+   uyumsuz niyet veya ilgi eşleşmez.
+5. Sistem hiçbir bağlantı modunda kullanıcının yerine aynı/karşı cinsiyet
+   varsaymaz; cinsiyet ilgisi ve temel yaş aralığı ödeme istemez.
+6. Engelleme konuşmayı ve Realtime kanalını kapatır; rapor kuyruğa düşer.
+7. Yaş kapısı ve mağaza reşit olmayan erişim kısıtı fiziksel cihazda sınanır.
+8. Profil, koşullar, gizlilik metni ve mağaza metadata'sı aynı amacı söyler.
+9. Dil değiştirilince UI, native izinler, e-posta/push ve yasal metin aynı dilde
    kalır; eksik katalogla dil yayınlanmaz.
 
 ## Resmi politika dayanakları

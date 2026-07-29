@@ -50,6 +50,10 @@ README yerine önce bu dosya güncellenir.
    - [x] Koşullar ve gizlilik metninde arkadaşlık/romantik bağ ihtimalini açıklama
    - [ ] `pets_only | friendship | dating | friendship_or_dating` bağlantı modu
    - [ ] Karşılıklı niyet uyumluluğunu DB/RPC ve swipe yazma anında zorlama
+   - [ ] Dating için açık, boş varsayımla başlayan cinsiyet ilgisi modeli;
+     kullanıcının amacı üzerinden aynı/karşı cinsiyet tahmin etmeme
+   - [ ] Cinsiyet ilgisi ve temel yaş aralığını ücretsiz tutma; yalnız açık
+     karşılıklı ilgi örtüşüyorsa dating kartı üretme
    - [ ] Dating görünürlüğü için sahip+pet doğrulama kapısı; rozetin kapsamını
      “kimlik doğrulandı” diye abartmama
    - [ ] Kolay aşılamayan risk-temelli 18+ kapısı ve Google Play Restrict Minor Access
@@ -60,8 +64,9 @@ README yerine önce bu dosya güncellenir.
    - [ ] `2026-07-29-v2` koşullarını mevcut kullanıcılara yeniden kabul ettirme
    - [ ] Cinsiyet tercihi/yönelim gibi özel nitelikli veri toplamadan önce ayrı
      KVKK hukuki temel, açık rıza, geri alma, silme ve aktarım incelemesi
-   - **Kabul testi:** pets-only ve dating niyetleri ayrışır; dating ön koşulları
-     atlanamaz; iki cihazda eşleşme/engelleme/rapor; mağaza ve uygulama aynı amacı söyler
+   - **Kabul testi:** pets-only ve dating niyetleri ayrışır; sistem cinsiyet
+     varsaymaz; temel uyum tercihi ödeme istemez; dating ön koşulları atlanamaz;
+     iki cihazda eşleşme/engelleme/rapor; mağaza ve uygulama aynı amacı söyler
 
 ## P1 — Ana deneyimi güçlendirenler
 

@@ -49,7 +49,7 @@ Bunu hikâyeyle çelişmeden taşımanın yolu:
 | Faz | İçerik | Neden burada |
 |---|---|---|
 | **0 — MVP** | Gelir yok | Pazar yeri ürününde yoğunluktan önce para kazanmak büyümeyi öldürür. Boş deste zaten en büyük risk. |
-| **1** | Kim beğendi · boost · gelişmiş filtreler · son aktif sıralaması | Kanıtlanmış motor; yoğunluk oluşur oluşmaz açılır |
+| **1** | Kim beğendi · boost · gelişmiş pet/uyumluluk filtreleri · son aktif sıralaması | Kanıtlanmış motor; yoğunluk oluşur oluşmaz açılır |
 | **2** | Sahiplenme sonrası ticaret ortaklığı (mama, ekipman, ilk veteriner) | En yüksek ticari niyetli an, misyonla uyumlu, Apple komisyonu dışında |
 | **3** | Doğrulanmış hizmet dizini (veteriner · kuaför · pet sitter · eğitmen) | 7332 hayvan **satışını** yasaklıyor, hizmeti değil |
 | **4** | Marka sponsorluğu / CSR | Pet markaları için değerli kitle; sahiplendirme misyonu CSR bütçesinin finanse ettiği şey |
@@ -146,6 +146,10 @@ sıralamasını bozar; kullanıcı bunu "alakasız kartlar" olarak hisseder.
 Gelir baskısı geldiğinde ilk akla gelecekler bunlar olduğu için baştan
 sabitleniyor:
 
+- **Temel eşleşme doğruluğu** — bağlantı amacı, dating için ilgilenilen
+  cinsiyet kategorileri ve temel yaş aralığı ücretsizdir. Sistem amacı
+  kullanarak aynı/karşı cinsiyet varsaymaz. Premium; güvenli ve doğru kart
+  üretmenin ön koşulunu değil, keşif konforunu satar.
 - **Doğrulama** — bir güvenlik özelliği. Parayla satılırsa güvenlik, parası
   olanın ayrıcalığı olur.
 - **Engelleme / şikâyet** — aynı gerekçe.

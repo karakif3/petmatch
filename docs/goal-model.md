@@ -85,7 +85,8 @@ tercihi sunucuda otomatik kapanır. Dating pazarlamasından önce bu alan
 
 ### Karşılıklı açıklama kuralı
 
-Cinsiyet ve yaş filtreleri gerekiyor — ama bedavaya değil. Kural, şemada zaten
+Cinsiyet ve yaş filtreleri gerekiyor; parasal olarak ücretsiz, mahremiyet
+bakımından ise yalnız karşılıklı açıklama koşuluyla. Kural, şemada zaten
 kullanılan `require_visible_owner` desenine denk:
 
 > **Cinsiyetini/yaşını paylaşanlar, paylaşanları görür ve filtreleyebilir.
@@ -98,6 +99,13 @@ ona "bu filtreyi kullanmak için kadın olduğunu herkese ilan et" demek, korunm
 isteni riske atmaktır.
 
 ### Cinsiyet: kolon evet, tercih hayır
+
+Bu başlık bugünkü `pets_only/friendship` köprüsünü tarif eder. Dating modu
+açıldığında “kimi görmek istiyorum” karşılıklı eşleşme girdisi olacaktır; ürün
+bu tercihi bağlantı amacından otomatik çıkarmaz ve ödeme duvarına koymaz. Tercih
+sunucuda tutulmadan karşılıklı dating uyumu güvenilir biçimde zorlanamayacağı
+için kalıcı model ancak özel nitelikli veri incelemesi, açık rıza, geri alma ve
+silme kontrolleri tamamlandıktan sonra eklenir.
 
 | Ne saklanıyor | Statü | Karar |
 |---|---|---|
