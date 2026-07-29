@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "PetMatch",
+    "NSCameraUsageDescription": "Sahip + pet doğrulama fotoğrafını çekebilmek için kamera izni gerekiyor.",
+    "NSPhotoLibraryUsageDescription": "Pet ve sahip fotoğraflarını profiline eklemek için galeri izni gerekiyor.",
+    "NSLocationWhenInUseUsageDescription": "Yakınındaki uyumlu petleri ve insanları gösterebilmek için konum izni gerekiyor."
+  },
+  "android": {
+    "app_name": "PetMatch"
+  }
+}

@@ -2,7 +2,7 @@
   "expo": {
     "name": "PetMatch",
     "slug": "petmatch",
-    "description": "Kedin veya köpeğin için yakınında oyun arkadaşı bul.",
+    "description": "Petler tanıştırır; oyun arkadaşlığından dostluğa veya romantik bir bağa uzanan güvenli, pet-first topluluk.",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,8 +20,10 @@
       "buildNumber": "1",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Evcil hayvanının fotoğrafını profiline eklemek için galeri izni gerekiyor.",
-        "NSLocationWhenInUseUsageDescription": "Yakınındaki oyun arkadaşlarını gösterebilmek için konum izni gerekiyor."
+        "CFBundleAllowMixedLocalizations": true,
+        "NSCameraUsageDescription": "Sahip + pet doğrulama fotoğrafını çekebilmek için kamera izni gerekiyor.",
+        "NSPhotoLibraryUsageDescription": "Pet ve sahip fotoğraflarını profiline eklemek için galeri izni gerekiyor.",
+        "NSLocationWhenInUseUsageDescription": "Yakınındaki uyumlu petleri ve insanları gösterebilmek için konum izni gerekiyor."
       }
     },
     "android": {
@@ -41,18 +43,27 @@
       "expo-router",
       "expo-font",
       "expo-apple-authentication",
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["tr"],
+            "android": ["tr"]
+          }
+        }
+      ],
       "expo-web-browser",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Evcil hayvanının fotoğrafını profiline eklemek için galeri izni gerekiyor."
+          "photosPermission": "Pet ve sahip fotoğraflarını profiline eklemek için galeri izni gerekiyor.",
+          "cameraPermission": "Sahip + pet doğrulama fotoğrafını çekebilmek için kamera izni gerekiyor."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Yakınındaki oyun arkadaşlarını gösterebilmek için konum izni gerekiyor."
+          "locationWhenInUsePermission": "Yakınındaki uyumlu petleri ve insanları gösterebilmek için konum izni gerekiyor."
         }
       ],
       [
@@ -71,6 +82,9 @@
         }
       ]
     ],
+    "locales": {
+      "tr": "./locales/tr.json"
+    },
     "extra": {
       "router": {},
       "eas": {

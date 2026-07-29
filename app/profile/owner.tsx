@@ -24,6 +24,7 @@ import {
 } from "../../core/api/profile";
 import { isAdultDate } from "../../core/domain/date-validation";
 import type { OwnerVisibility } from "../../core/domain/types";
+import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 
 type AvatarState =
@@ -78,6 +79,7 @@ function Field({
 }
 
 export default function OwnerProfileScreen() {
+  const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const profile = useQuery({
@@ -95,6 +97,7 @@ export default function OwnerProfileScreen() {
   const [avatar, setAvatar] = useState<AvatarState>(null);
   const [verificationPhoto, setVerificationPhoto] =
     useState<LocalProfilePhoto | null>(null);
+  const [verificationAcknowledged, setVerificationAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +155,7 @@ export default function OwnerProfileScreen() {
     }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
-      quality: 0.85,
+      quality: 0.72,
     });
     if (result.canceled) return;
     const photo = result.assets[0];
@@ -170,9 +173,7 @@ export default function OwnerProfileScreen() {
       return;
     }
     if (socialOpen && (!displayName.trim() || !avatar || visibility !== "public")) {
-      setError(
-        "Sosyalleşme modu için ad, sahip fotoğrafı ve keşfette görünür profil gerekiyor.",
-      );
+      setError(t("ownerConnection.prerequisitesError"));
       return;
     }
 
@@ -211,6 +212,10 @@ export default function OwnerProfileScreen() {
 
   const submitVerification = async () => {
     if (!user || !profile.data || !verificationPhoto) return;
+    if (!verificationAcknowledged) {
+      setError("Doğrulama fotoğrafının inceleme koşullarını onaylamalısın.");
+      return;
+    }
     setVerificationBusy(true);
     setError(null);
     setNotice(null);
@@ -221,6 +226,7 @@ export default function OwnerProfileScreen() {
         photo: verificationPhoto,
       });
       setVerificationPhoto(null);
+      setVerificationAcknowledged(false);
       await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
       await profile.refetch();
       setNotice("Doğrulama fotoğrafın inceleme kuyruğuna alındı.");
@@ -318,7 +324,7 @@ export default function OwnerProfileScreen() {
             placeholder="Sana nasıl hitap edelim?"
             autoCapitalize="words"
             maxLength={60}
-            hint="Pet buluşmasında sosyalleşme modu için ad zorunludur."
+            hint={t("ownerConnection.nameHint")}
           />
           <Field
             label="Kısa bio (opsiyonel)"
@@ -382,7 +388,9 @@ export default function OwnerProfileScreen() {
             ))}
           </View>
 
-          <Text className="mb-3 text-lg font-bold text-text-primary">Buluşma amacı</Text>
+          <Text className="mb-3 text-lg font-bold text-text-primary">
+            {t("ownerConnection.title")}
+          </Text>
           <View className="mb-7 gap-2">
             <Pressable
               onPress={() => setSocialOpen(false)}
@@ -390,10 +398,12 @@ export default function OwnerProfileScreen() {
             >
               <View className="flex-row items-center">
                 <Ionicons name="paw-outline" color={!socialOpen ? "#1E9384" : "#6B5D55"} size={24} />
-                <Text className="ml-3 font-bold text-text-primary">Yalnızca petime arkadaş</Text>
+                <Text className="ml-3 font-bold text-text-primary">
+                  {t("ownerConnection.petOnlyTitle")}
+                </Text>
               </View>
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
-                Eşleşme petlerin uyumuna göre yapılır; sahip profilin görünürlük ayarına uyar.
+                {t("ownerConnection.petOnlyDetail")}
               </Text>
             </Pressable>
             <Pressable
@@ -405,12 +415,12 @@ export default function OwnerProfileScreen() {
             >
               <View className="flex-row items-center">
                 <Ionicons name="people-outline" color={socialOpen ? "#E0523F" : "#6B5D55"} size={24} />
-                <Text className="ml-3 font-bold text-text-primary">
-                  Pet buluşmasında ben de sosyalleşmeye açığım
+                <Text className="ml-3 flex-1 font-bold text-text-primary">
+                  {t("ownerConnection.openTitle")}
                 </Text>
               </View>
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
-                Sahip fotoğrafın ve adın keşfette görünür. Bu bir flört tercihi değildir; ortak pet buluşmasına açıklığı belirtir.
+                {t("ownerConnection.openDetail")}
               </Text>
             </Pressable>
           </View>
@@ -438,7 +448,7 @@ export default function OwnerProfileScreen() {
                         : "Henüz doğrulanmadı"}
                 </Text>
                 <Text className="mt-1 text-xs leading-4 text-text-secondary">
-                  Sen ve aktif petin aynı karede görünmeli. Fotoğraf yalnızca moderasyon için saklanır.
+                  Sen ve aktif petin aynı karede görünmeli. Başvurular genellikle 24 saat içinde incelenir.
                 </Text>
                 {verificationStatus === "rejected" &&
                 profile.data.verificationReviewNote ? (
@@ -451,6 +461,21 @@ export default function OwnerProfileScreen() {
 
             {verificationStatus !== "approved" && verificationStatus !== "pending" ? (
               <>
+                <View className="mt-4 rounded-xl bg-bg-secondary p-3">
+                  {[
+                    "Yüzün ve aktif petin net biçimde aynı karede olsun.",
+                    "İyi ışık kullan; filtre, ekran görüntüsü veya eski fotoğraf kullanma.",
+                    "Kimlik belgesi ya da başka bir kişinin yüzünü kadraja alma.",
+                    "Fotoğraf yalnız moderasyon için kullanılır ve karardan sonra silinir.",
+                  ].map((item) => (
+                    <View key={item} className="mb-2 flex-row items-start last:mb-0">
+                      <Ionicons name="checkmark-circle" color="#2FB8A6" size={17} />
+                      <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
+                        {item}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
                 {verificationPhoto ? (
                   <Image
                     source={verificationPhoto.uri}
@@ -468,19 +493,44 @@ export default function OwnerProfileScreen() {
                   </Text>
                 </Pressable>
                 {verificationPhoto ? (
-                  <Pressable
-                    onPress={submitVerification}
-                    disabled={verificationBusy}
-                    className="mt-2 items-center rounded-xl bg-accent py-3 disabled:opacity-50"
-                  >
-                    {verificationBusy ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text className="font-bold text-white">Doğrulamaya gönder</Text>
-                    )}
-                  </Pressable>
+                  <>
+                    <Pressable
+                      onPress={() => setVerificationAcknowledged((value) => !value)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: verificationAcknowledged }}
+                      className="mt-3 min-h-11 flex-row items-center"
+                    >
+                      <Ionicons
+                        name={verificationAcknowledged ? "checkbox" : "square-outline"}
+                        color={verificationAcknowledged ? "#2FB8A6" : "#9A8B82"}
+                        size={24}
+                      />
+                      <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
+                        Fotoğrafın bu başvuruyu incelemek için kullanılacağını ve karar sonrası silineceğini anlıyorum.
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={submitVerification}
+                      disabled={verificationBusy || !verificationAcknowledged}
+                      className="mt-2 min-h-11 items-center justify-center rounded-xl bg-accent py-3 disabled:opacity-50"
+                    >
+                      {verificationBusy ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text className="font-bold text-white">Doğrulamaya gönder</Text>
+                      )}
+                    </Pressable>
+                  </>
                 ) : null}
               </>
+            ) : null}
+            {verificationStatus === "approved" ? (
+              <View className="mt-3 flex-row items-start rounded-xl bg-accent/5 p-3">
+                <Ionicons name="information-circle-outline" color="#1E9384" size={18} />
+                <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
+                  Sahip fotoğrafını değiştirirsen rozet güvenlik nedeniyle kaldırılır ve yeniden doğrulama gerekir.
+                </Text>
+              </View>
             ) : null}
           </View>
 

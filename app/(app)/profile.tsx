@@ -341,7 +341,7 @@ export default function ProfileScreen() {
             <View className="ml-3 flex-1">
               <Text className="font-bold text-text-primary">Sahip profilini düzenle</Text>
               <Text className="mt-1 text-xs leading-4 text-text-secondary">
-                Fotoğraf, bio, yaş/cinsiyet paylaşımı, sosyalleşme ve doğrulama
+                Fotoğraf, bio, yaş/cinsiyet paylaşımı, tanışma amacı ve doğrulama
               </Text>
             </View>
             <Ionicons name="chevron-forward" color="#9A8B82" size={21} />

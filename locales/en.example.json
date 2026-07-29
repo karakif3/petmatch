@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "PetMatch",
+    "NSCameraUsageDescription": "Camera access is used to take an owner-and-pet verification photo.",
+    "NSPhotoLibraryUsageDescription": "Photo access is used to add pet and owner photos to your profile.",
+    "NSLocationWhenInUseUsageDescription": "Location access is used to show compatible pets and people nearby."
+  },
+  "android": {
+    "app_name": "PetMatch"
+  }
+}

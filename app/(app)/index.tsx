@@ -27,11 +27,13 @@ import {
 } from "../../core/api/discovery";
 import { blockUser } from "../../core/api/safety";
 import type { SwipeDirection } from "../../core/domain/types";
+import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
 
 export default function DiscoverScreen() {
+  const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
@@ -261,7 +263,7 @@ export default function DiscoverScreen() {
           <View>
             <Text className="text-2xl font-bold text-text-primary">Keşfet</Text>
             <Text className="mt-1 text-sm text-text-secondary">
-              Yakınındaki uyumlu oyun arkadaşları
+              {t("discovery.subtitle")}
             </Text>
           </View>
           <View className="flex-row items-center gap-2">

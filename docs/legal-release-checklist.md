@@ -17,10 +17,26 @@ Uygulama içi hesap silme yolu Profil → Hesabımı kalıcı olarak sil'dir. Ed
 Function, auth kaydıyla birlikte profil/pet verilerini ve kullanıcıya ait pet,
 sahip ve doğrulama fotoğraflarını kaldırır.
 
+Pet-first sosyal/dating konumlandırması mağazaya açılmadan önce:
+
+- App Store/Play açıklaması, kategori, yaş derecesi, ekran görüntüsü ve review
+  notları romantik bağ ihtimalini uygulamayla aynı açıklıkta anlatmalı.
+- Google Play'de reşit olmayan erişimini kısıtlama kurulmalı; kolay aşılanabilir
+  tek checkbox yerine risk-temelli yaş güvencesi doğrulanmalı.
+- UGC koşulları; yasak içeriği, raporlama/engelleme yolunu, moderasyon
+  iletişimini ve müdahale standardını yayınlanmış biçimde içermeli.
+- `2026-07-29-v2` koşulları yalnız yeni onboarding kayıtlarında kalmamalı;
+  mevcut kullanıcı için sürüm kontrolü ve yeniden kabul kapısı eklenmeli.
+- Bağlantı modu açık ve amaçla sınırlı olmalı. Cinsiyet/yönelim tercihi veya
+  bunların çıkarımı eklenirse KVKK özel nitelikli veri ve yurt dışı aktarım
+  incelemesi tamamlanmadan yayınlanmamalı.
+
 ## Mağaza beyanı için veri envanteri
 
 - Hesap: e-posta, Supabase kullanıcı kimliği
 - Kişisel bilgiler: opsiyonel ad, zorunlu 18+ doğum tarihi, opsiyonel cinsiyet
+- Sosyal tercih: petiyle birlikte yeni insanlarla tanışmaya açıklık; gelecekte
+  bağlantı modu eklenirse ayrı envanter ve saklama süresi
 - Kullanıcı içeriği: pet/sahip fotoğrafları, bio, mesajlar
 - Konum: istemcide yaklaşık 1 km seviyesine yuvarlanmış koordinat
 - Uygulama etkinliği: beğeni, eşleşme, engelleme, şikâyet, doğrulama durumu
@@ -37,3 +53,11 @@ sahip ve doğrulama fotoğraflarını kaldırır.
   https://support.google.com/googleplay/android-developer/answer/13327111
 - Google Play Data safety beyanı:
   https://support.google.com/googleplay/android-developer/answer/10787469
+- Apple UGC, doğru metadata ve dating farklılaşması:
+  https://developer.apple.com/app-store/review/guidelines/
+- Google Play UGC:
+  https://support.google.com/googleplay/android-developer/answer/9876937
+- Google Play incidental dating ve minor protection:
+  https://support.google.com/googleplay/android-developer/answer/16838200
+- KVKK özel nitelikli kişisel veriler:
+  https://www.kvkk.gov.tr/Icerik/8364/Ozel-Nitelikli-Kisisel-Verilerin-Islenme-Sartlari

@@ -18,6 +18,7 @@ import type {
   DiscoveryFilterSettings,
   OwnerDiscoveryFilterInput,
 } from "../core/api/discovery";
+import { useTranslation } from "../core/i18n";
 
 const distanceOptions = [5, 10, 25, 50, 100] as const;
 
@@ -82,6 +83,7 @@ export function DiscoveryFilterModal({
     local: OwnerDiscoveryFilterInput,
   ) => void;
 }) {
+  const t = useTranslation();
   const [requirePhoto, setRequirePhoto] = useState(false);
   const [requireSocial, setRequireSocial] = useState(false);
   const [requireVerified, setRequireVerified] = useState(false);
@@ -292,8 +294,8 @@ export function DiscoveryFilterModal({
               />
               <View className="h-px bg-border" />
               <Toggle
-                label="Sosyalleşmeye açık sahipler"
-                detail="Pet buluşmasında kendisi de sosyalleşmeye açık olanları göster."
+                label={t("ownerConnection.filterLabel")}
+                detail={t("ownerConnection.filterDetail")}
                 value={requireSocial}
                 disabled={!ownerSettings.socialOpen}
                 onValueChange={(value) => {

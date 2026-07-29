@@ -13,11 +13,13 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { BrandMark } from "../../components/brand-mark";
 import { translateAuthError } from "../../core/domain/auth-errors";
+import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 
 type Mode = "sign-in" | "sign-up";
 
 export default function SignInScreen() {
+  const t = useTranslation();
   const configured = useAuthStore((s) => s.configured);
   const signInWithEmail = useAuthStore((s) => s.signInWithEmail);
   const signUpWithEmail = useAuthStore((s) => s.signUpWithEmail);
@@ -63,9 +65,12 @@ export default function SignInScreen() {
           <BrandMark size={82} />
         </View>
         <Text className="text-text-primary text-3xl font-bold">PetMatch</Text>
-        <Text className="text-brand font-semibold mt-1">For pets. For their people.</Text>
+        <Text className="text-brand font-semibold mt-1">{t("brand.motto")}</Text>
+        <Text className="mt-2 text-lg font-bold text-text-primary">
+          {t("brand.promise")}
+        </Text>
         <Text className="text-text-secondary text-base mt-2 mb-8">
-          Kedin veya köpeğin için yakınında oyun arkadaşı bul.
+          {t("brand.description")}
         </Text>
 
         {!configured ? (

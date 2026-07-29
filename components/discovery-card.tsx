@@ -4,6 +4,7 @@ import { Text, View } from "react-native";
 
 import type { DiscoveryDeckCard } from "../core/api/discovery";
 import { formatAge } from "../core/domain/age";
+import { useTranslation } from "../core/i18n";
 
 function distanceLabel(bucket: string | null): string {
   if (!bucket) return "Mesafe bilinmiyor";
@@ -20,6 +21,7 @@ function activityLabel(bucket: string | null): string | null {
 }
 
 export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
+  const t = useTranslation();
   const age = formatAge(card.birthDate);
   const activity = activityLabel(card.activityBucket);
   const compatibility = Math.round(card.compatibility.total * 100);
@@ -134,7 +136,7 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
               {card.owner.socialOpen ? (
                 <View className="rounded-full bg-brand/10 px-2.5 py-1.5">
                   <Text className="text-[10px] font-bold text-brand-dark">
-                    Sosyalleşmeye açık
+                    {t("ownerConnection.badge")}
                   </Text>
                 </View>
               ) : null}

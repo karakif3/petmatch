@@ -1,21 +1,22 @@
 # MVP kapsamı
 
-> Temel akış: hesap aç → pet profili oluştur → yakındaki uyumlu petleri gör →
-> karşılıklı beğeni = eşleşme → mesajlaş.
+> Temel akış: hesap aç → pet profili oluştur → pet-first tanışma tercihini
+> seç → yakındaki uyumlu petleri ve izin veren sahipleri gör → karşılıklı
+> beğeni = eşleşme → mesajlaş.
 
 ## Kapsam içi
 
 | Modül | Kapsam | Durum |
 |---|---|---|
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
-| Sahip profili | Opsiyonel ad, avatar, şehir, bio, yaş/cinsiyet açıklaması, görünürlük ve pet buluşmasında sosyalleşme | ✅ tam düzenleme + private avatar + doğrulama başvurusu |
+| Sahip profili | Opsiyonel ad, avatar, şehir, bio, yaş/cinsiyet açıklaması, görünürlük ve pet-first tanışma modu | ✅ tam düzenleme + private avatar + doğrulama başvurusu |
 | Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ tam düzenleme + fotoğraf ekleme/silme/sıralama |
 | Keşfet | Mesafe + pet filtreleri + karşılıklı sahip fotoğrafı/sosyal/verification/yaş/cinsiyet filtreleri | ✅ RPC + güvenli swipe + filtre ekranı |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
 | Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
 | Bildirim | Yeni eşleşme, yeni mesaj | ✅ istemci tercih/token akışı + Edge Function + EAS bağlantısı · ⏳ fiziksel cihaz build/test |
 | Güvenlik | Engelle, şikayet et, eşleşmeyi kaldır, hesap silme | ✅ DB + keşfet/sohbet/profil ekranları |
-| Ayarlar | Görünürlük, bildirim, konum, dil | ✅ görünürlük + bildirim + konum · ⬜ dil |
+| Ayarlar | Görünürlük, bildirim, konum, dil | ✅ görünürlük + bildirim + konum + i18n temeli · ⏳ tam katalog/dil yayını |
 
 Pet adı zorunludur ve ürünün birincil görünen kimliğidir. Sahip adı
 opsiyoneldir; boş bırakıldığında sahibi görünür yapma tercihi diğer profil
@@ -52,18 +53,24 @@ public profil adayını gören oturum veya aktif eşleşmedeki karşı taraf kı
 ömürlü signed URL üretebilir. `after_match` seçeneği aktif sohbet içinde sahip
 fotoğrafı, bio ve izin verilen yaş/cinsiyet özetini açar.
 
-## Pet buluşmasında sahip sosyalleşmesi
+## Pet-first sosyal tanışma
 
 Kullanıcı iki seçenekten birini seçer:
 
 - **Yalnızca petime arkadaş:** ürünün varsayılan pet↔pet akışı.
-- **Pet buluşmasında ben de sosyalleşmeye açığım:** genel arkadaşlık/flört
-  amacı değildir; ortak pet buluşmasındaki insan katmanını açık eder.
+- **Petimle birlikte yeni insanlarla tanışmak istiyorum:** arkadaşlık veya
+  romantik bağ ihtimaline açık insan katmanını görünür eder; belirli bir
+  ilişki vaadi değildir.
 
 İkinci seçenek için ad + sahip fotoğrafı + public sahip profili zorunludur.
 Sahip+pet birlikte fotoğraf doğrulaması ayrı bir güven rozetidir; sosyal modu
 ilk günden kilitlemez. Kullanıcı isterse keşfette yalnızca doğrulanmış sahipleri
 gösterir. Doğrulama onayı moderasyon kuyruğundan verilir.
+
+Bugünkü boolean yalnız şeffaf sosyal köprüdür. Dating olarak mağaza
+pazarlamasından önce arkadaşlık/dating/both ayrımı, karşılıklı niyet, daha
+güçlü yaş güvencesi ve dating görünürlüğü için doğrulama kapısı
+[`pet-first-connection.md`](pet-first-connection.md) uyarınca eklenir.
 
 ## Amaç modeli
 

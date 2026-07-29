@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import type { NotificationResponse } from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
@@ -20,6 +20,9 @@ import {
   configureForegroundNotifications,
   syncPushRegistration,
 } from "../core/api/notifications";
+import { touchLastActive } from "../core/api/conversations";
+import { syncLanguagePreference } from "../core/api/preferences";
+import { getAppLocale, syncAppLocale } from "../core/i18n";
 import { useAuthStore } from "../stores/auth";
 import { AppErrorBoundary } from "../components/app-error-boundary";
 
@@ -124,6 +127,58 @@ function NotificationEffects() {
   return null;
 }
 
+function ActivityEffects() {
+  const user = useAuthStore((state) => state.user);
+  const onboarded = useAuthStore((state) => state.onboarded);
+
+  useEffect(() => {
+    if (!user || !onboarded) return;
+
+    const updateActivity = () => {
+      void touchLastActive().catch((error) => {
+        console.error("Son aktiflik güncellenemedi:", error);
+      });
+    };
+
+    updateActivity();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") updateActivity();
+    });
+    return () => subscription.remove();
+  }, [onboarded, user]);
+
+  return null;
+}
+
+function LocalizationEffects() {
+  const user = useAuthStore((state) => state.user);
+  const lastSynced = useRef<string | null>(null);
+
+  useEffect(() => {
+    const updateLocale = () => {
+      syncAppLocale();
+      if (!user) return;
+      const syncKey = `${user.id}:${getAppLocale()}`;
+      if (lastSynced.current === syncKey) return;
+      void syncLanguagePreference()
+        .then(() => {
+          lastSynced.current = syncKey;
+        })
+        .catch((error) => {
+          console.error("Dil tercihi güncellenemedi:", error);
+        });
+    };
+
+    updateLocale();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") updateLocale();
+    });
+    return () => subscription.remove();
+  }, [user]);
+
+  return null;
+}
+
 export default function RootLayout() {
   const init = useAuthStore((s) => s.init);
   const [fontsLoaded] = useFonts({
@@ -149,6 +204,8 @@ export default function RootLayout() {
       <AppErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <NotificationEffects />
+          <ActivityEffects />
+          <LocalizationEffects />
           <StatusBar style="dark" />
           <Stack
             screenOptions={{

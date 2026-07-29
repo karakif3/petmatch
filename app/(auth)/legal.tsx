@@ -51,9 +51,10 @@ export default function LegalScreen() {
         yaklaşık mesafe için yuvarlanmış koordinatları, iletişim için mesajları ve
         güvenlik için şikâyet/engelleme kayıtlarını işler. Pet fotoğrafları keşfette
         görünürdür. Sahip fotoğrafı yalnızca seçtiğin görünürlük kuralına göre
-        paylaşılır; doğrulama fotoğrafı herkese açık değildir. Veriler hizmetin
-        çalışması, güvenlik, kötüye kullanımın önlenmesi ve hata tespiti amaçlarıyla
-        kullanılır; reklam amacıyla satılmaz.
+        paylaşılır; yeni insanlarla tanışmaya açıklık seçimin de profil ve keşfet
+        deneyimini oluşturmak için kullanılır. Doğrulama fotoğrafı herkese açık
+        değildir. Veriler hizmetin çalışması, güvenlik, kötüye kullanımın önlenmesi
+        ve hata tespiti amaçlarıyla kullanılır; reklam amacıyla satılmaz.
       </Section>
 
       <Section title="KVKK aydınlatma metni">
@@ -86,12 +87,14 @@ export default function LegalScreen() {
 
       <Section title="Kullanım koşulları">
         PetMatch yalnızca 18 yaş ve üzeri kullanıcılar içindir ve pet buluşmaları
-        etrafında güvenli sosyalleşme sağlar. Yanıltıcı profil, taciz, ticari hayvan
-        satışı, yasa dışı içerik, başkasının fotoğrafını kullanma ve güvenliği riske
-        atan davranışlar yasaktır. Kullanıcı, paylaştığı içeriğin haklarına sahip
-        olduğunu ve yüz yüze buluşmalarda kendi güvenlik değerlendirmesini yapacağını
-        kabul eder. Kuralları ihlal eden içerik kaldırılabilir; hesap kısıtlanabilir
-        veya kapatılabilir.
+        etrafında oyun arkadaşlığı, dostluk veya romantik bağ kurmaya açık,
+        pet-first bir sosyal tanışma deneyimi sağlar. Tanışmaya açıklık belirli bir
+        ilişki türünü, karşılık veya buluşma yükümlülüğünü garanti etmez. Yanıltıcı
+        profil, taciz, ticari hayvan satışı, yasa dışı içerik, başkasının fotoğrafını
+        kullanma ve güvenliği riske atan davranışlar yasaktır. Kullanıcı, paylaştığı
+        içeriğin haklarına sahip olduğunu ve yüz yüze buluşmalarda kendi güvenlik
+        değerlendirmesini yapacağını kabul eder. Kuralları ihlal eden içerik
+        kaldırılabilir; hesap kısıtlanabilir veya kapatılabilir.
       </Section>
 
       <Section title="Hesap ve veri silme politikası">

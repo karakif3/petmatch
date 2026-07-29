@@ -1,18 +1,21 @@
-# Amaç modeli — hikâye hep petin etrafında
+# Amaç modeli — pet ilk ortak nokta
 
 > **Durum:** ✅ uygulandı. `0007`–`0010` yazıldı ve izole bir Postgres'te
 > davranışsal olarak doğrulandı. Domain katmanı (`core/domain/`) şemayla
 > hizalandı. Kalan iş ekranlar ve moderasyon arayüzü.
 
-Kurucu ilke tek cümle:
+Güncel kurucu ilke:
 
-> **Kullanıcıya romantik/ilişkisel bir niyet sorulmaz. Pet buluşması ana
-> bağlamdır; insan katmanı görünürlük ve “bu buluşmada ben de sosyalleşmeye
-> açığım” seçeneğiyle sınırlıdır.**
+> **Pet buluşması gerçek ve birincil bağlamdır; insan katmanı kullanıcı
+> kontrolünde oyun arkadaşlığından dostluğa veya romantik bir bağa açılabilir.
+> Bu ihtimal kullanıcıdan ve mağazadan saklanmaz.**
 
-Bu ilke ürünü jenerik bir "pet dating" uygulamasından ayırıyor, App Store
-konumlandırmasını temizliyor (dating app değil, pet uygulaması) ve en riskli
-veri kategorisinden — cinsel yönelim — tamamen uzak tutuyor.
+Bu ilke PetMatch'i jenerik bir “hot-or-not” dating uygulamasından ayırır:
+pet uyumu yalnız pazarlama cover'ı değil, keşfeti ve ilk buluşmayı etkileyen
+gerçek ürün girdisidir. Bugünkü model ilişki türü veya cinsel yönelim toplamaz.
+Dating olarak açık pazarlama yapılmadan önce sürümlü bağlantı modu, karşılıklı
+niyet, yaş güvencesi ve moderasyon kapıları
+[`pet-first-connection.md`](pet-first-connection.md) uyarınca tamamlanır.
 
 ---
 
@@ -59,7 +62,7 @@ Sahiplendirme ayrı bir yüzey (bkz. §4), çünkü karşılıklı beğeni deği
 
 ---
 
-## 2. İnsan katmanı: görünürlük + pet buluşmasında sosyalleşme
+## 2. İnsan katmanı: görünürlük + tanışmaya açıklık
 
 Aradığımız özellik şemada zaten var — `profiles.owner_visibility`:
 
@@ -69,16 +72,16 @@ Aradığımız özellik şemada zaten var — `profiles.owner_visibility`:
 | `after_match` *(varsayılan)* | Eşleşince sahibi de görünür |
 | `public` | Sahip fotoğrafı ve kısa bio kartta görünür |
 
-Kimse "ilişki arıyorum" demiyor; kendini gösteriyor ya da göstermiyor. Köpek
-parkındaki gibi. Karşı taraf "sahibini de gösterenler", "doğrulanmış sahip"
-ve karşılıklı olarak "pet buluşmasında sosyalleşmeye açık" filtrelerini
-kullanabilir.
+Kullanıcı kendini gösterip göstermeyeceğini ve petiyle birlikte yeni insanlarla
+tanışmaya açık olup olmadığını seçer. Karşı taraf “sahibini de gösterenler”,
+“doğrulanmış sahip” ve karşılıklı “tanışmaya açık” filtrelerini kullanabilir.
 
-`owner_social_open` genel bir “kendime arkadaş arıyorum” alanı değildir.
-Yalnızca ortak pet buluşmasında sahibin de sohbete/sosyalleşmeye açık olduğunu
-anlatır. Açılması için sahip adı, private Storage'da sahip fotoğrafı ve
-`owner_visibility = 'public'` zorunludur. Kapanınca sosyal filtre tercihi de
-sunucuda otomatik kapanır.
+`owner_social_open` bugün bir köprü boolean'ıdır: arkadaşlık veya romantik bağ
+ihtimalini birbirinden ayırmadan yalnız “petimle birlikte yeni insanlarla
+tanışmaya açığım” der. Açılması için sahip adı, private Storage'da sahip
+fotoğrafı ve `owner_visibility = 'public'` zorunludur. Kapanınca sosyal filtre
+tercihi sunucuda otomatik kapanır. Dating pazarlamasından önce bu alan
+`connection_mode` modeline sürümlü ve geriye uyumlu biçimde taşınacaktır.
 
 ### Karşılıklı açıklama kuralı
 

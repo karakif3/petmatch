@@ -2,12 +2,13 @@
 
 > **For pets. For their people.**
 >
-> Kedin veya köpeğin için yakınında oyun arkadaşı bul.
+> **Petler tanıştırır. Bağınızı siz kurarsınız.**
 
-Kullanıcılar evcil hayvanlarının profilini oluşturur, yakındaki uyumlu petleri
-keşfeder, karşılıklı beğeniyle eşleşir ve mesajlaşır. Sahibin profilinin
-görünürlüğü kullanıcının kontrolündedir — dilerse karşı taraf için de zorunlu
-kılabilir.
+PetMatch; oyun arkadaşlığından dostluğa veya romantik bir bağa uzanabilen,
+pet-first sosyal tanışma ürünüdür. Kullanıcılar pet profili oluşturur, yakındaki
+uyumlu petleri ve görünür olmayı seçen sahiplerini keşfeder, karşılıklı
+beğeniyle eşleşir ve mesajlaşır. Sahip görünürlüğü ve tanışmaya açıklık
+kullanıcının kontrolündedir.
 
 | | |
 |---|---|
@@ -27,6 +28,8 @@ kılabilir.
 | [`docs/architecture.md`](docs/architecture.md) | Katmanlar, web'e taşıma yolu, keşfetin neden RPC olduğu |
 | [`docs/services.md`](docs/services.md) | Hangi servis gerekiyor, ne paylaşılıyor — **Supabase kotası burada** |
 | [`docs/brand.md`](docs/brand.md) | Marka işareti, asset kullanımı ve resmi renk paleti |
+| [`docs/pet-first-connection.md`](docs/pet-first-connection.md) | Pet-first sosyal/dating kararı, veri sınırları ve yayın kapıları |
+| [`docs/i18n.md`](docs/i18n.md) | Çok dil katalogları, native metadata ve yeni dil yayın süreci |
 | [`docs/backlog.md`](docs/backlog.md) | **Tek numaralı ürün backlog'u** — P0, P1 ve P2 sırası |
 | [`docs/auth-release-checklist.md`](docs/auth-release-checklist.md) | Şifre reset deep link'i ve Supabase redirect URL yayın ayarı |
 | [`docs/legal-release-checklist.md`](docs/legal-release-checklist.md) | Yasal bilgiler, mağaza veri beyanı ve yayın kontrolleri |
@@ -94,6 +97,8 @@ supabase/
               0020 güvenlik işlemleri + tam pet profil yazma yolları
               0021–0024 sahip profili + sosyal keşfet + yaş kovası
               0025–0030 hukuk/onay + keşfet + moderasyon + gözlemlenebilirlik
+              0031–0032 premium sohbet + doğrulama upload sertleştirmesi
+              0033 sunucu bildirimleri için güvenli dil tercihi
   functions/  güvenli Expo Push göndericisi + hesap/storage silme
 docs/
 ```
@@ -121,6 +126,7 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 - [x] Şikâyet, engelleme, eşleşmeyi kaldırma ve hesap silme
 - [x] Tam pet profil düzenleme + 1–6 fotoğraf ekleme/silme/sıralama
 - [x] Sahip fotoğrafı/bio/yaş-cinsiyet paylaşımı + sosyal buluşma modu
+- [x] Şeffaf pet-first sosyal tanışma metinleri + çok dil altyapısının ilk kataloğu
 - [x] Sahip fotoğrafı, doğrulama ve karşılıklı yaş/cinsiyet keşfet filtreleri
 - [x] Sahip + pet birlikte fotoğraf doğrulama başvurusu
 - [x] Şifre kurtarma/deep link + e-posta doğrulama durumları
@@ -134,5 +140,4 @@ görünürlük zorunluluğu, geçerli tarih ve 18+ kontrolleri kapsanıyor.
 ### Önümüzdeki plan — öncelik sırası
 
 Yetkili ve numaralı plan [`docs/backlog.md`](docs/backlog.md) dosyasındadır.
-1 ve 3 tamamlandı; 2 fiziksel cihaz bekliyor. Kodlama sırası 4 → 9, ardından
-P2 maddeleridir.
+Tamamlananlar ve yayın kapıları için doğrudan backlog'daki güncel sırayı izle.

@@ -33,6 +33,11 @@ export type ChatMessage = {
   readAt: string | null;
 };
 
+export type ChatMessagePage = {
+  items: ChatMessage[];
+  hasMore: boolean;
+};
+
 export type ConversationOwnerProfile = {
   userId: string;
   displayName: string | null;
@@ -42,6 +47,12 @@ export type ConversationOwnerProfile = {
   ageBucket: string | null;
   socialOpen: boolean;
   verified: boolean;
+  activityBucket: "today" | "this_week" | "this_month" | "older" | null;
+};
+
+export type ConversationSignalSubscription = {
+  setTyping: (typing: boolean) => void;
+  unsubscribe: () => void;
 };
 
 function publicPhotoUrl(path: string | null): string | null {
@@ -89,14 +100,22 @@ export async function loadConversation(conversationId: string): Promise<Conversa
   return conversation;
 }
 
-export async function loadMessages(conversationId: string): Promise<ChatMessage[]> {
+export async function loadMessages(
+  conversationId: string,
+  limit = 50,
+): Promise<ChatMessagePage> {
   const { data, error } = await requireSupabaseClient()
     .from("messages")
     .select("*")
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(limit + 1);
   if (error) throw error;
-  return (data ?? []).map(mapMessage);
+  const rows = data ?? [];
+  return {
+    items: rows.slice(0, limit).reverse().map(mapMessage),
+    hasMore: rows.length > limit,
+  };
 }
 
 export async function loadConversationOwnerProfile(
@@ -130,6 +149,13 @@ export async function loadConversationOwnerProfile(
     ageBucket: row.age_bucket || null,
     socialOpen: row.social_open,
     verified: row.verified,
+    activityBucket:
+      row.activity_bucket === "today" ||
+      row.activity_bucket === "this_week" ||
+      row.activity_bucket === "this_month" ||
+      row.activity_bucket === "older"
+        ? row.activity_bucket
+        : null,
   };
 }
 
@@ -168,6 +194,11 @@ export async function markConversationRead(conversationId: string): Promise<void
   if (error) throw error;
 }
 
+export async function touchLastActive(): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc("touch_last_active");
+  if (error) throw error;
+}
+
 export function subscribeToConversation(
   conversationId: string,
   onChange: () => void,
@@ -189,5 +220,72 @@ export function subscribeToConversation(
 
   return () => {
     void sb.removeChannel(channel);
+  };
+}
+
+export async function subscribeToConversationSignals(input: {
+  conversationId: string;
+  userId: string;
+  counterpartUserId: string;
+  onOnlineChange: (online: boolean) => void;
+  onTypingChange: (typing: boolean) => void;
+}): Promise<ConversationSignalSubscription> {
+  const sb = requireSupabaseClient();
+  await sb.realtime.setAuth();
+
+  const channel: RealtimeChannel = sb.channel(
+    `conversation:${input.conversationId}:ephemeral`,
+    {
+      config: {
+        private: true,
+        broadcast: { self: false },
+        presence: { key: input.userId },
+      },
+    },
+  );
+
+  const syncOnlineState = () => {
+    const online = Object.values(channel.presenceState())
+      .flat()
+      .some((presence) => {
+        const metadata = presence as unknown as { userId?: string };
+        return metadata.userId === input.counterpartUserId;
+      });
+    input.onOnlineChange(online);
+  };
+
+  channel
+    .on("presence", { event: "sync" }, syncOnlineState)
+    .on("broadcast", { event: "typing" }, ({ payload }) => {
+      const signal = payload as { userId?: string; typing?: boolean };
+      if (signal.userId === input.counterpartUserId) {
+        input.onTypingChange(signal.typing === true);
+      }
+    })
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        void channel.track({ userId: input.userId });
+      } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
+        input.onOnlineChange(false);
+        input.onTypingChange(false);
+      }
+    });
+
+  let lastTyping: boolean | null = null;
+  return {
+    setTyping(typing) {
+      if (lastTyping === typing) return;
+      lastTyping = typing;
+      void channel.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { userId: input.userId, typing },
+      });
+    },
+    unsubscribe() {
+      input.onOnlineChange(false);
+      input.onTypingChange(false);
+      void sb.removeChannel(channel);
+    },
   };
 }

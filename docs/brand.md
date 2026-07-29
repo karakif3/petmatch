@@ -2,16 +2,21 @@
 
 ## Konumlandırma
 
-PetMatch, kedi ve köpek sahiplerinin yakınlarında güvenli oyun arkadaşları
-bulmasına yardımcı olan sıcak ve güvenilir bir tüketici markasıdır. Tonu
-samimi, açık ve hayvan odaklıdır; romantik eşleşme uygulaması diline kaymaz.
+PetMatch, petleri gerçek bir ortak nokta yapan pet-first sosyal tanışma
+markasıdır. Oyun arkadaşlığı, dostluk veya romantik bağ ihtimalini sıcak ve
+güvenilir bir ortamda birleştirir. Tonu samimi, açık ve hayvan odaklıdır;
+insan bağını kullanıcıdan veya mağazadan saklamaz, insanları nesneleştiren
+“hot-or-not” diline de kaymaz.
 
 ## Motto
 
 Birincil motto **“For pets. For their people.”** ifadesidir. Kısa, sahipleri
-ikincil görmeden pet odağını korur. **“Only for pets and their owners.”**
-yalnızca kapsamı açıklayan destek cümlesi olarak kullanılabilir; ana motto
-değildir.
+ikincil görmeden pet odağını korur. Türkçe ürün vaadi **“Petler tanıştırır.
+Bağınızı siz kurarsınız.”** ifadesidir. **“Only for pets and their owners.”**
+kapsamı gereksiz daraltır; ana motto veya ürün vaadi olarak kullanılmaz.
+
+Konumlandırmanın ayrıntısı ve dating yayın kapıları
+[`pet-first-connection.md`](pet-first-connection.md) içindedir.
 
 ## İşaret
 

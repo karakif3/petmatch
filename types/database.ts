@@ -786,6 +786,10 @@ export type Database = {
       activity_bucket: { Args: { p_last_active: string }; Returns: string }
       block_user: { Args: { p_blocked_id: string }; Returns: undefined }
       blocked_user_ids: { Args: never; Returns: string[] }
+      can_access_conversation_realtime: {
+        Args: { p_topic: string }
+        Returns: boolean
+      }
       capture_client_error: {
         Args: {
           p_app_version?: string
@@ -880,6 +884,7 @@ export type Database = {
       get_conversation_owner_profile: {
         Args: { p_conversation_id: string }
         Returns: {
+          activity_bucket: string
           age_bucket: string
           avatar_path: string
           bio: string
@@ -1065,6 +1070,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_my_language: { Args: { p_language: string }; Returns: undefined }
       update_my_owner_details: {
         Args: {
           p_avatar_path: string

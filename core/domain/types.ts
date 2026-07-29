@@ -16,8 +16,8 @@ export type Size = (typeof SIZES)[number];
 export type EnergyLevel = 1 | 2 | 3 | 4 | 5;
 
 /**
- * Petin ne aradığı. Amaçlar yalnızca pete aittir — kullanıcıya kendisi
- * hakkında bir niyet sorulmaz (bkz. docs/goal-model.md).
+ * Petin ne aradığı. Bu küme yalnız pet amaçlarını taşır; insanın tanışma
+ * modu ayrı sahip profilinde kalır (bkz. docs/goal-model.md).
  *
  * Küme olarak tutulur: uygunluk kesişimle belirlenir, bu yüzden eski
  * `both` özel durumuna gerek kalmadı.
@@ -110,7 +110,7 @@ export type DiscoveryPreferences = {
   maxAgeYears: number | null;
   /** Sadece sahibi de fotoğraflı ve görünür olanları göster. */
   requireOwnerPhoto: boolean;
-  /** Pet buluşmasında kendisi de sosyalleşmeye açık sahipleri göster. */
+  /** Petiyle birlikte yeni insanlarla tanışmaya açık sahipleri göster. */
   requireOwnerSocial: boolean;
   /** Sahip + pet fotoğraf doğrulaması onaylanmış profilleri göster. */
   requireVerifiedOwner: boolean;

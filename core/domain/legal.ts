@@ -1,4 +1,4 @@
-export const LEGAL_DOCUMENT_VERSION = "2026-07-28-v1";
+export const LEGAL_DOCUMENT_VERSION = "2026-07-29-v2";
 
 export type LegalConfig = {
   controllerName: string;

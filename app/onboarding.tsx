@@ -19,6 +19,7 @@ import { completeOnboarding, type OnboardingPhoto } from "../core/api/onboarding
 import { isAdultDate, isPastOrTodayDate } from "../core/domain/date-validation";
 import { coarsenCoordinates } from "../core/domain/distance";
 import type { Coordinates, OwnerVisibility, Size, Species } from "../core/domain/types";
+import { useTranslation } from "../core/i18n";
 import { useAuthStore } from "../stores/auth";
 
 type Step = 0 | 1 | 2;
@@ -78,6 +79,7 @@ function Field({
 }
 
 export default function OnboardingScreen() {
+  const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const setOnboarded = useAuthStore((state) => state.setOnboarded);
 
@@ -267,6 +269,11 @@ export default function OnboardingScreen() {
 
         {step === 0 ? (
           <>
+            <View className="mb-5 rounded-2xl border border-accent/30 bg-accent/10 p-4">
+              <Text className="text-sm font-semibold leading-6 text-text-primary">
+                {t("onboarding.connectionIntro")}
+              </Text>
+            </View>
             <Field
               label="Adın (opsiyonel)"
               value={displayName}

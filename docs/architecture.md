@@ -85,7 +85,7 @@ iki SECURITY DEFINER fonksiyonu kondu:
   doğrulayıp 1–6 fotoğrafın sırasını tek transaction'da değiştirir
 - `update_my_owner_details(...)` → sahip avatar yolunu, görünürlüğü ve sosyal
   modun ad+foto+public profil önkoşullarını tek transaction'da doğrular
-- `update_owner_discovery_filters(...)` → fotoğraflı, sosyalleşmeye açık ve
+- `update_owner_discovery_filters(...)` → fotoğraflı, tanışmaya açık ve
   doğrulanmış sahip filtrelerini dar kolonlarla günceller
 - `get_conversation_owner_profile(conversation_id)` → yalnızca aktif
   katılımcıya, karşı tarafın görünürlük tercihinin izin verdiği sahip özetini

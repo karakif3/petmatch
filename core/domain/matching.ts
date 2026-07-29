@@ -99,11 +99,11 @@ export type EligibilityContext = {
   candidateOwnerVisible: boolean;
   /** Karşı tarafın sahip fotoğrafı var mı. */
   candidateOwnerHasPhoto: boolean;
-  /** Karşı taraf pet buluşmasında sosyalleşmeye açık mı. */
+  /** Karşı taraf petiyle birlikte yeni insanlarla tanışmaya açık mı. */
   candidateOwnerSocialOpen: boolean;
   /** Karşı tarafın sahip + pet doğrulaması onaylı mı. */
   candidateOwnerVerified: boolean;
-  /** İzleyici pet buluşmasında sosyalleşmeye açık mı. */
+  /** İzleyici petiyle birlikte yeni insanlarla tanışmaya açık mı. */
   viewerOwnerSocialOpen: boolean;
   /** Karşı taraf da "sadece sahibi görünenler" zorunluluğu koymuş mu. */
   candidateRequiresVisibleOwner: boolean;

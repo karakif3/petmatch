@@ -299,7 +299,15 @@ export async function submitOwnerVerification(input: {
       contentType: input.photo.mimeType ?? "image/jpeg",
       upsert: false,
     });
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    if (
+      uploadError.message.toLowerCase().includes("size") ||
+      uploadError.message.toLowerCase().includes("limit")
+    ) {
+      throw new Error("Doğrulama fotoğrafı en fazla 6 MB olabilir. Lütfen yeniden çek.");
+    }
+    throw uploadError;
+  }
 
   const { data, error } = await sb.rpc("submit_verification", {
     p_pet_id: input.petId,
@@ -307,6 +315,14 @@ export async function submitOwnerVerification(input: {
   });
   if (error) {
     await sb.storage.from(STORAGE_BUCKETS.verificationPhotos).remove([storagePath]);
+    if (error.message.includes("already pending")) {
+      throw new Error("Zaten inceleme bekleyen bir doğrulama başvurun var.");
+    }
+    if (error.message.includes("submission limit")) {
+      throw new Error(
+        "24 saat içinde en fazla üç doğrulama fotoğrafı gönderebilirsin. Lütfen daha sonra tekrar dene.",
+      );
+    }
     throw error;
   }
   void trackProductEvent("verification_submitted");

@@ -16,6 +16,7 @@ import {
   listConversations,
   type ConversationSummary,
 } from "../../core/api/conversations";
+import { getIntlLocale } from "../../core/i18n";
 
 function relativeTime(value: string | null): string {
   if (!value) return "";
@@ -29,7 +30,10 @@ function relativeTime(value: string | null): string {
   if (hours < 24) return `${hours} sa`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} gün`;
-  return new Date(value).toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+  return new Date(value).toLocaleDateString(getIntlLocale(), {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function ConversationRow({ conversation }: { conversation: ConversationSummary }) {
