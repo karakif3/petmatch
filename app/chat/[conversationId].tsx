@@ -9,7 +9,6 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -39,163 +38,29 @@ import {
   type ChatMessagePage,
   type ConversationSignalSubscription,
 } from "../../core/api/conversations";
+import { DateSeparator } from "../../components/chat/date-separator";
+import { MessageBubble } from "../../components/chat/message-bubble";
+import {
+  QuickReplyBar,
+  QuickReplyStarters,
+  quickReplies,
+} from "../../components/chat/quick-replies";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
-import { getIntlLocale, useTranslation } from "../../core/i18n";
+import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
+import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 
 const TYPING_IDLE_MS = 2_500;
 const REMOTE_TYPING_STALE_MS = 4_000;
-
-const quickReplies = [
-  {
-    label: "Tanışma mesajı",
-    text: "Merhaba! 🐾 Petin en çok nasıl oyun oynamayı seviyor?",
-    icon: "sparkles-outline" as const,
-  },
-  {
-    label: "Buluşma planla",
-    text: "Bir pet buluşması planlayalım mı? Uygun olduğun gün ve saat nedir? İlk buluşma için halka açık bir yer seçebiliriz. 🐾",
-    icon: "calendar-outline" as const,
-  },
-  {
-    label: "Uyumluluk sor",
-    text: "Buluşmadan önce aşı, enerji seviyesi ve diğer petlerle iletişimi hakkında paylaşmak istediğin bir şey var mı?",
-    icon: "paw-outline" as const,
-  },
-];
-
-type ChatListItem =
-  | { kind: "date"; id: string; label: string }
-  | { kind: "message"; id: string; message: ChatMessage; grouped: boolean };
-
-function messageTime(value: string): string {
-  return new Date(value).toLocaleTimeString(getIntlLocale(), {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function localDateKey(value: string): string {
-  const date = new Date(value);
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
-function dateLabel(value: string): string {
-  const date = new Date(value);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  if (localDateKey(value) === localDateKey(today.toISOString())) return "Bugün";
-  if (localDateKey(value) === localDateKey(yesterday.toISOString())) return "Dün";
-  return date.toLocaleDateString(getIntlLocale(), {
-    day: "numeric",
-    month: "long",
-    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
-  });
-}
-
-function buildChatItems(messages: ChatMessage[]): ChatListItem[] {
-  const items: ChatListItem[] = [];
-  let previous: ChatMessage | null = null;
-
-  for (const message of messages) {
-    const day = localDateKey(message.createdAt);
-    if (!previous || localDateKey(previous.createdAt) !== day) {
-      items.push({ kind: "date", id: `date:${day}`, label: dateLabel(message.createdAt) });
-    }
-    const grouped =
-      previous?.senderId === message.senderId &&
-      localDateKey(previous.createdAt) === day &&
-      new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() <
-        5 * 60 * 1000;
-    items.push({ kind: "message", id: message.id, message, grouped });
-    previous = message;
-  }
-  return items;
-}
-
-function MessageBubble({
-  message,
-  mine,
-  grouped,
-  latestMine,
-}: {
-  message: ChatMessage;
-  mine: boolean;
-  grouped: boolean;
-  latestMine: boolean;
-}) {
-  const status = message.readAt ? "Okundu" : "Gönderildi";
-  return (
-    <View
-      className={`${grouped ? "mb-1" : "mb-2.5"} px-4 ${
-        mine ? "items-end" : "items-start"
-      }`}
-      accessible
-      accessibilityLabel={`${mine ? "Sen" : "Karşı taraf"}: ${message.body}. ${messageTime(
-        message.createdAt,
-      )}${latestMine ? `. ${status}` : ""}`}
-    >
-      <View
-        className={`max-w-[82%] px-4 py-2.5 ${
-          mine
-            ? `bg-brand ${grouped ? "rounded-2xl rounded-r-md" : "rounded-2xl rounded-br-md"}`
-            : `border border-border bg-surface ${
-                grouped ? "rounded-2xl rounded-l-md" : "rounded-2xl rounded-bl-md"
-              }`
-        }`}
-      >
-        <Text
-          className={`text-[15px] leading-5 ${
-            mine ? "text-white" : "text-text-primary"
-          }`}
-        >
-          {message.body}
-        </Text>
-        <View className="mt-1 flex-row items-center justify-end gap-1">
-          <Text className={`text-[11px] ${mine ? "text-white/75" : "text-text-tertiary"}`}>
-            {messageTime(message.createdAt)}
-          </Text>
-          {latestMine ? (
-            <>
-              <Ionicons
-                name={message.readAt ? "checkmark-done" : "checkmark"}
-                color={mine ? "rgba(255,255,255,0.8)" : "#9A8B82"}
-                size={14}
-              />
-              <Text
-                className={`text-[11px] ${
-                  mine ? "text-white/80" : "text-text-tertiary"
-                }`}
-              >
-                {status}
-              </Text>
-            </>
-          ) : null}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function DateSeparator({ label }: { label: string }) {
-  return (
-    <View className="my-3 items-center" accessibilityRole="text">
-      <View className="rounded-full bg-bg-tertiary px-3 py-1.5">
-        <Text className="text-xs font-semibold text-text-secondary">{label}</Text>
-      </View>
-    </View>
-  );
-}
 
 export default function ChatScreen() {
   const t = useTranslation();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
-  const listRef = useRef<FlatList<ChatListItem>>(null);
+  const listRef = useRef<FlatList<ChatListItem<ChatMessage>>>(null);
   const signalRef = useRef<ConversationSignalSubscription | null>(null);
   const typingIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteTypingStaleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -603,7 +468,7 @@ export default function ChatScreen() {
               keyExtractor={(item) => item.id}
               renderItem={({ item }) =>
                 item.kind === "date" ? (
-                  <DateSeparator label={item.label} />
+                  <DateSeparator isoDate={item.isoDate} />
                 ) : (
                   <MessageBubble
                     message={item.message}
@@ -656,21 +521,7 @@ export default function ChatScreen() {
                     Petlerinizin alışkanlıklarını konuşun; ilk buluşmayı halka açık bir yerde
                     planlayın.
                   </Text>
-                  <View className="mt-5 w-full gap-2">
-                    {quickReplies.map((reply) => (
-                      <Pressable
-                        key={reply.label}
-                        onPress={() => setBody(reply.text)}
-                        className="min-h-11 flex-row items-center rounded-xl border border-border bg-surface px-4 py-3"
-                      >
-                        <Ionicons name={reply.icon} color="#E0523F" size={18} />
-                        <Text className="ml-2 flex-1 text-sm font-semibold text-text-primary">
-                          {reply.label}
-                        </Text>
-                        <Ionicons name="arrow-forward" color="#9A8B82" size={17} />
-                      </Pressable>
-                    ))}
-                  </View>
+                  <QuickReplyStarters onSelect={setBody} />
                 </View>
               }
             />
@@ -712,25 +563,7 @@ export default function ChatScreen() {
         {conversation.data?.isActive ? (
           <View className="border-t border-border bg-surface pb-2 pt-2">
             {messageItems.length ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingHorizontal: 12, gap: 8, paddingBottom: 8 }}
-              >
-                {quickReplies.slice(1).map((reply) => (
-                  <Pressable
-                    key={reply.label}
-                    onPress={() => setBody(reply.text)}
-                    className="min-h-11 flex-row items-center justify-center rounded-full border border-border bg-bg-secondary px-3"
-                  >
-                    <Ionicons name={reply.icon} color="#E0523F" size={16} />
-                    <Text className="ml-1.5 text-xs font-semibold text-text-secondary">
-                      {reply.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <QuickReplyBar replies={quickReplies.slice(1)} onSelect={setBody} />
             ) : null}
             <View className="flex-row items-end gap-2 px-3">
               <View className="flex-1">
