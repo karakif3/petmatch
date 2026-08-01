@@ -18,7 +18,13 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 
 import {
   loadConversation,
@@ -29,6 +35,7 @@ import {
   subscribeToConversation,
   subscribeToConversationSignals,
   type ChatMessage,
+  type ChatMessageCursor,
   type ChatMessagePage,
   type ConversationSignalSubscription,
 } from "../../core/api/conversations";
@@ -38,7 +45,6 @@ import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { getIntlLocale, useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 
-const PAGE_SIZE = 50;
 const TYPING_IDLE_MS = 2_500;
 const REMOTE_TYPING_STALE_MS = 4_000;
 
@@ -196,7 +202,6 @@ export default function ChatScreen() {
   const latestMessageRef = useRef<string | null>(null);
   const nearBottomRef = useRef(true);
   const [body, setBody] = useState("");
-  const [messageLimit, setMessageLimit] = useState(PAGE_SIZE);
   const [sendError, setSendError] = useState<string | null>(null);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const [remoteOnline, setRemoteOnline] = useState(false);
@@ -212,11 +217,12 @@ export default function ChatScreen() {
     enabled: Boolean(conversationId),
   });
 
-  const messages = useQuery({
-    queryKey: ["messages", conversationId, messageLimit],
-    queryFn: () => loadMessages(conversationId, messageLimit),
+  const messages = useInfiniteQuery({
+    queryKey: ["messages", conversationId],
+    queryFn: ({ pageParam }) => loadMessages(conversationId, { before: pageParam }),
+    initialPageParam: null as ChatMessageCursor | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: Boolean(conversationId),
-    placeholderData: (previous) => previous,
   });
 
   const ownerProfile = useQuery({
@@ -225,7 +231,12 @@ export default function ChatScreen() {
     enabled: Boolean(conversationId && conversation.data?.isActive),
   });
 
-  const messageItems = useMemo(() => messages.data?.items ?? [], [messages.data?.items]);
+  // Sayfalar yeniden eskiye gelir, her sayfa kendi içinde eskiden yeniye.
+  // Ekranda tek bir artan liste isteniyor.
+  const messageItems = useMemo(() => {
+    const pages = messages.data?.pages ?? [];
+    return [...pages].reverse().flatMap((page) => page.items);
+  }, [messages.data?.pages]);
   const chatItems = useMemo(() => buildChatItems(messageItems), [messageItems]);
   const latestOutgoingId = useMemo(
     () => [...messageItems].reverse().find((message) => message.senderId === user?.id)?.id,
@@ -323,14 +334,17 @@ export default function ChatScreen() {
       signalRef.current?.setTyping(false);
     },
     onSuccess: async (message) => {
-      queryClient.setQueryData<ChatMessagePage>(
-        ["messages", conversationId, messageLimit],
+      // İlk sayfa en yeniyi taşıyor; gönderilen mesaj oraya eklenir.
+      // Realtime aynı mesajı geri getirebildiği için id ile tekilleştiriyoruz.
+      queryClient.setQueryData<InfiniteData<ChatMessagePage, ChatMessageCursor | null>>(
+        ["messages", conversationId],
         (current) => {
-          if (!current) return { items: [message], hasMore: false };
-          const withoutDuplicate = current.items.filter((item) => item.id !== message.id);
+          if (!current || current.pages.length === 0) return current;
+          const [newest, ...older] = current.pages;
+          const withoutDuplicate = newest.items.filter((item) => item.id !== message.id);
           return {
             ...current,
-            items: [...withoutDuplicate, message].slice(-messageLimit),
+            pages: [{ ...newest, items: [...withoutDuplicate, message] }, ...older],
           };
         },
       );
@@ -610,19 +624,21 @@ export default function ChatScreen() {
               }}
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
-                messages.data?.hasMore ? (
+                messages.hasNextPage ? (
                   <View className="items-center pb-2 pt-1">
                     <Pressable
-                      onPress={() => setMessageLimit((limit) => limit + PAGE_SIZE)}
-                      disabled={messages.isFetching}
+                      onPress={() => void messages.fetchNextPage()}
+                      disabled={messages.isFetchingNextPage}
                       accessibilityLabel="Daha eski mesajları yükle"
                       className="min-h-11 flex-row items-center justify-center rounded-full border border-border bg-surface px-4 disabled:opacity-60"
                     >
-                      {messages.isFetching ? (
+                      {messages.isFetchingNextPage ? (
                         <ActivityIndicator color="#9A8B82" size="small" />
                       ) : null}
                       <Text className="text-xs font-semibold text-text-secondary">
-                        {messages.isFetching ? " Yükleniyor…" : "Daha eski mesajları göster"}
+                        {messages.isFetchingNextPage
+                          ? " Yükleniyor…"
+                          : "Daha eski mesajları göster"}
                       </Text>
                     </Pressable>
                   </View>

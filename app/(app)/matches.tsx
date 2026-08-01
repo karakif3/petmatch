@@ -1,12 +1,16 @@
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   RefreshControl,
   SafeAreaView,
   Text,
   View,
 } from "react-native";
+// Gelen kutusu zamanla uzayan tek liste; hücre geri dönüşümü burada gerçekten
+// işe yarıyor. Sohbet ekranı bilerek FlatList'te kaldı: orada
+// `contentContainerStyle.justifyContent` balonları aşağı yaslıyor ve FlashList
+// o prop'u desteklemiyor.
+import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -150,12 +154,11 @@ export default function MatchesScreen() {
       ) : null}
 
       {!conversations.isLoading && !conversations.isError ? (
-        <FlatList
+        <FlashList
           data={conversations.data ?? []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ConversationRow conversation={item} />}
           contentContainerStyle={{
-            flexGrow: 1,
             paddingTop: 4,
             paddingBottom: 24,
           }}

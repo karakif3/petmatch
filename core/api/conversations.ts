@@ -33,9 +33,20 @@ export type ChatMessage = {
   readAt: string | null;
 };
 
+/**
+ * Keyset imleci. Yalnızca `created_at` yetmez: aynı milisaniyeye düşen iki
+ * mesajda biri atlanır. `id` ikincil sıra anahtarı olarak bunu kapatıyor.
+ */
+export type ChatMessageCursor = {
+  createdAt: string;
+  id: string;
+};
+
 export type ChatMessagePage = {
+  /** Eskiden yeniye sıralı. */
   items: ChatMessage[];
-  hasMore: boolean;
+  /** Daha eskisini istemek için; null ise sohbetin başına gelindi. */
+  nextCursor: ChatMessageCursor | null;
 };
 
 export type ConversationOwnerProfile = {
@@ -100,21 +111,49 @@ export async function loadConversation(conversationId: string): Promise<Conversa
   return conversation;
 }
 
+/**
+ * Bir sayfa mesaj — keyset (cursor) sayfalama.
+ *
+ * Önceki sürüm "daha fazla"ya her basıldığında listeyi baştan, daha büyük bir
+ * `limit` ile çekiyordu: 500 mesajlık bir sohbette her dokunuş 500 satır
+ * indiriyordu. Keyset'te her sayfa sabit maliyetli ve imleçten daha eskisini
+ * ister.
+ */
 export async function loadMessages(
   conversationId: string,
-  limit = 50,
+  options: { before?: ChatMessageCursor | null; limit?: number } = {},
 ): Promise<ChatMessagePage> {
-  const { data, error } = await requireSupabaseClient()
+  const limit = options.limit ?? 50;
+
+  let query = requireSupabaseClient()
     .from("messages")
-    .select("*")
+    .select("id, conversation_id, sender_id, body, created_at, read_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit + 1);
+
+  if (options.before) {
+    // (created_at, id) bileşik keyset. Değerler tırnaklanıyor: zaman damgası
+    // `:` `.` `+` içeriyor ve PostgREST bunları or() içinde ayraç sayar.
+    const { createdAt, id } = options.before;
+    query = query.or(
+      `created_at.lt."${createdAt}",and(created_at.eq."${createdAt}",id.lt."${id}")`,
+    );
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
+
   const rows = data ?? [];
+  const hasMore = rows.length > limit;
+  const page = rows.slice(0, limit);
+  const oldest = page[page.length - 1];
+
   return {
-    items: rows.slice(0, limit).reverse().map(mapMessage),
-    hasMore: rows.length > limit,
+    items: page.slice().reverse().map(mapMessage),
+    nextCursor:
+      hasMore && oldest ? { createdAt: oldest.created_at, id: oldest.id } : null,
   };
 }
 
