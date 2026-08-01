@@ -30,6 +30,7 @@ import {
   loadConversationOwnerProfile,
   loadMessages,
   markConversationRead,
+  recordMeetupFeedback,
   sendMessage,
   subscribeToConversation,
   subscribeToConversationSignals,
@@ -39,6 +40,7 @@ import {
   type ConversationSignalSubscription,
 } from "../../core/api/conversations";
 import { DateSeparator } from "../../components/chat/date-separator";
+import { MeetupFeedbackPrompt } from "../../components/chat/meetup-feedback-prompt";
 import { MessageBubble } from "../../components/chat/message-bubble";
 import {
   QuickReplyBar,
@@ -558,6 +560,19 @@ export default function ChatScreen() {
               </Pressable>
             ) : null}
           </View>
+        ) : null}
+
+        {conversation.data?.askMeetupFeedback ? (
+          <MeetupFeedbackPrompt
+            petName={conversation.data.petName}
+            onAnswer={async (outcome) => {
+              await recordMeetupFeedback(conversationId, outcome);
+              await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+              await queryClient.invalidateQueries({
+                queryKey: ["conversation", conversationId],
+              });
+            }}
+          />
         ) : null}
 
         {conversation.data?.isActive ? (

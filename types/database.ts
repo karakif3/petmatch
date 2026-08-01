@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       adoption_interests: {
@@ -338,6 +333,42 @@ export type Database = {
             columns: ["pet_b_id"]
             isOneToOne: false
             referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetup_feedback: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          outcome: Database["public"]["Enums"]["meetup_outcome"]
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          outcome: Database["public"]["Enums"]["meetup_outcome"]
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          outcome?: Database["public"]["Enums"]["meetup_outcome"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetup_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetup_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -953,6 +984,8 @@ export type Database = {
       list_my_conversations: {
         Args: never
         Returns: {
+          ask_meetup_feedback: boolean
+          awaiting_my_reply: boolean
           conversation_id: string
           conversation_kind: string
           counterpart_display_name: string
@@ -976,6 +1009,7 @@ export type Database = {
       my_match_ids: { Args: never; Returns: string[] }
       my_pet_ids: { Args: never; Returns: string[] }
       owner_age_bucket: { Args: { p_birth_date: string }; Returns: string }
+      owner_meetup_rate: { Args: { p_user_id: string }; Returns: number }
       owner_response_rate: { Args: { p_owner_id: string }; Returns: number }
       owns_pet: { Args: { p_pet_id: string }; Returns: boolean }
       pause_stale_adoption_listings: {
@@ -989,6 +1023,13 @@ export type Database = {
           p_privacy_notice_acknowledged: boolean
           p_public_profile_consent?: boolean
           p_terms_accepted: boolean
+        }
+        Returns: undefined
+      }
+      record_meetup_feedback: {
+        Args: {
+          p_conversation_id: string
+          p_outcome: Database["public"]["Enums"]["meetup_outcome"]
         }
         Returns: undefined
       }
@@ -1028,6 +1069,14 @@ export type Database = {
           p_note?: string
         }
         Returns: undefined
+      }
+      security_surface_report: {
+        Args: never
+        Returns: {
+          finding: string
+          object: string
+          severity: string
+        }[]
       }
       shares_active_match_with: {
         Args: { p_user_id: string }
@@ -1133,6 +1182,7 @@ export type Database = {
     Enums: {
       adoption_status: "pending" | "accepted" | "declined" | "withdrawn"
       match_goal: "playdate" | "adoption"
+      meetup_outcome: "met" | "not_yet" | "declined"
       moderation_kind: "report" | "verification" | "photo"
       moderation_status: "pending" | "approved" | "rejected"
       owner_visibility: "hidden" | "after_match" | "public"
@@ -1276,6 +1326,7 @@ export const Constants = {
     Enums: {
       adoption_status: ["pending", "accepted", "declined", "withdrawn"],
       match_goal: ["playdate", "adoption"],
+      meetup_outcome: ["met", "not_yet", "declined"],
       moderation_kind: ["report", "verification", "photo"],
       moderation_status: ["pending", "approved", "rejected"],
       owner_visibility: ["hidden", "after_match", "public"],
@@ -1294,3 +1345,4 @@ export const Constants = {
     },
   },
 } as const
+

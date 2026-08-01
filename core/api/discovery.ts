@@ -36,6 +36,8 @@ export type DiscoveryDeck = {
     visibility: "hidden" | "after_match" | "public";
     gender: "female" | "male" | "other" | null;
     socialOpen: boolean;
+    /** Doğrulama istemini doğru anda gösterebilmek için. */
+    verificationStatus: "pending" | "approved" | "rejected" | null;
     requirePhoto: boolean;
     requireSocial: boolean;
     requireVerified: boolean;
@@ -171,7 +173,9 @@ export async function loadDiscoveryDeck(
       .maybeSingle(),
     sb
       .from("profiles")
-      .select("owner_visibility,gender,owner_social_open,require_visible_owner")
+      .select(
+        "owner_visibility,gender,owner_social_open,require_visible_owner,verification_status",
+      )
       .eq("id", userId)
       .single(),
     sb
@@ -191,6 +195,7 @@ export async function loadDiscoveryDeck(
     visibility: profileResult.data.owner_visibility,
     gender: profileResult.data.gender as DiscoveryDeck["ownerSettings"]["gender"],
     socialOpen: profileResult.data.owner_social_open,
+    verificationStatus: profileResult.data.verification_status,
     requirePhoto: preferencesResult.data.require_owner_photo,
     requireSocial: preferencesResult.data.require_owner_social,
     requireVerified: preferencesResult.data.require_verified_owner,

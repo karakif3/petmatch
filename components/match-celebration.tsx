@@ -135,8 +135,10 @@ export function MatchCelebration({
   matchedPetName,
   matchedPhotoUrl,
   canOpenChat,
+  showVerifyPrompt,
   onSendMessage,
   onKeepBrowsing,
+  onVerify,
 }: {
   visible: boolean;
   viewerPetName: string;
@@ -145,8 +147,15 @@ export function MatchCelebration({
   matchedPhotoUrl: string | null;
   /** Konuşma henüz çözülmediyse birincil eylem beklemede gösterilir. */
   canOpenChat: boolean;
+  /**
+   * Doğrulama istemi burada gösterilir çünkü değerin en somut olduğu an bu.
+   * Sektörde isteğe bağlı doğrulamayı çoğu kullanıcı atlıyor; sebep genelde
+   * özelliğin kendisi değil, istenme anının kötü seçilmesi.
+   */
+  showVerifyPrompt: boolean;
   onSendMessage: () => void;
   onKeepBrowsing: () => void;
+  onVerify: () => void;
 }) {
   const [animate, setAnimate] = useState(true);
 
@@ -239,6 +248,20 @@ export function MatchCelebration({
               Keşfetmeye devam et
             </Text>
           </Pressable>
+
+          {showVerifyPrompt ? (
+            <Pressable
+              onPress={onVerify}
+              accessibilityRole="button"
+              accessibilityLabel="Profilini doğrula"
+              className="mt-2 min-h-12 flex-row items-center justify-center rounded-2xl border border-white/40 px-4 py-3"
+            >
+              <Ionicons name="shield-checkmark-outline" size={16} color="#FFFFFF" />
+              <Text className="ml-2 text-sm font-semibold text-white">
+                {matchedPetName ? "Profilini doğrula, güven ver" : "Profilini doğrula"}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Modal>

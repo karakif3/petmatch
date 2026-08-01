@@ -11,6 +11,9 @@ export type ProductEventName =
   | "message_sent"
   | "report_submitted"
   | "verification_submitted"
+  // Ürünün asıl başarı metriği: kaç konuşma gerçek buluşmaya döndü.
+  // Uygulamada geçen süre değil bu ölçülüyor (bkz. docs/benchmark.md).
+  | "meetup_feedback"
   | "account_delete_requested";
 
 export async function trackProductEvent(

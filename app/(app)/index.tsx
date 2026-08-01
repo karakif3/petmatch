@@ -505,12 +505,22 @@ export default function DiscoverScreen() {
         matchedPetName={match?.petName ?? ""}
         matchedPhotoUrl={match?.photoUrl ?? null}
         canOpenChat={Boolean(match?.conversationId)}
+        // Doğrulama istemi kayıt akışında değil BURADA: ilk eşleşme, rozetin
+        // değerinin somutlaştığı ilk an (bkz. docs/benchmark.md).
+        showVerifyPrompt={
+          deck.data?.ownerSettings.verificationStatus !== "approved" &&
+          deck.data?.ownerSettings.verificationStatus !== "pending"
+        }
         onSendMessage={() => {
           const conversationId = match?.conversationId;
           setMatch(null);
           if (conversationId) router.push(`/chat/${conversationId}`);
         }}
         onKeepBrowsing={() => setMatch(null)}
+        onVerify={() => {
+          setMatch(null);
+          router.push("/profile/owner");
+        }}
       />
     </SafeAreaView>
   );

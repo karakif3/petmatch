@@ -101,6 +101,21 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
             </View>
           ) : null}
         </View>
+        {/*
+          Sıra göstergesi. Hinge'de bu gösterge, konuşmaya dönüşmeden ölen
+          eşleşmeleri belirgin şekilde azaltmış — çünkü kullanıcı çoğu zaman
+          kötü niyetli değil, sıranın kendisinde olduğunu unutuyor.
+          Sunucu bu konuşmaları zaten listenin başına taşıyor.
+        */}
+        {conversation.isActive && conversation.awaitingMyReply ? (
+          <View className="mt-1.5 flex-row items-center">
+            <View className="flex-row items-center rounded-full bg-accent/10 px-2 py-0.5">
+              <Ionicons name="arrow-undo-outline" color="#1E9384" size={12} />
+              <Text className="ml-1 text-[11px] font-bold text-accent-dark">Sıra sende</Text>
+            </View>
+          </View>
+        ) : null}
+
         {!conversation.isActive ? (
           <Text className="mt-1 text-xs font-semibold text-text-tertiary">
             Konuşma kapatıldı

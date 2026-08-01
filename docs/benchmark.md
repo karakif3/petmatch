@@ -112,14 +112,55 @@ sonra**: değeri o an somut.
 | **Kimlik/ID kapısı** | Zaten [`backlog.md`](backlog.md) P0-6'da; mağaza konumlandırmasıyla birlikte karar verilecek. |
 | **Günlük beğeni limiti** | [`monetization.md`](monetization.md)'de karar verildi: mekanik yazılır, limit yoğunluk oluşana kadar kapalı. |
 
-## Önerilen sıra
+## Durum
 
-1. **"Buluştunuz mu?"** — hem sıralama sinyali hem başarı metriği; ürünün
-   neyi optimize ettiğini nihayet tanımlıyor
-2. **"Sıra sende"** — ölçülmüş etki, en düşük maliyet
-3. **Doğrulama isteminin yerini değiştirmek** — bedava
-4. **Buluşma yeri önerisi**
-5. **Buluşma güvenliği (paylaş + yoklama)**
+| # | İş | Durum |
+|---|---|---|
+| 1 | "Buluştunuz mu?" geri besleme döngüsü | ✅ `0036` + sohbet içi istem |
+| 2 | "Sıra sende" göstergesi | ✅ `0036` + gelen kutusu rozeti ve sıralaması |
+| 3 | Doğrulama isteminin yeri | ✅ Eşleşme kutlamasına taşındı |
+| 4 | Buluşma yeri önerisi | ⏸️ Veri bekliyor (aşağıda) |
+| 5 | Buluşma güvenliği | ❌ Kapsam dışı bırakıldı |
+| 6 | Sesli görüşme | 📋 Planda (aşağıda) |
+
+### 4 — Buluşma yeri önerisi: engel kod değil veri
+
+Mekanizma küçük: şehir bazlı bir yer tablosu, sohbette bir hızlı eylem.
+Ama **küratörlü veri olmadan özellik boş bir liste** — ve park adı uydurmak
+kullanıcıyı yanlış yere gönderir.
+
+Gereken sıra:
+
+1. Başlangıç şehri seçilir (yoğunluk stratejisiyle aynı şehir olmalı)
+2. O şehir için gerçekten pet dostu, halka açık, güvenli 15–20 nokta
+   küratörlenir — moderasyon ekibi ya da elle
+3. Tablo + RPC + sohbet eylemi yazılır
+
+Bugünkü hazır mesaj zaten "halka açık bir yer seçebiliriz" diyor; yani
+güvenlik mesajı iletiliyor, eksik olan somut öneri.
+
+### 6 — Sesli görüşme: makul ama bedelleri var
+
+Görüntülü görüşmeye hayır demiştik; **sesli** daha hafif ve gerçek bir
+faydası var: buluşmadan önce telefon numarası paylaşmadan konuşmak, hem
+sahte profili eler hem de ilk buluşma tedirginliğini azaltır.
+
+Karar vermeden önce bilinmesi gerekenler:
+
+- **Altyapı bağımlılığı.** Supabase sesli görüşme sunmuyor; WebRTC sağlayıcısı
+  (LiveKit, Daily, Agora vb.) gerekiyor — dakika başına maliyet ve yeni bir
+  üçüncü taraf.
+- **`app.json` bugün mikrofonu bilerek engelliyor.** `blockedPermissions`
+  içinde `RECORD_AUDIO` var. Sesli görüşme bu duruşu tersine çevirir; mağaza
+  listelemesindeki izin hikâyesi değişir.
+- **Moderasyon boşluğu.** Metinde şikâyetin kaydı vardır; seste yoktur.
+  "Aramada şunu söyledi" iddiası kanıtsız kalır. Sesli görüşme eklenecekse
+  şikâyet akışının bu asimetriyi kabul ettiği açıkça yazılmalı.
+
+Önerim: yoğunluk oluşup buluşmaya dönüşen konuşma oranı ölçülene kadar
+beklemek. "Buluştunuz mu?" verisi zaten tam olarak bu soruyu yanıtlayacak —
+insanlar buluşmadan önce takılıyorsa sesli görüşme değerli, buluşuyorlarsa
+gereksiz maliyet.
 
 ---
 

@@ -22,7 +22,14 @@ export type ConversationSummary = {
   lastMessage: string | null;
   lastMessageAt: string | null;
   unreadCount: number;
+  /** Son sözü karşı taraf söyledi — yanıt sırası bende. */
+  awaitingMyReply: boolean;
+  /** Konuşma olgunlaştı ve henüz "buluştunuz mu?" sorusuna cevap vermedim. */
+  askMeetupFeedback: boolean;
 };
+
+/** "Buluştunuz mu?" cevabı. `declined` = sormayı bırak. */
+export type MeetupOutcome = "met" | "not_yet" | "declined";
 
 export type ChatMessage = {
   id: string;
@@ -84,6 +91,8 @@ function mapConversation(row: ConversationRow): ConversationSummary {
     lastMessage: row.last_message || null,
     lastMessageAt: row.last_message_at || null,
     unreadCount: Number(row.unread_count ?? 0),
+    awaitingMyReply: Boolean(row.awaiting_my_reply),
+    askMeetupFeedback: Boolean(row.ask_meetup_feedback),
   };
 }
 
@@ -248,6 +257,24 @@ export async function markConversationRead(conversationId: string): Promise<void
     p_conversation_id: conversationId,
   });
   if (error) throw error;
+}
+
+/**
+ * "Buluştunuz mu?" cevabını kaydeder.
+ *
+ * Karşı tarafın cevabı asla görünmez — "o buluştuk dedi mi" bilgisi tek
+ * başına baskı yaratır ve dürüst cevabı bozar.
+ */
+export async function recordMeetupFeedback(
+  conversationId: string,
+  outcome: MeetupOutcome,
+): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc("record_meetup_feedback", {
+    p_conversation_id: conversationId,
+    p_outcome: outcome,
+  });
+  if (error) throw error;
+  void trackProductEvent("meetup_feedback", { outcome });
 }
 
 export async function touchLastActive(): Promise<void> {
