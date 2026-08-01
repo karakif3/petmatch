@@ -226,6 +226,34 @@ Bu yüzden Keşfet destesinde değil, kendi yüzeyinde yaşar. Hayvanı olmayan
 kullanıcı yalnızca bu yüzeyi görür; Keşfet ona kapalıdır (gösterecek peti yok).
 Sahiplendikten sonra "şimdi profilini oluştur" ile ana döngüye geçer.
 
+### Neden ayrı tab değil, bağlamsal giriş
+
+Sahiplendirmeyi dördüncü bir tab yapmak cazip görünüyor — arayüzü keşfetten
+farklı (deste değil liste, anlık karar değil düşünülmüş karar) ve şu an hiçbir
+giriş noktası yok.
+
+Ama **iki amaç simetrik değil.** Oyun arkadaşı tekrar eden döngü;
+sahiplendirme nadir, yüksek niyetli, tek seferlik bir olay. Yan yana iki eşit
+tab, kullanıcıya "bunlar uygulamanın iki eşit yarısı" der — değiller.
+
+Üstüne soğuk başlangıç: yeni bir şehirde ilan sayısı sıfıra yakın olacak ve
+**sürekli boş duran bir tab uygulamanın ölü olduğunu söyler.** Eşleşme
+listesini amaç başına bölmemenin gerekçesiyle aynı.
+
+Karar:
+
+- Keşfet içinde, **yalnızca yakında ilan varsa** görünen bir giriş kartı →
+  tam ekran sahiplendirme yüzeyi
+- Hayvanı olmayan kullanıcı için **Keşfet zaten sahiplendirme yüzeyidir**;
+  destesi yok, ona ölü bir tab göstermek yerine uygulama kendini ona göre kurar
+
+Böylece boş-tab problemi kural olarak değil yapısal olarak çözülüyor: giriş
+noktası içerik varsa var.
+
+**Tab ne zaman doğru olur?** Kullanıcının şehrinde istikrarlı ilan yoğunluğu
+oluştuğunda. Yani tab bir *terfi*, lansman kararı değil; ölçüt
+`list_adoptable_pets` sayısı.
+
 ### Bayat ilan, ürünü öldüren şey
 
 Sahiplendirme yüzeyinin en büyük riski yanlış eşleşme değil, **yanıt vermeyen

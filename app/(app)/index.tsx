@@ -19,6 +19,7 @@ import { DiscoveryFilterModal } from "../../components/discovery-filter-modal";
 import { MatchCelebration } from "../../components/match-celebration";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import { listAdoptablePets } from "../../core/api/adoption";
 import { loadConversationIdForMatch } from "../../core/api/conversations";
 import {
   loadDiscoveryDeck,
@@ -113,6 +114,14 @@ export default function DiscoverScreen() {
   useEffect(() => {
     setDismissedIds([]);
   }, [deck.dataUpdatedAt]);
+
+  // Giriş kartı yalnızca gerçekten ilan varsa çıksın diye sayıyoruz.
+  const adoptable = useQuery({
+    queryKey: ["adoptable-pets", "count"],
+    queryFn: () => listAdoptablePets(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const adoptableCount = adoptable.data?.length ?? 0;
 
   const swipe = useMutation({
     mutationFn: async ({
@@ -337,16 +346,66 @@ export default function DiscoverScreen() {
           </View>
         ) : null}
 
+        {/*
+          Hayvanı olmayan kullanıcı için Keşfet ZATEN sahiplendirme yüzeyidir.
+          Destesi yok; ona boş bir deste göstermek yerine huninin girişini
+          gösteriyoruz — sahiplenir, sonra ana döngüye girer.
+        */}
         {!deck.isLoading && !deck.isError && !deck.data?.viewer ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
-            <Ionicons name="paw-outline" color="#C4B7AE" size={54} />
+            <Ionicons name="home-outline" color="#F97362" size={54} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
-              Aktif pet bulunamadı
+              Henüz bir petin yok
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              Keşfet’i kullanmak için profilinden aktif bir pet seçmelisin.
+              Keşfet için aktif bir pet gerekiyor. Dilersen önce yuva arayan
+              hayvanlara göz at.
             </Text>
+            <Pressable
+              onPress={() => router.push("/adoption")}
+              accessibilityRole="button"
+              className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
+            >
+              <Ionicons name="home" size={17} color="#FFFFFF" />
+              <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/profile/pet")}
+              accessibilityRole="button"
+              className="mt-2 min-h-12 items-center justify-center px-5"
+            >
+              <Text className="text-sm font-semibold text-text-secondary">
+                Pet profili oluştur
+              </Text>
+            </Pressable>
           </View>
+        ) : null}
+
+        {/*
+          İlan varsa giriş kartı, yoksa hiç. Boş bir tab uygulamanın ölü
+          olduğunu söyler; giriş noktasını içeriğe bağlamak bu sorunu kural
+          olarak değil yapısal olarak çözüyor (bkz. docs/goal-model.md).
+        */}
+        {deck.data?.viewer && adoptableCount > 0 ? (
+          <Pressable
+            onPress={() => router.push("/adoption")}
+            accessibilityRole="button"
+            accessibilityLabel={`Yakınında yuva arayan ${adoptableCount} hayvan var`}
+            className="mb-4 flex-row items-center rounded-2xl border border-border bg-bg-secondary px-4 py-3"
+          >
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-brand/10">
+              <Ionicons name="home" size={18} color="#F97362" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="text-sm font-bold text-text-primary">
+                Yakınında yuva arayan {adoptableCount} hayvan var
+              </Text>
+              <Text className="mt-0.5 text-xs text-text-secondary">
+                Sahiplendirme ilanlarına göz at
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#C4B7AE" />
+          </Pressable>
         ) : null}
 
         {!deck.isLoading && !deck.isError && deck.data?.viewer && !currentCard ? (
