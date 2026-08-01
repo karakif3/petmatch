@@ -1,0 +1,56 @@
+name: CI
+
+# Dört kontrol de bu ana kadar elle çalışıyordu; biri unutulduğunda sessizce
+# kayboluyordu. Özellikle `test:db` önemli: RLS politikaları ve engelleme
+# zinciri yalnızca gerçek bir Postgres'te doğrulanabiliyor.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Aynı dalda üst üste gelen push'larda eskisini iptal et.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Lint · typecheck · birim testleri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Birim testleri
+        run: npm test
+
+  database:
+    name: Veritabanı davranış testleri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Migration'ları sıfırdan uygular ve RLS/güvenlik davranışlarını
+      # doğrular. Aynı zamanda şemanın baştan kurulabilir olduğunu kanıtlar.
+      - name: Veritabanı testleri
+        run: npm run test:db

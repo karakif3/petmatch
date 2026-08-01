@@ -33,9 +33,13 @@ function sh(command, options = {}) {
   return execSync(command, { encoding: "utf8", stdio: "pipe", ...options });
 }
 
+const PINNED_IMAGE = "public.ecr.aws/supabase/postgres:17.6.1.111";
+
 /**
- * İmajı yerelden seçiyoruz. Bazı ağlarda Docker Hub'a TLS çıkışı engelli ve
- * `docker pull` başarısız oluyor; yerel imaj varsa koşum yine de çalışmalı.
+ * Önce yerel imajlara bakıyoruz: bazı ağlarda registry'ye TLS çıkışı engelli
+ * ve `docker pull` düşüyor; geliştiricinin makinesinde imaj varsa koşum yine
+ * de çalışmalı. Yerelde yoksa (CI'ın temiz runner'ı) sabitlenmiş sürümü
+ * çekiyoruz.
  */
 function resolvePostgresImage() {
   const images = sh('docker images --format "{{.Repository}}:{{.Tag}}"')
@@ -49,10 +53,15 @@ function resolvePostgresImage() {
   const plain = images.find((image) => /^postgres:/.test(image));
   if (plain) return plain;
 
-  throw new Error(
-    "Yerelde supabase/postgres veya postgres imajı bulunamadı.\n" +
-      "  docker pull public.ecr.aws/supabase/postgres:17.6.1.111",
-  );
+  try {
+    console.log(`${DIM}yerel imaj yok, çekiliyor: ${PINNED_IMAGE}${RESET}`);
+    sh(`docker pull ${PINNED_IMAGE}`, { stdio: "inherit" });
+    return PINNED_IMAGE;
+  } catch {
+    throw new Error(
+      `Postgres imajı bulunamadı ve çekilemedi.\n  docker pull ${PINNED_IMAGE}`,
+    );
+  }
 }
 
 /**
