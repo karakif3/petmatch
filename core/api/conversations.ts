@@ -104,6 +104,23 @@ export async function listConversations(): Promise<ConversationSummary[]> {
   return (data ?? []).map(mapConversation);
 }
 
+/**
+ * Yeni doğan eşleşmenin konuşmasını bulur.
+ *
+ * `swipe_pet` eşleşme id'si döndürüyor; kutlama ekranındaki "Mesaj gönder"
+ * için konuşma id'si gerekiyor. `matches_select_participant` politikası
+ * yalnızca taraf olana bu satırı veriyor.
+ */
+export async function loadConversationIdForMatch(matchId: string): Promise<string | null> {
+  const { data, error } = await requireSupabaseClient()
+    .from("matches")
+    .select("conversation_id")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.conversation_id ?? null;
+}
+
 export async function loadConversation(conversationId: string): Promise<ConversationSummary> {
   const conversations = await listConversations();
   const conversation = conversations.find((item) => item.id === conversationId);

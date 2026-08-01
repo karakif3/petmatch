@@ -16,8 +16,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DiscoveryCard } from "../../components/discovery-card";
 import { DiscoveryFilterModal } from "../../components/discovery-filter-modal";
+import { MatchCelebration } from "../../components/match-celebration";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import { loadConversationIdForMatch } from "../../core/api/conversations";
 import {
   loadDiscoveryDeck,
   swipePet,
@@ -38,7 +40,11 @@ export default function DiscoverScreen() {
   const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [matchName, setMatchName] = useState<string | null>(null);
+  const [match, setMatch] = useState<{
+    petName: string;
+    photoUrl: string | null;
+    conversationId: string | null;
+  } | null>(null);
   const [safetyVisible, setSafetyVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
@@ -129,7 +135,24 @@ export default function DiscoverScreen() {
       const swipedCard = deck.data?.cards.find((card) => card.id === toPetId);
       setDismissedIds((ids) => [...ids, toPetId]);
       setError(null);
-      if (direction === "like" && matchId && swipedCard) setMatchName(swipedCard.name);
+
+      if (direction === "like" && matchId && swipedCard) {
+        setMatch({
+          petName: swipedCard.name,
+          photoUrl: swipedCard.photoUrls[0] ?? null,
+          conversationId: null,
+        });
+        // Konuşma id'si ayrı bir sorgu; kutlama onu beklemeden açılıyor,
+        // "Mesaj gönder" gelene kadar beklemede kalıyor.
+        void loadConversationIdForMatch(matchId)
+          .then((conversationId) =>
+            setMatch((current) => (current ? { ...current, conversationId } : current)),
+          )
+          .catch((conversationError) =>
+            console.error("Eşleşmenin konuşması bulunamadı:", conversationError),
+          );
+      }
+
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     },
     onError: (mutationError) => {
@@ -146,7 +169,7 @@ export default function DiscoverScreen() {
 
   const refresh = async () => {
     setDismissedIds([]);
-    setMatchName(null);
+    setMatch(null);
     setError(null);
     await deck.refetch();
   };
@@ -291,19 +314,6 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
-        {matchName ? (
-          <View className="mb-4 flex-row items-center justify-between rounded-2xl bg-accent px-4 py-3">
-            <View className="flex-1">
-              <Text className="font-bold text-white">Yeni eşleşme! 🎉</Text>
-              <Text className="mt-0.5 text-sm text-white/90">
-                {matchName} da seni beğenmiş.
-              </Text>
-            </View>
-            <Pressable onPress={() => setMatchName(null)} hitSlop={12}>
-              <Ionicons name="close" color="#FFFFFF" size={21} />
-            </Pressable>
-          </View>
-        ) : null}
 
         {deck.isLoading ? (
           <View className="flex-1 items-center justify-center py-24">
@@ -487,6 +497,21 @@ export default function DiscoverScreen() {
           }}
         />
       ) : null}
+
+      <MatchCelebration
+        visible={Boolean(match)}
+        viewerPetName={deck.data?.viewer?.name ?? "Petin"}
+        viewerPhotoUrl={deck.data?.viewer?.photoUrls[0] ?? null}
+        matchedPetName={match?.petName ?? ""}
+        matchedPhotoUrl={match?.photoUrl ?? null}
+        canOpenChat={Boolean(match?.conversationId)}
+        onSendMessage={() => {
+          const conversationId = match?.conversationId;
+          setMatch(null);
+          if (conversationId) router.push(`/chat/${conversationId}`);
+        }}
+        onKeepBrowsing={() => setMatch(null)}
+      />
     </SafeAreaView>
   );
 }
