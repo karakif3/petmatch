@@ -131,6 +131,34 @@ sahibin ise kendi geçmişini kaybetmesine yol açar. `0012` bu yüzden
 sahiplendirme başvurusu konuşmayı açarken o andaki kullanıcılar kalıcı olarak
 kaydedilir. Sahiplik değişse de konuşma geçmişinin erişim sınırı değişmez.
 
+## Veritabanı testleri neden ayrı koşumda
+
+`npm test` saf domain'i (uyum skoru, yaş, tarih, i18n) koruyor. Ama kullanıcıyı
+asıl koruyan katman RLS politikaları, RPC yetki kontrolleri ve engelleme
+zinciri — bunlar yalnızca gerçek bir Postgres'te doğrulanabilir.
+
+`npm run test:db` tek kullanımlık bir container açar, **tüm migration'ları
+sıfırdan uygular** ve `supabase/tests/*.test.sql` altındaki davranış
+testlerini çalıştırır. Böylece iki şey birden kanıtlanır: kuralların
+geçerliliği ve migration'ların baştan uygulanabilirliği (staging ve felaket
+kurtarma bunun üzerine kurulu).
+
+Koşum iki tür test taşıyor:
+
+- **Yüzey testleri** (`surface.test.sql`) — şema iddiaları. Yeni bir migration
+  bir tabloyu RLS'siz bırakırsa, bir fonksiyonu anon'a açarsa ya da
+  `(select auth.uid())` sarmalamasını unutursa burada patlar.
+- **Davranış testleri** (`safety`, `adoption`) — engelleme zinciri, yazma yolu
+  sertleştirmesi, petsiz kullanıcının sahiplendirme yolu, devir bütünlüğü.
+
+İlk tam çalışmasında gerçek bir açık buldu: `profiles_select_public`
+engellemeye bakmıyordu, yani engellenen taraf public profili okumaya devam
+ediyordu (`0035`).
+
+> `supabase/postgres` imajında yetkisiz bir fonksiyon çağrısı backend'i
+> segfault ettiriyor (eklenti kaynaklı). Yetki testleri bu yüzden çağrı
+> yaparak değil `has_function_privilege` ile yazılır.
+
 ## RLS politikaları neden dizi karşılaştırıyor
 
 Doğru bir RLS politikası yavaş olabilir. 0003'teki `shares_active_match_with(owner_id)`
