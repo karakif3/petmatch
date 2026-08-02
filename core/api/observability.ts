@@ -14,6 +14,7 @@ export type ProductEventName =
   // Ürünün asıl başarı metriği: kaç konuşma gerçek buluşmaya döndü.
   // Uygulamada geçen süre değil bu ölçülüyor (bkz. docs/benchmark.md).
   | "meetup_feedback"
+  | "discovery_segment_changed"
   | "adoption_surface_viewed"
   | "adoption_interest_sent"
   | "account_delete_requested";

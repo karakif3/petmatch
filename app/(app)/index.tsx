@@ -16,6 +16,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DiscoveryCard } from "../../components/discovery-card";
 import { DiscoveryFilterModal } from "../../components/discovery-filter-modal";
+import {
+  DiscoverySegments,
+  OWNER_SEGMENT_MIN_CARDS,
+  type DiscoverySegment,
+} from "../../components/discovery-segments";
 import { MatchCelebration } from "../../components/match-celebration";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
@@ -46,6 +51,7 @@ export default function DiscoverScreen() {
     photoUrl: string | null;
     conversationId: string | null;
   } | null>(null);
+  const [segment, setSegment] = useState<DiscoverySegment>("all");
   const [safetyVisible, setSafetyVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
@@ -109,7 +115,23 @@ export default function DiscoverScreen() {
     () => deck.data?.cards.filter((card) => !dismissedIds.includes(card.id)) ?? [],
     [deck.data?.cards, dismissedIds],
   );
-  const currentCard = visibleCards[0] ?? null;
+
+  // Segment sunucuya gitmiyor: eleme zaten yapılmış desteyi yerel olarak
+  // süzüyor. Kalıcı tercih DEĞİL — bir görünüm anahtarı; kalıcı olsaydı
+  // kullanıcı farkında olmadan kendini dar bir destede kilitleyebilirdi.
+  const ownerVisibleCards = useMemo(
+    () => visibleCards.filter((card) => Boolean(card.owner?.photoUrl)),
+    [visibleCards],
+  );
+  const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
+  const currentCard = activeCards[0] ?? null;
+
+  // Segment gizlenecek kadar az kart kaldıysa kullanıcıyı orada bırakma.
+  useEffect(() => {
+    if (segment === "owner_visible" && ownerVisibleCards.length < OWNER_SEGMENT_MIN_CARDS) {
+      setSegment("all");
+    }
+  }, [ownerVisibleCards.length, segment]);
 
   useEffect(() => {
     setDismissedIds([]);
@@ -379,6 +401,18 @@ export default function DiscoverScreen() {
               </Text>
             </Pressable>
           </View>
+        ) : null}
+
+        {deck.data?.viewer ? (
+          <DiscoverySegments
+            current={segment}
+            ownerVisibleCount={ownerVisibleCards.length}
+            totalCount={visibleCards.length}
+            onChange={(next) => {
+              setSegment(next);
+              void trackProductEvent("discovery_segment_changed", { segment: next });
+            }}
+          />
         ) : null}
 
         {/*

@@ -254,6 +254,32 @@ noktası içerik varsa var.
 oluştuğunda. Yani tab bir *terfi*, lansman kararı değil; ölçüt
 `list_adoptable_pets` sayısı.
 
+### Aynı kural sahip katmanı için de geçerli
+
+"Sahibi görünenler" de ayrı tab olmadı — Keşfet içinde **segment**.
+Gerekçe aynı ailedendir ama bir madde fazlası var:
+
+- Ayrı tab, üç tur önce sildiğimiz **beyan yüzeyini** geri getirir. İlke:
+  insan katmanı bir beyan değil, bir görünürlük.
+- Mağaza konumlandırmasını *katman*dan **manşete** taşır: "opsiyonel sahip
+  katmanı olan pet uygulaması" → "pet temalı dating app".
+- Zaten ince olan desteyi ikiye böler.
+- `requireOwnerSocial` **çift yönlü**: sosyal moda kapalı kullanıcı oraya
+  girince boş görür. Filtre olarak anlaşılır, tab olarak kafa karıştırıcı.
+
+Segment **kendini gizliyor**: görünür-sahipli kart sayısı
+`OWNER_SEGMENT_MIN_CARDS`'ın altındaysa hiç render edilmiyor, ve kullanıcı
+o segmentteyken sayı düşerse otomatik olarak "Tüm petler"e dönüyor. Yani
+özellik yoğunlukla birlikte **kendiliğinden ortaya çıkıyor**.
+
+Segment kalıcı tercih değil, görünüm anahtarı: kalıcı olsaydı kullanıcı
+farkında olmadan kendini dar bir destede kilitleyebilirdi.
+
+**Tab'e terfi ölçütü** (`discovery_segment_changed` olayıyla ölçülecek):
+kullanıcıların anlamlı bir kısmı segmenti kullanıyor **ve** yeterli sayıda
+sahip `public` + fotoğraflı. İkisi birden sağlandığında ayrı tab —
+ve o noktada mağaza konumlandırmasının da bilerek değiştiği kabul edilir.
+
 ### Bayat ilan, ürünü öldüren şey
 
 Sahiplendirme yüzeyinin en büyük riski yanlış eşleşme değil, **yanıt vermeyen
