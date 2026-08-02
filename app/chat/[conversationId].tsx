@@ -41,6 +41,7 @@ import {
 } from "../../core/api/conversations";
 import { DateSeparator } from "../../components/chat/date-separator";
 import { MeetupFeedbackPrompt } from "../../components/chat/meetup-feedback-prompt";
+import { MeetupPlacePicker } from "../../components/chat/meetup-place-picker";
 import { MessageBubble } from "../../components/chat/message-bubble";
 import {
   QuickReplyBar,
@@ -49,6 +50,10 @@ import {
 } from "../../components/chat/quick-replies";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import {
+  listMeetupPlaces,
+  meetupProposalText,
+} from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
 import { useTranslation } from "../../core/i18n";
@@ -77,6 +82,7 @@ export default function ChatScreen() {
   const [safetyVisible, setSafetyVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
+  const [placePickerVisible, setPlacePickerVisible] = useState(false);
 
   const conversation = useQuery({
     queryKey: ["conversation", conversationId],
@@ -90,6 +96,15 @@ export default function ChatScreen() {
     initialPageParam: null as ChatMessageCursor | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: Boolean(conversationId),
+  });
+
+  // Sunucu yalnızca DOĞRULANMIŞ yerleri veriyor; liste boşsa buton hiç
+  // görünmüyor. Saha teyidi yapılmamış bölgede öneri göstermemek,
+  // kullanıcıyı hayvan girişine kapalı bir parka yollamaktan iyidir.
+  const meetupPlaces = useQuery({
+    queryKey: ["meetup-places"],
+    queryFn: listMeetupPlaces,
+    staleTime: 30 * 60 * 1000,
   });
 
   const ownerProfile = useQuery({
@@ -578,7 +593,24 @@ export default function ChatScreen() {
         {conversation.data?.isActive ? (
           <View className="border-t border-border bg-surface pb-2 pt-2">
             {messageItems.length ? (
-              <QuickReplyBar replies={quickReplies.slice(1)} onSelect={setBody} />
+              <View className="flex-row items-center">
+                {(meetupPlaces.data?.length ?? 0) > 0 ? (
+                  <Pressable
+                    onPress={() => setPlacePickerVisible(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Buluşma yeri öner"
+                    className="ml-3 min-h-11 flex-row items-center justify-center rounded-full border border-brand/40 bg-brand/10 px-3"
+                  >
+                    <Ionicons name="location-outline" color="#E0523F" size={16} />
+                    <Text className="ml-1.5 text-xs font-bold text-brand-dark">
+                      Buluşma yeri
+                    </Text>
+                  </Pressable>
+                ) : null}
+                <View className="flex-1">
+                  <QuickReplyBar replies={quickReplies.slice(1)} onSelect={setBody} />
+                </View>
+              </View>
             ) : null}
             <View className="flex-row items-end gap-2 px-3">
               <View className="flex-1">
@@ -622,6 +654,18 @@ export default function ChatScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
+      <MeetupPlacePicker
+        visible={placePickerVisible}
+        places={meetupPlaces.data ?? []}
+        onClose={() => setPlacePickerVisible(false)}
+        onSelect={(place) => {
+          setPlacePickerVisible(false);
+          // Metni doğrudan göndermek yerine yazma alanına koyuyoruz:
+          // kullanıcı gün/saat ekleyip kendi cümlesini kurabilsin.
+          setBody(meetupProposalText(place));
+        }}
+      />
+
       <SafetyMenuModal
         visible={safetyVisible}
         canUnmatch={conversation.data?.kind === "match" && conversation.data.isActive}

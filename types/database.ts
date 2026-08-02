@@ -373,6 +373,60 @@ export type Database = {
           },
         ]
       }
+      meetup_places: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          name: string
+          note: string | null
+          region_slug: string
+          sort_order: number
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          name: string
+          note?: string | null
+          region_slug: string
+          sort_order?: number
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          name?: string
+          note?: string | null
+          region_slug?: string
+          sort_order?: number
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetup_places_region_slug_fkey"
+            columns: ["region_slug"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "meetup_places_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           body: string
@@ -1019,6 +1073,26 @@ export type Database = {
           temperaments: string[]
         }[]
       }
+      list_meetup_place_candidates: {
+        Args: never
+        Returns: {
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          name: string
+          note: string
+          region_name: string
+          region_slug: string
+        }[]
+      }
+      list_meetup_places: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          note: string
+        }[]
+      }
       list_my_conversations: {
         Args: never
         Returns: {
@@ -1125,6 +1199,10 @@ export type Database = {
           object: string
           severity: string
         }[]
+      }
+      set_meetup_place_verification: {
+        Args: { p_note?: string; p_place_id: string; p_verified: boolean }
+        Returns: undefined
       }
       set_my_region: { Args: { p_region_slug: string }; Returns: undefined }
       shares_active_match_with: {

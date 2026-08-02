@@ -55,9 +55,22 @@ Her aday için teyit edilmesi gerekenler:
 - Su kaynağı / gölgelik var mı
 - Toplu taşımayla ulaşılabilir mi
 
-Liste doğrulandıktan sonra tablo + RPC + sohbet içi eylem yazılır. Bu sıra
-bilinçli: **doğrulanmamış yer verisiyle özellik göndermek, boş özellik
-göndermekten daha kötü.**
+**Yapı `0038` ile kuruldu; veri doğrulaman bekleniyor.**
+
+Adaylar `meetup_places` tablosuna `is_verified = false` olarak yüklendi ve
+kullanıcıya **görünmüyorlar** — RLS doğrulanmamış satırı hiç vermiyor, sohbetteki
+"Buluşma yeri" butonu da liste boşken hiç çıkmıyor. Yani özellik yayında
+olabilir ve yine de kimseyi yanlış yere yollamaz.
+
+Saha teyidinden sonra tek hamle:
+
+```sql
+select set_meetup_place_verification('<place_id>', true, 'Tasmasız alan var');
+```
+
+Aday listesini `list_meetup_place_candidates()` ile alırsın (moderatör yetkisi
+gerekiyor). Doğrulama geri de alınabilir — bir park kapanırsa aynı fonksiyonla
+`false` yapmak yeterli, satırı silmeye gerek yok.
 
 ## Ölçüm: bölge kırılımı — ✅ `0037`
 
@@ -86,5 +99,5 @@ verilmesini mümkün kılıyor.
 
 ## Lansman öncesi hatırlatma
 
-Migration'lar `0034`–`0037` henüz canlı Supabase projesine uygulanmadı.
+Migration'lar `0034`–`0038` henüz canlı Supabase projesine uygulanmadı.
 Bkz. [`services.md`](services.md).
