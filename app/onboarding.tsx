@@ -13,9 +13,11 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 
 import { BrandMark } from "../components/brand-mark";
 import { completeOnboarding, type OnboardingPhoto } from "../core/api/onboarding";
+import { listRegions, setMyRegion } from "../core/api/regions";
 import { isAdultDate, isPastOrTodayDate } from "../core/domain/date-validation";
 import { coarsenCoordinates } from "../core/domain/distance";
 import type { Coordinates, OwnerVisibility, Size, Species } from "../core/domain/types";
@@ -87,6 +89,7 @@ export default function OnboardingScreen() {
   const [displayName, setDisplayName] = useState("");
   const [ownerBirthDate, setOwnerBirthDate] = useState("");
   const [city, setCity] = useState("");
+  const [regionSlug, setRegionSlug] = useState<string | null>(null);
   const [ownerVisibility, setOwnerVisibility] =
     useState<OwnerVisibility>("after_match");
 
@@ -108,6 +111,10 @@ export default function OnboardingScreen() {
   const [locationBusy, setLocationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Bölge listesi veriden geliyor: yeni pilot bölge açmak istemci sürümü
+  // gerektirmesin diye enum değil tablo.
+  const regions = useQuery({ queryKey: ["regions"], queryFn: listRegions });
+
   const progress = useMemo(() => `${step + 1} / 3`, [step]);
 
   const next = () => {
@@ -117,6 +124,7 @@ export default function OnboardingScreen() {
         return setError("Geçerli bir doğum tarihi yazmalısın ve 18 yaşında olmalısın.");
       }
       if (!city.trim()) return setError("Şehrini yazmalısın.");
+      if (!regionSlug) return setError("Bölgeni seçmelisin.");
       setStep(1);
       return;
     }
@@ -198,6 +206,10 @@ export default function OnboardingScreen() {
     setBusy(true);
     setError(null);
     try {
+      // Bölge ayrı dar yazma yolundan gidiyor; onboarding RPC'sinin imzasını
+      // değiştirmek mevcut çağrıları kırardı.
+      if (regionSlug) await setMyRegion(regionSlug);
+
       await completeOnboarding({
         userId: user.id,
         displayName,
@@ -303,6 +315,38 @@ export default function OnboardingScreen() {
               placeholder="Örn. İstanbul"
               autoCapitalize="words"
             />
+            <Text className="mb-2 text-sm font-semibold text-text-primary">
+              Bölgen
+            </Text>
+            <Text className="mb-3 text-xs leading-4 text-text-tertiary">
+              PetMatch şimdilik Kadıköy ve Nişantaşı&apos;nda başlıyor. Yakınında
+              kimse olması için önce buralarda yoğunlaşıyoruz.
+            </Text>
+            <View className="mb-5 flex-row flex-wrap gap-2">
+              {(regions.data ?? []).map((region) => {
+                const active = regionSlug === region.slug;
+                return (
+                  <Pressable
+                    key={region.slug}
+                    onPress={() => setRegionSlug(region.slug)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={region.name}
+                    className={`min-h-11 items-center justify-center rounded-xl border px-4 ${
+                      active ? "border-brand bg-brand/10" : "border-border bg-surface"
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm font-semibold ${
+                        active ? "text-brand-dark" : "text-text-secondary"
+                      }`}
+                    >
+                      {region.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <Text className="mb-3 text-sm font-semibold text-text-primary">
               Sahip profilin ne zaman görünsün?
             </Text>

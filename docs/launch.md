@@ -59,19 +59,26 @@ Liste doğrulandıktan sonra tablo + RPC + sohbet içi eylem yazılır. Bu sıra
 bilinçli: **doğrulanmamış yer verisiyle özellik göndermek, boş özellik
 göndermekten daha kötü.**
 
-## Ölçüm boşluğu: bölge kırılımı yok
+## Ölçüm: bölge kırılımı — ✅ `0037`
 
-Pilot bölge bazlı yoğunluğu bugün ölçemiyoruz. `pets.city` ve
-`profiles.city` **serbest metin** — "İstanbul", "istanbul", "İSTANBUL" ve
-"Kadıköy/İstanbul" aynı sorguda toplanmıyor. İki mahalleyi karşılaştırmak
-için ilçe/mahalle alanı gerekiyor.
+`pets.city` ve `profiles.city` **serbest metin** — "İstanbul", "istanbul" ve
+"Kadıköy/İstanbul" aynı sorguda toplanmıyor. Pilotun tüm amacı iki mahalleyi
+karşılaştırmak olduğuna göre bu ölçülemezdi.
 
-Öneri: onboarding'de serbest şehir metni yerine **pilot bölge seçimi**
-(Kadıköy · Nişantaşı · Diğer). Faydaları:
+`0037` serbest metni **kaldırmıyor** (şehir hâlâ kullanıcıya gösterilen bilgi),
+yanına ölçülebilir bir anahtar ekliyor:
 
-- Yoğunluğu bölge bazında ölçebilmek
-- "Diğer" seçenlerin sayısı, bir sonraki bölgeyi veriyle seçmeyi sağlar
-- Boş deste mesajı bölgeye özel olabilir ("Kadıköy'de henüz az kişi var")
+- `regions` tablosu — `kadikoy` · `nisantasi` · `other`. Enum değil tablo,
+  çünkü yeni bölge açmak istemci sürümü gerektirmemeli.
+- `profiles.region_slug` — **null ile `other` ayrı**: onboarding'i
+  tamamlamamış kullanıcıyla "başka yerdeyim" diyeni aynı kovaya koymak pilot
+  ölçümünü bozar.
+- `set_my_region()` — dar yazma yolu
+- `region_density()` — moderatöre açık; bölge başına onboarded kullanıcı ve
+  aktif peti olan kullanıcı sayısı
+
+Onboarding'in ilk adımında bölge seçimi zorunlu. "Diğer" seçenlerin sayısı,
+üçüncü bölgeyi tahminle değil veriyle seçmenin tek yolu.
 
 Bu, `discovery_segment_changed` ve `meetup_feedback` olaylarıyla birlikte
 "terfi" kararlarının (ayrı tab, yeni bölge, sesli görüşme) veriyle

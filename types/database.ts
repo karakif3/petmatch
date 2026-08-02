@@ -679,6 +679,7 @@ export type Database = {
           onboarded_at: string | null
           owner_social_open: boolean
           owner_visibility: Database["public"]["Enums"]["owner_visibility"]
+          region_slug: string | null
           require_visible_owner: boolean
           updated_at: string
           verification_status:
@@ -699,6 +700,7 @@ export type Database = {
           onboarded_at?: string | null
           owner_social_open?: boolean
           owner_visibility?: Database["public"]["Enums"]["owner_visibility"]
+          region_slug?: string | null
           require_visible_owner?: boolean
           updated_at?: string
           verification_status?:
@@ -719,6 +721,7 @@ export type Database = {
           onboarded_at?: string | null
           owner_social_open?: boolean
           owner_visibility?: Database["public"]["Enums"]["owner_visibility"]
+          region_slug?: string | null
           require_visible_owner?: boolean
           updated_at?: string
           verification_status?:
@@ -726,7 +729,15 @@ export type Database = {
             | null
           verified_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_region_slug_fkey"
+            columns: ["region_slug"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       push_tokens: {
         Row: {
@@ -759,6 +770,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      regions: {
+        Row: {
+          city: string | null
+          is_active: boolean
+          is_pilot: boolean
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          city?: string | null
+          is_active?: boolean
+          is_pilot?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          city?: string | null
+          is_active?: boolean
+          is_pilot?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       swipes: {
         Row: {
@@ -1041,6 +1079,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      region_density: {
+        Args: never
+        Returns: {
+          is_pilot: boolean
+          name: string
+          onboarded: number
+          slug: string
+          with_active_pet: number
+        }[]
+      }
       register_push_token: {
         Args: { p_platform: string; p_token: string }
         Returns: undefined
@@ -1078,6 +1126,7 @@ export type Database = {
           severity: string
         }[]
       }
+      set_my_region: { Args: { p_region_slug: string }; Returns: undefined }
       shares_active_match_with: {
         Args: { p_user_id: string }
         Returns: boolean
