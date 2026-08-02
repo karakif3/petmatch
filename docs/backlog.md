@@ -140,3 +140,17 @@ README yerine önce bu dosya güncellenir.
 14. **Google ve Apple ile giriş**
 15. **Çoklu pet desteği**
 16. **Premium / boost / kim beğendi özellikleri**
+17. **Hayvan kabul eden mekânlar — öneri ve sponsorluk**
+    Yapı `0038` ile zaten kurulu: `meetup_places` bölge + doğrulama taşıyor,
+    mekân eklemek yeni tablo değil yeni satır demek. Kafeler bu tablonun
+    ikinci türü olur.
+    - [ ] `meetup_places`'e `kind` (park · kafe) ve sponsorluk alanları
+    - [ ] Mekân başvuru akışı — işletme kendi kaydını öneriyor, moderasyon onaylıyor
+    - [ ] **Sponsorlu mekân ayırt edilebilir olmalı**; reklam olduğu açıkça
+      etiketlenmeli (yasal zorunluluk ve güven meselesi)
+    - [ ] **Sponsorluk doğrulamanın yerine geçmez**: parası ödenmiş ama gerçekten
+      hayvan kabul etmeyen bir mekân, güvenlik vaadini bozar. Sponsorluk
+      görünürlüğü artırır, doğrulama şartını kaldırmaz.
+    - [ ] Sıralamada sponsorlu mekân küratörlü listeyi bastırmamalı
+    Gelir tarafı [`monetization.md`](monetization.md) faz 3–4 ile aynı çizgide:
+    kullanıcı ödemez, işletme öder.

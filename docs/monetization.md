@@ -52,6 +52,7 @@ Bunu hikâyeyle çelişmeden taşımanın yolu:
 | **1** | Kim beğendi · boost · gelişmiş pet/uyumluluk filtreleri · son aktif sıralaması | Kanıtlanmış motor; yoğunluk oluşur oluşmaz açılır |
 | **2** | Sahiplenme sonrası ticaret ortaklığı (mama, ekipman, ilk veteriner) | En yüksek ticari niyetli an, misyonla uyumlu, Apple komisyonu dışında |
 | **3** | Doğrulanmış hizmet dizini (veteriner · kuaför · pet sitter · eğitmen) | 7332 hayvan **satışını** yasaklıyor, hizmeti değil |
+| **3b** | Hayvan kabul eden mekân sponsorluğu (kafe, veteriner) | `meetup_places` altyapısı hazır; mekân öder, kullanıcı ödemez |
 | **4** | Marka sponsorluğu / CSR | Pet markaları için değerli kitle; sahiplendirme misyonu CSR bütçesinin finanse ettiği şey |
 
 Teknik bir not faz 2-3'ü cazip tutuyor: **dijital abonelik Apple'a %15-30
