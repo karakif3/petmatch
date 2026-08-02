@@ -25,6 +25,7 @@ kullanıcının kontrolündedir.
 | [`docs/mvp-scope.md`](docs/mvp-scope.md) | MVP kapsamı, sahip görünürlüğü kararı, tek aktif pet kararı |
 | [`docs/goal-model.md`](docs/goal-model.md) | **Tasarım önerisi** — hikâye petin etrafında, sahiplendirme, karşılıklı açıklama, satıcı caydırıcılığı, 18+ |
 | [`docs/monetization.md`](docs/monetization.md) | Gelir modeli — faz sırası, kim beğendi / boost kuralları, asla satılmayacaklar |
+| [`docs/launch.md`](docs/launch.md) | **Pilot karar** — İstanbul, Kadıköy + Nişantaşı; neyi açıyor, neyi bekletiyor |
 | [`docs/benchmark.md`](docs/benchmark.md) | Tinder/Bumble/Hinge/Dig karşılaştırması — ne alınmalı, ne bilerek alınmamalı |
 | [`docs/architecture.md`](docs/architecture.md) | Katmanlar, web'e taşıma yolu, keşfetin neden RPC olduğu |
 | [`docs/services.md`](docs/services.md) | Hangi servis gerekiyor, ne paylaşılıyor — **Supabase kotası burada** |
