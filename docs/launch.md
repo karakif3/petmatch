@@ -86,5 +86,5 @@ verilmesini mümkün kılıyor.
 
 ## Lansman öncesi hatırlatma
 
-Migration'lar `0034`–`0036` henüz canlı Supabase projesine uygulanmadı.
+Migration'lar `0034`–`0037` henüz canlı Supabase projesine uygulanmadı.
 Bkz. [`services.md`](services.md).
