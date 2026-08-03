@@ -99,5 +99,11 @@ verilmesini mümkün kılıyor.
 
 ## Lansman öncesi hatırlatma
 
-Migration'lar `0034`–`0038` henüz canlı Supabase projesine uygulanmadı.
-Bkz. [`services.md`](services.md).
+Migration'lar canlı projeye uygulandı (2026-08-03). Yerel ve uzak geçmiş
+birebir eşleşiyor: 39 migration, bekleyen yok.
+
+Bekleyen iki iş:
+
+1. **Bölge taşıması** — proje `eu-west-1`'de, pilot İstanbul.
+   Adım adım runbook: [`region-migration.md`](region-migration.md)
+2. **Park listesinin saha teyidi** — yukarıda
