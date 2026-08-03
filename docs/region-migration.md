@@ -164,12 +164,20 @@ select
 Buraya kadar her şey yeşil olsa bile uygulamanın gerçekten çalıştığını
 görmeden devam etme. Yeni bir hesapla:
 
-- [ ] Kayıt ol → onboarding (bölge seçimi görünüyor mu?)
+- [ ] Kayıt ol → **e-posta doğrulama adımı gelecek** (`Confirm email` açık,
+      hem eski hem yeni projede varsayılan). Doğrulamadan giriş yapılamaz —
+      bu bir arıza değil, beklenen davranış.
+- [ ] Onboarding (bölge seçimi görünüyor mu?)
 - [ ] Pet profili + fotoğraf yükle (storage politikaları çalışıyor mu?)
 - [ ] Keşfet açılıyor mu
 - [ ] İkinci hesapla karşılıklı beğeni → **eşleşme kutlaması** çıkıyor mu
 - [ ] Sohbet aç, mesaj gönder, karşı taraf **anlık** görüyor mu (realtime)
 - [ ] Şifre sıfırlama e-postası gelip deep link açılıyor mu (§5'in testi)
+
+> **E-posta gelmezse önce bunu düşün:** özel SMTP yok, Supabase'in yerleşik
+> göndericisi kullanılıyor ve onun saatlik gönderim limiti çok düşük. Arka
+> arkaya birkaç deneme yaptıysan limit dolmuş olabilir — taşıma hatası
+> sanma. Aynı kısıt eski projede de vardı.
 
 ### 8. Yedeği sakla
 
