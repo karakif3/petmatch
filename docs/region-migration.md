@@ -35,7 +35,7 @@ migration'ların dışında kalanlar.** Envanter:
 | **Auth sağlayıcıları / e-posta şablonları** | ❌ hayır | varsayılan | — (özelleştirme yok) |
 | **Edge Function'lar** | ❌ hayır | 2 tanesi ACTIVE | Bildirim ve hesap silme çalışmaz |
 | **Edge Function secret'ları** | ❌ hayır | yalnızca otomatik olanlar | — (`EXPO_ACCESS_TOKEN` opsiyonel ve set değil) |
-| **`app_user_roles` satırları (moderatör)** | ❌ hayır | **boş — hiç moderatör yok** | Moderasyon kuyruğuna kimse erişemez (bugün de öyle) |
+| **`app_user_roles` satırları (moderatör)** | ❌ hayır | 1 admin (2026-08-03'te eklendi) | Moderasyon kuyruğuna kimse erişemez |
 | **`.env` üç değeri** | ❌ hayır | eski ref | Uygulama hiçbir şeye bağlanamaz |
 
 > EAS yapılandırması Supabase'e referans vermiyor; değerler `.env` üzerinden
@@ -97,9 +97,10 @@ kullanıcı verisi içeriyor, git'e girmez.
 - [x] `04-env.txt` — mevcut `.env` kopyası (chmod 600)
 - [ ] Storage dosyaları (~1 MB test fotoğrafı) — **taşınmayacak**, gerekirse indir
 
-> **Yedek alırken çıkan bulgu:** `app_user_roles` boş — canlıda hiç moderatör
-> yok. Ayrıntı ve düzeltme `03-settings.md` içinde. Yeni projede de aynı
-> satırın elle girilmesi gerekecek.
+> **Yedek alırken çıkan bulgu:** `app_user_roles` boştu — canlıda hiç
+> moderatör yoktu, dolayısıyla park doğrulaması dahil altı fonksiyon
+> erişilemezdi. `karakif3@gmail.com` admin olarak eklendi ve doğrulandı
+> (`03-settings.md`). **Yeni projede tekrarlanacak** — §5'te.
 
 ### 2. ⛔ GERİ DÖNÜŞSÜZ — eski projeyi sil
 
@@ -143,7 +144,10 @@ select
       `npx supabase functions deploy send-notification --use-api`
       `npx supabase functions deploy delete-account --use-api`
 - [ ] `npx supabase functions list` → ikisi de ACTIVE
-- [ ] **Moderatör atamaları**: §1'de not alınanları yeni projede yeniden gir
+- [ ] **Moderatör atamasını yeniden gir** — migration tabloyu getirir, satırı
+      getirmez. `03-settings.md` içindeki SQL, dashboard SQL editöründen
+      (tablo yalnızca `service_role`'a açık). Ardından `is_moderator()` ile
+      doğrula.
 - [ ] Secret gerekmiyor (`EXPO_ACCESS_TOKEN` opsiyonel ve set değil) — ama
       ileride eklenirse buraya da eklenmeli
 
