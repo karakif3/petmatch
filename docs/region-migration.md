@@ -35,7 +35,7 @@ migration'ların dışında kalanlar.** Envanter:
 | **Auth sağlayıcıları / e-posta şablonları** | ❌ hayır | varsayılan | — (özelleştirme yok) |
 | **Edge Function'lar** | ❌ hayır | 2 tanesi ACTIVE | Bildirim ve hesap silme çalışmaz |
 | **Edge Function secret'ları** | ❌ hayır | yalnızca otomatik olanlar | — (`EXPO_ACCESS_TOKEN` opsiyonel ve set değil) |
-| **`app_user_roles` satırları (moderatör)** | ❌ hayır | §1'de sayılacak | Moderasyon kuyruğuna kimse erişemez |
+| **`app_user_roles` satırları (moderatör)** | ❌ hayır | **boş — hiç moderatör yok** | Moderasyon kuyruğuna kimse erişemez (bugün de öyle) |
 | **`.env` üç değeri** | ❌ hayır | eski ref | Uygulama hiçbir şeye bağlanamaz |
 
 > EAS yapılandırması Supabase'e referans vermiyor; değerler `.env` üzerinden
@@ -82,23 +82,24 @@ envanter tablosu tam olarak bu boşluğu kapatmak için var.
 
 ## Adımlar
 
-### 1. Yedek — geri dönüşü var, **silmeden önce bitmeli**
+### 1. Yedek — ✅ **ALINDI** (2026-08-03)
 
-Yedek klasörü repo DIŞINDA: `~/Desktop/cursor_claude/petmatch-backup-<tarih>/`
-(kullanıcı verisi içerir, git'e girmemeli).
+`~/Desktop/cursor_claude/petmatch-backup-2026-08-03/` — repo dışında,
+kullanıcı verisi içeriyor, git'e girmez.
 
-- [ ] `npm run test:db` yeşil (39 migration + 7 test dosyası)
-- [ ] `npx supabase migration list --linked` → bekleyen yok, repoda olmayan yok
-- [ ] `npx supabase db dump -f <yedek>/01-schema.sql`
-- [ ] `npx supabase db dump --data-only -f <yedek>/02-data.sql`
-- [ ] **Yedekleri DOĞRULA** — dosyalar var, boş değil, içleri okunuyor:
-      `wc -l <yedek>/*.sql` ve `head -30` ile göz gezdir
-- [ ] Moderatör atamaları: `select user_id, role from app_user_roles;`
-      → çıktıyı `<yedek>/03-settings.md` içine yaz
-- [ ] Ayar notları aynı dosyaya: redirect URL'ler, sağlayıcılar, secret'lar
-      (bugün hepsi boş/varsayılan — envanter tablosuna bak)
-- [ ] Storage dosyaları gerekiyorsa indir (test fotoğrafları, ~1 MB)
-- [ ] Mevcut `.env`'in kopyası `<yedek>/04-env.txt`
+- [x] `npm run test:db` yeşil (39 migration + 7 test dosyası)
+- [x] `npx supabase migration list --linked` → bekleyen yok, repoda olmayan yok
+- [x] `01-schema.sql` — 129 KB, 46 nesne tanımı
+- [x] `02-data.sql` — 17 KB; `auth.users`, `auth.identities`,
+      `storage.objects` dahil
+- [x] **Doğrulandı** — dosyalar dolu ve okunuyor
+- [x] `03-settings.md` — dump'ın yakalamadığı her şey
+- [x] `04-env.txt` — mevcut `.env` kopyası (chmod 600)
+- [ ] Storage dosyaları (~1 MB test fotoğrafı) — **taşınmayacak**, gerekirse indir
+
+> **Yedek alırken çıkan bulgu:** `app_user_roles` boş — canlıda hiç moderatör
+> yok. Ayrıntı ve düzeltme `03-settings.md` içinde. Yeni projede de aynı
+> satırın elle girilmesi gerekecek.
 
 ### 2. ⛔ GERİ DÖNÜŞSÜZ — eski projeyi sil
 
