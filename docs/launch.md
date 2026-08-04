@@ -102,8 +102,13 @@ verilmesini mümkün kılıyor.
 Migration'lar canlı projeye uygulandı (2026-08-03). Yerel ve uzak geçmiş
 birebir eşleşiyor: 39 migration, bekleyen yok.
 
+**Bölge taşıması tamamlandı (2026-08-04):** proje artık `eu-central-1`
+(Frankfurt), ref `ktlefybtankyywxuafvh`. İstanbul'a ~30 ms daha yakın.
+Kayıt ve bir dahaki sefere reçete: [`region-migration.md`](region-migration.md)
+
 Bekleyen iki iş:
 
-1. **Bölge taşıması** — proje `eu-west-1`'de, pilot İstanbul.
-   Adım adım runbook: [`region-migration.md`](region-migration.md)
+1. **Duman testi + moderatör satırı** — yeni projede hiç kullanıcı yok;
+   `app_user_roles` satırı ilk kayıttan sonra girilecek. O satır girilene
+   kadar park doğrulaması dahil altı moderatör fonksiyonu erişilemez.
 2. **Park listesinin saha teyidi** — yukarıda
