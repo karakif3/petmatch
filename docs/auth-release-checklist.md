@@ -20,8 +20,28 @@
 >
 > Doğrulama: yeni bir adresle kayıt ol, giriş **engellenmeli**.
 >
-> Aynı anda açılan test hesapları (`test1@petmatch.app`,
-> `test2@petmatch.app`) da yayından önce silinmeli.
+> ## Yayından önce silinecek test hesapları
+>
+> | Hesap | İçerik |
+> |---|---|
+> | `test1@petmatch.app` | Pet "Luna" · **moderatör (admin)** |
+> | `test2@petmatch.app` | Peti yok |
+> | `deniz` · `ece` · `mert` · `ayse` **@petmatch.test** | Pet + fotoğraf + **herkese açık sahip profili ve avatarı** |
+> | `selin` · `kaan` **@petmatch.test** | Pet + fotoğraf · görünürlük `after_match` |
+> | `burak` · `elif` **@petmatch.test** | Pet + fotoğraf · görünürlük `hidden` |
+>
+> Şifre (hepsi): `Petmatch2026!`
+>
+> `@petmatch.test` hesapları keşfet destesini doldurmak için 2026-08-04'te
+> üretilen **tohum veriydi**: 8 pet, hepsi Kadıköy bölgesinde,
+> `goals = {playdate}`, birer yer tutucu fotoğraflı. Dördünün sahip avatarı
+> var — sahip segmenti (`OWNER_SEGMENT_MIN_CARDS = 3`) bu sayede test
+> edilebiliyor.
+>
+> Silerken `auth.users` satırını kaldırmak yeterli (pets, pet_photos ve
+> profiles FK ile cascade oluyor), ama **storage nesneleri cascade
+> OLMUYOR**: `pet-photos/{userId}/…` ve `owner-avatars/{userId}/avatar.jpg`
+> ayrıca silinmeli.
 
 Şifre sıfırlama, doğrulama e-postasını yeniden gönderme, mobil deep link,
 PKCE `code` değişimi ve Türkçe hata durumları uygulamada hazırdır.
