@@ -24,6 +24,8 @@ import { touchLastActive } from "../core/api/conversations";
 import { syncLanguagePreference } from "../core/api/preferences";
 import { getAppLocale, syncAppLocale } from "../core/i18n";
 import { useAuthStore } from "../stores/auth";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import { AppErrorBoundary } from "../components/app-error-boundary";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -52,7 +54,8 @@ function useAuthGate() {
       (segments as readonly string[])[1] === "callback";
     const onPasswordReset =
       inAuthGroup && (segments as readonly string[])[1] === "reset-password";
-    const onLegal = inAuthGroup && (segments as readonly string[])[1] === "legal";
+    const onLegal =
+      inAuthGroup && (segments as readonly string[])[1] === "legal";
 
     if (onLegal || onAuthCallback) {
       return;
@@ -110,7 +113,9 @@ function NotificationEffects() {
       .then(async (Notifications) => {
         if (disposed) return;
         subscription =
-          Notifications.addNotificationResponseReceivedListener(openNotification);
+          Notifications.addNotificationResponseReceivedListener(
+            openNotification,
+          );
         const response = await Notifications.getLastNotificationResponseAsync();
         if (!disposed && response) openNotification(response);
       })
@@ -201,28 +206,37 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <NotificationEffects />
-          <ActivityEffects />
-          <LocalizationEffects />
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "#FFFBF7" },
-            }}
-          >
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="chat/[conversationId]" />
-            <Stack.Screen name="profile/pet" />
-            <Stack.Screen name="profile/owner" />
-            <Stack.Screen name="moderation/index" />
-          </Stack>
-        </QueryClientProvider>
-      </AppErrorBoundary>
+      {/*
+        SafeAreaProvider react-native-safe-area-context'in ÖNKOŞULU.
+        Ekranlar deprecated react-native SafeAreaView'ından buna geçti;
+        eski sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte
+        içeriği sıfır yüksekliğe düşürüyor ve profil ekranları boş
+        render ediliyordu.
+      */}
+      <SafeAreaProvider>
+        <AppErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <NotificationEffects />
+            <ActivityEffects />
+            <LocalizationEffects />
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "#FFFBF7" },
+              }}
+            >
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(app)" />
+              <Stack.Screen name="chat/[conversationId]" />
+              <Stack.Screen name="profile/pet" />
+              <Stack.Screen name="profile/owner" />
+              <Stack.Screen name="moderation/index" />
+            </Stack>
+          </QueryClientProvider>
+        </AppErrorBoundary>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

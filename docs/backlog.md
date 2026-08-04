@@ -5,33 +5,32 @@ README yerine önce bu dosya güncellenir.
 
 ## P0 — Yayın öncesi kritik
 
-0. **⛔ Profil ekranları boş render ediliyor** — *açık, sebebi bulunamadı*
+0. **Profil ekranları boş render ediliyordu** — ✅ **çözüldü (2026-08-04)**
 
-   iOS simülatöründe (iPhone 17 Pro, iOS 26.3) hem **Profil sekmesi**
-   (`app/(app)/profile.tsx`) hem de **pet profili** (`app/profile/pet.tsx`)
-   boş açılıyor. Keşfet ve onboarding sorunsuz çalışıyor.
+   Belirti: hem **Profil sekmesi** hem **pet profili** boş açılıyordu.
+   Keşfet ve onboarding sorunsuzdu. Profil tamamlama kartı bu ekranlara
+   yönlendirdiği için kullanıcıyı doğrudan etkiliyordu.
 
-   Kullanıcıyı doğrudan etkiliyor: profil tamamlama kartı ve "Pet profili
-   oluştur" akışları bu ekranlara yönlendiriyor.
+   **Kök neden:** `react-native`'in **deprecated `SafeAreaView`**'ı. iOS 26'da
+   `SafeAreaView > KeyboardAvoidingView > ScrollView` zincirinde içeriği sıfır
+   yüksekliğe düşürüyordu. Keşfet ekranının etkilenmemesinin sebebi zincirinin
+   `SafeAreaView > ScrollView` olması — arada `KeyboardAvoidingView` yok.
+   Metro zaten her açılışta bu bileşen için deprecation uyarısı basıyordu.
 
-   **Elenenler** (hepsi ölçülerek, tahminle değil):
-   - Veri değil: `loadEditableProfile`'ın dört sorgusu da gerçek kullanıcı
-     token'ıyla **HTTP 200** ve dolu dönüyor (profiles, pets,
-     discovery_preferences, moderation_items)
-   - JS istisnası değil: `AppErrorBoundary` tetiklenmiyor ve `client_errors`
-     tablosu boş
-   - Yükleme/hata dalı değil: ikisi de görünür içerik render ediyor
-     (spinner / "yüklenemedi" metni), ekranda ikisi de yok
-   - Yeni değil: yaş seçici değişikliği `git stash` ile geri alınıp
-     tekrarlandı, hata aynen duruyor — **önceden var olan bir kusur**
-   - `KeyboardAvoidingView` `behavior` prop'u değil: kaldırılıp denendi
-   - Fast Refresh artığı değil: temiz paket + yeniden başlatmayla tekrarlanıyor
+   **Çözüm:** sekiz ekran `react-native-safe-area-context`'e geçirildi
+   (paket zaten kuruluydu) ve önkoşulu olan `SafeAreaProvider` root layout'a
+   eklendi.
 
-   **Sıradaki şüpheli:** `react-native`'in **deprecated `SafeAreaView`**'ı.
-   Metro her açılışta uyarıyor ve iOS 26 + new architecture ile bilinen
-   sorunları var. Çalışan keşfet ekranı da onu kullanıyor, yani tek başına
-   açıklamıyor — ama ilk denenecek şey `react-native-safe-area-context`'e
-   geçmek.
+   **Nasıl bulundu:** tahmin tükendikten sonra ölçüldü — her render dalına
+   farklı renkte geçici bir işaretleyici konuldu ve ana dalın ASLINDA
+   çalıştığı, içeriğin var olduğu ama görünmediği görüldü. Aynı denemede
+   `SafeAreaView` düz bir `View` ile değiştirilince içerik anında ortaya çıktı.
+
+   Daha önce elenenler (hepsi ölçülerek): veri (`loadEditableProfile`'ın dört
+   sorgusu da HTTP 200), JS istisnası (`AppErrorBoundary` sessiz,
+   `client_errors` boş), yükleme/hata dalları, `KeyboardAvoidingView`'ın
+   `behavior` prop'u, Fast Refresh artığı ve "benim değişikliğim mi" şüphesi
+   (`git stash` ile geri alınıp tekrarlandı — hata duruyordu).
 
 
 1. **Güvenlik ekranları** — tamamlandı

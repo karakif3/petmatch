@@ -2,10 +2,13 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   Text,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 // Gelen kutusu zamanla uzayan tek liste; hücre geri dönüşümü burada gerçekten
 // işe yarıyor. Sohbet ekranı bilerek FlatList'te kaldı: orada
 // `contentContainerStyle.justifyContent` balonları aşağı yaslıyor ve FlashList
