@@ -14,13 +14,13 @@ import {
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PetAgePicker } from "../../components/pet-age-picker";
+import { PetPhotoEditor } from "../../components/pet-photo-editor";
 import {
   loadEditableProfile,
   savePetPhotos,
@@ -185,16 +185,6 @@ export default function PetProfileScreen() {
     setPhotos((items) => [...items, ...selected]);
   };
 
-  const movePhoto = (index: number, direction: -1 | 1) => {
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= photos.length) return;
-    setPhotos((items) => {
-      const next = [...items];
-      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-      return next;
-    });
-  };
-
   const toggleTemperament = (value: Temperament) => {
     setTemperaments((values) =>
       values.includes(value)
@@ -306,61 +296,20 @@ export default function PetProfileScreen() {
         >
           <View className="mb-7">
             <View className="mb-3 flex-row items-end justify-between">
-              <View>
-                <Text className="text-lg font-bold text-text-primary">Fotoğraflar</Text>
-                <Text className="mt-1 text-xs text-text-secondary">
-                  İlk fotoğraf kapak olur. Oklarla sırala.
-                </Text>
-              </View>
-              <Text className="text-xs font-semibold text-text-tertiary">{photos.length}/6</Text>
+              <Text className="text-lg font-bold text-text-primary">Fotoğraflar</Text>
+              <Text className="text-xs font-semibold text-text-tertiary">
+                {photos.length}/6
+              </Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-3">
-                {photos.map((photo, index) => (
-                  <View key={photo.id} className="w-32 overflow-hidden rounded-2xl border border-border bg-surface">
-                    <Image source={photo.uri} contentFit="cover" style={{ width: 128, height: 128 }} />
-                    {index === 0 ? (
-                      <View className="absolute left-2 top-2 rounded-full bg-brand px-2 py-1">
-                        <Text className="text-[10px] font-bold text-white">Kapak</Text>
-                      </View>
-                    ) : null}
-                    <Pressable
-                      onPress={() => setPhotos((items) => items.filter((item) => item.id !== photo.id))}
-                      accessibilityLabel="Fotoğrafı kaldır"
-                      className="absolute right-2 top-2 h-7 w-7 items-center justify-center rounded-full bg-black/55"
-                    >
-                      <Ionicons name="trash-outline" color="#FFFFFF" size={15} />
-                    </Pressable>
-                    <View className="flex-row justify-center gap-2 py-2">
-                      <Pressable
-                        onPress={() => movePhoto(index, -1)}
-                        disabled={index === 0}
-                        className="h-8 w-10 items-center justify-center rounded-lg bg-bg-secondary disabled:opacity-30"
-                      >
-                        <Ionicons name="chevron-back" color="#6B5D55" size={18} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => movePhoto(index, 1)}
-                        disabled={index === photos.length - 1}
-                        className="h-8 w-10 items-center justify-center rounded-lg bg-bg-secondary disabled:opacity-30"
-                      >
-                        <Ionicons name="chevron-forward" color="#6B5D55" size={18} />
-                      </Pressable>
-                    </View>
-                  </View>
-                ))}
-                {photos.length < 6 ? (
-                  <Pressable
-                    onPress={pickPhotos}
-                    disabled={busy}
-                    className="h-[178px] w-32 items-center justify-center rounded-2xl border border-dashed border-brand bg-brand/5"
-                  >
-                    <Ionicons name="add-circle-outline" color="#F97362" size={30} />
-                    <Text className="mt-2 text-xs font-bold text-brand-dark">Fotoğraf ekle</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </ScrollView>
+            <PetPhotoEditor
+              photos={photos}
+              max={6}
+              busy={busy}
+              onChange={(next) =>
+                setPhotos(next as typeof photos)
+              }
+              onAdd={pickPhotos}
+            />
           </View>
 
           <Field label="Adı" value={name} onChangeText={setName} maxLength={40} autoCapitalize="words" />
