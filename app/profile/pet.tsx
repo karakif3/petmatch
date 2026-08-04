@@ -17,19 +17,24 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { PetAgePicker } from "../../components/pet-age-picker";
 import {
   loadEditableProfile,
   savePetPhotos,
   updatePetProfile,
   type LocalProfilePhoto,
 } from "../../core/api/profile";
-import { isPastOrTodayDate } from "../../core/domain/date-validation";
 import {
   TEMPERAMENTS,
   type EnergyLevel,
   type Size,
   type Temperament,
 } from "../../core/domain/types";
+import {
+  PET_AGE_UNKNOWN,
+  birthDateToPetAge,
+  petAgeToBirthDate,
+} from "../../core/domain/pet-age";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 
@@ -109,7 +114,9 @@ export default function PetProfileScreen() {
 
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  // Yaş kovası olarak tutuluyor; kaydederken yaklaşık birth_date'e
+  // çevriliyor. Kayıt akışıyla aynı kontrol, aynı temsil.
+  const [petAge, setPetAge] = useState<string>(PET_AGE_UNKNOWN);
   const [size, setSize] = useState<Size>("medium");
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel>(3);
   const [isNeutered, setIsNeutered] = useState(false);
@@ -128,7 +135,7 @@ export default function PetProfileScreen() {
     const pet = profile.data.pet;
     setName(pet.name);
     setBreed(pet.breed ?? "");
-    setBirthDate(pet.birthDate ?? "");
+    setPetAge(birthDateToPetAge(pet.birthDate));
     setSize(pet.size);
     setEnergyLevel(pet.energyLevel);
     setIsNeutered(pet.isNeutered);
@@ -196,9 +203,6 @@ export default function PetProfileScreen() {
   const save = async () => {
     if (!user || !profile.data) return;
     if (!name.trim()) return setError("Petinin adını yazmalısın.");
-    if (birthDate && !isPastOrTodayDate(birthDate)) {
-      return setError("Doğum tarihini YYYY-AA-GG biçiminde ve geçmiş bir tarih olarak yaz.");
-    }
     if (!photos.length) return setError("En az bir pet fotoğrafı kalmalı.");
 
     setBusy(true);
@@ -210,7 +214,7 @@ export default function PetProfileScreen() {
         petId: pet.id,
         name,
         breed,
-        birthDate,
+        birthDate: petAgeToBirthDate(petAge) ?? "",
         size,
         energyLevel,
         isNeutered,
@@ -358,14 +362,13 @@ export default function PetProfileScreen() {
 
           <Field label="Adı" value={name} onChangeText={setName} maxLength={40} autoCapitalize="words" />
           <Field label="Irkı (opsiyonel)" value={breed} onChangeText={setBreed} maxLength={80} autoCapitalize="words" />
-          <Field
-            label="Doğum tarihi (opsiyonel)"
-            value={birthDate}
-            onChangeText={setBirthDate}
-            placeholder="YYYY-AA-GG"
-            keyboardType="numbers-and-punctuation"
-            maxLength={10}
-          />
+          {/*
+            Kayıt akışıyla AYNI kontrol. Onboarding yaşı kovalarla sorup
+            yaklaşık bir birth_date türetiyor; burası ham YYYY-AA-GG metin
+            alanı kalsaydı "3 yaş" seçen kullanıcı profilini açtığında
+            "2023-08-04" görürdü — kendi girdiğini tanıyamazdı.
+          */}
+          <PetAgePicker value={petAge} onChange={setPetAge} />
 
           <Text className="mb-3 text-lg font-bold text-text-primary">Boyut</Text>
           <View className="mb-6 flex-row gap-2">

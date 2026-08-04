@@ -5,6 +5,35 @@ README yerine önce bu dosya güncellenir.
 
 ## P0 — Yayın öncesi kritik
 
+0. **⛔ Profil ekranları boş render ediliyor** — *açık, sebebi bulunamadı*
+
+   iOS simülatöründe (iPhone 17 Pro, iOS 26.3) hem **Profil sekmesi**
+   (`app/(app)/profile.tsx`) hem de **pet profili** (`app/profile/pet.tsx`)
+   boş açılıyor. Keşfet ve onboarding sorunsuz çalışıyor.
+
+   Kullanıcıyı doğrudan etkiliyor: profil tamamlama kartı ve "Pet profili
+   oluştur" akışları bu ekranlara yönlendiriyor.
+
+   **Elenenler** (hepsi ölçülerek, tahminle değil):
+   - Veri değil: `loadEditableProfile`'ın dört sorgusu da gerçek kullanıcı
+     token'ıyla **HTTP 200** ve dolu dönüyor (profiles, pets,
+     discovery_preferences, moderation_items)
+   - JS istisnası değil: `AppErrorBoundary` tetiklenmiyor ve `client_errors`
+     tablosu boş
+   - Yükleme/hata dalı değil: ikisi de görünür içerik render ediyor
+     (spinner / "yüklenemedi" metni), ekranda ikisi de yok
+   - Yeni değil: yaş seçici değişikliği `git stash` ile geri alınıp
+     tekrarlandı, hata aynen duruyor — **önceden var olan bir kusur**
+   - `KeyboardAvoidingView` `behavior` prop'u değil: kaldırılıp denendi
+   - Fast Refresh artığı değil: temiz paket + yeniden başlatmayla tekrarlanıyor
+
+   **Sıradaki şüpheli:** `react-native`'in **deprecated `SafeAreaView`**'ı.
+   Metro her açılışta uyarıyor ve iOS 26 + new architecture ile bilinen
+   sorunları var. Çalışan keşfet ekranı da onu kullanıyor, yani tek başına
+   açıklamıyor — ama ilk denenecek şey `react-native-safe-area-context`'e
+   geçmek.
+
+
 1. **Güvenlik ekranları** — tamamlandı
    - Sohbetten eşleşmeyi kaldırma
    - Kullanıcı engelleme
@@ -126,9 +155,45 @@ README yerine önce bu dosya güncellenir.
 > tamamlanmalıdır. 9'un veritabanı tabanlı hata takibi hazırdır; native süreç
 > crash'leri için harici bir sağlayıcı yayın sertleştirmesi olarak önerilir.
 
-## P2 — Ana MVP sonrasında
+11b. **Pet profili ekranının UX kusurları** — *kartla birlikte kritik yola girdi*
 
-12. **Sahiplendirme arayüzü**
+   Kayıt akışı sadeleşince ırk/boyut/enerji/kısırlaştırma bu ekrana taşındı ve
+   keşfetteki profil tamamlama kartı kullanıcıyı **doğrudan buraya yolluyor**.
+   Yani daha önce nadiren açılan bir ekran, artık yönlendirilmiş trafiğin
+   indiği yer. Onboarding incelemesinde tespit edilen ama "dar kapsam"
+   seçildiği için uygulanmayan maddeler burada duruyor:
+
+   - [x] **Pet yaşı kayıt akışıyla aynı kontrole çevrildi.** Onboarding yaşı
+         kovalarla soruyordu, bu ekran hâlâ ham `YYYY-AA-GG` metin alanıydı;
+         "3 yaş" seçen kullanıcı profilini açtığında `2023-08-04` görüyor,
+         kendi girdiğini tanıyamıyordu. Sadeleştirmenin yarattığı
+         tutarsızlıktı, kapatıldı.
+   - [ ] Hata mesajları formun altında tek kutuda; hatalı alanın altında
+         satır içi gösterilmeli
+   - [ ] Fotoğraf eklemede kamera seçeneği yok (galeri-only); doğrulama
+         akışında kamera zaten kullanılıyor
+
+   > **Not:** İlk incelemede "enerji çıplak rakam" ve "kısırlaştırma toggle
+   > etiketi değişiyor" diye iki madde daha yazılmıştı. Kod okunduğunda ikisi
+   > de bu ekran için **yanlış** çıktı: enerji satırının üstünde
+   > "1 çok sakin, 5 çok enerjik" açıklaması var ve kısırlaştırma sabit
+   > etiketli bir `Switch`. Bu iki kusur **onboarding**'deki versiyonlardaydı
+   > ve sadeleştirmeyle birlikte zaten kalktı.
+
+12. **Sahiplendirme arayüzü** — *kod hazır, bayrakla gizli*
+
+    Yüzey çalışır durumda (DB, RLS, RPC'ler, ekran, testler) ama
+    `core/features.ts` içindeki `FEATURES.adoption` **kapalı**: ürünün ana
+    döngüsü — pet profili, keşfet, eşleşme, sohbet — olgunlaşana kadar
+    kullanıcıya gösterilmiyor. `/adoption` rotası duruyor, doğrudan
+    gidilirse çalışıyor.
+
+    Açmadan önce:
+    - [ ] Ana döngünün gerçek kullanıcıyla çalıştığı doğrulanmış olmalı
+    - [ ] `pause_stale_adoption_listings()` zamanlanmalı — `pg_cron` kurulu
+          değil, yani şu an bayat ilanları kimse duraklatmıyor
+    - [ ] Doğrulama şartı (`0010`) ve 7332 sayılı kanun gereği satış
+          caydırıcılığı metinleri gözden geçirilmeli
 13. **Tam çok dil yayını** — altyapı ve Türkçe katalog düzeni hazır
     - [x] `expo-localization` + `i18n-js`, fallback ve Android foreground sync
     - [x] Type-safe Türkçe/İngilizce örnek katalog yapısı
