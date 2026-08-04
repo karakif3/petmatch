@@ -77,6 +77,41 @@ fiziksel cihaz build'i üzerinde denenir.
 > repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
 > olabilir — portlar çakışırsa `config.toml` içinde değiştir.
 
+### iOS simülatöründe çalıştırma
+
+`npm run ios` (`expo run:ios`) bu geliştirme makinesinde **simülatör için
+çalışmıyor**. Sebep Expo değil: `devicectl` beklenmedik bir sürüm çıktısı
+veriyor, Expo cihaz listesini ayrıştıramayınca her hedefi fiziksel cihaz
+sayıyor ve kod imzalama sertifikası istiyor. `--device` ister UDID ister
+cihaz adı olsun sonuç aynı.
+
+Simülatör derlemesi doğrudan Xcode üzerinden yapılır:
+
+```bash
+cd ios && LANG=en_US.UTF-8 xcodebuild -workspace PetMatch.xcworkspace -scheme PetMatch -configuration Debug -sdk iphonesimulator -destination "id=<simulator-udid>" -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+```
+
+Sonra kurup açmak için:
+
+```bash
+xcrun simctl install <udid> ios/build/Build/Products/Debug-iphonesimulator/PetMatch.app && xcrun simctl launch <udid> com.petmatch.app
+```
+
+Metro ayrıca başlatılır (`npx expo start --dev-client`). Bu makinede 8081
+başka bir projeye ait olabilir; çakışırsa `--port` ver.
+
+**İki tuzak:**
+
+- **`LANG` boşsa CocoaPods çöker.** Ruby `US-ASCII` moduna düşüyor ve
+  `pod install` her çağrıda `Encoding::CompatibilityError` veriyor.
+  `LANG=en_US.UTF-8` şart — yukarıdaki komutlarda o yüzden var.
+- **`ios/Podfile.properties.json` içinde `ios.useFrameworks: static`.**
+  Kullanılmayan `@react-native-google-signin/google-signin` bağımlılığı
+  AppCheckCore → GoogleUtilities zincirini getiriyor ve static linkage
+  olmadan Swift pod'ları entegre olmuyor. **Bu dosya `expo prebuild` ile
+  sıfırlanır**; prebuild sonrası ayarı tekrar koymak ya da
+  `expo-build-properties` ile `app.json`'a taşımak gerekir.
+
 ---
 
 ## Yapı

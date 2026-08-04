@@ -25,6 +25,7 @@ import {
 import { isAdultDate } from "../../core/domain/date-validation";
 import type { OwnerVisibility } from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
+import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 
 type AvatarState =
@@ -124,8 +125,7 @@ export default function OwnerProfileScreen() {
 
   const pickAvatar = async () => {
     setError(null);
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    if (!(await ensureImageLibraryAccess())) {
       setError("Sahip fotoğrafı seçmek için galeri izni gerekiyor.");
       return;
     }

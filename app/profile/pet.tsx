@@ -30,6 +30,7 @@ import {
   type Size,
   type Temperament,
 } from "../../core/domain/types";
+import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 
 type PhotoItem =
@@ -153,8 +154,7 @@ export default function PetProfileScreen() {
       setError("En fazla 6 fotoğraf ekleyebilirsin.");
       return;
     }
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    if (!(await ensureImageLibraryAccess())) {
       setError("Fotoğraf seçmek için galeri izni gerekiyor.");
       return;
     }
