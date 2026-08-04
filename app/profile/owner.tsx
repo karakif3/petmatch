@@ -30,6 +30,7 @@ import type { OwnerVisibility } from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
+import { errorMessage } from "../../core/domain/error-message";
 
 type AvatarState =
   | { kind: "remote"; storagePath: string; uri: string }
@@ -206,7 +207,7 @@ export default function OwnerProfileScreen() {
       setNotice("Sahip profilin güncellendi.");
     } catch (saveError) {
       setError(
-        saveError instanceof Error ? saveError.message : "Sahip profili kaydedilemedi.",
+        errorMessage(saveError, "Sahip profili kaydedilemedi."),
       );
     } finally {
       setBusy(false);
@@ -235,9 +236,7 @@ export default function OwnerProfileScreen() {
       setNotice("Doğrulama fotoğrafın inceleme kuyruğuna alındı.");
     } catch (verificationError) {
       setError(
-        verificationError instanceof Error
-          ? verificationError.message
-          : "Doğrulama başvurusu gönderilemedi.",
+        errorMessage(verificationError, "Doğrulama başvurusu gönderilemedi."),
       );
     } finally {
       setVerificationBusy(false);

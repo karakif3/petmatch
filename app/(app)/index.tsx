@@ -45,6 +45,7 @@ import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
+import { errorMessage } from "../../core/domain/error-message";
 
 export default function DiscoverScreen() {
   const t = useTranslation();
@@ -204,7 +205,7 @@ export default function DiscoverScreen() {
     },
     onError: (mutationError) => {
       setError(
-        mutationError instanceof Error ? mutationError.message : "Beğeni kaydedilemedi.",
+        errorMessage(mutationError, "Beğeni kaydedilemedi."),
       );
     },
   });
@@ -245,9 +246,7 @@ export default function DiscoverScreen() {
               })
               .catch((blockError) => {
                 setError(
-                  blockError instanceof Error
-                    ? blockError.message
-                    : "Kullanıcı engellenemedi.",
+                  errorMessage(blockError, "Kullanıcı engellenemedi."),
                 );
               })
               .finally(() => setSafetyBusy(false));
@@ -276,7 +275,7 @@ export default function DiscoverScreen() {
       await queryClient.invalidateQueries({ queryKey: ["discovery", user.id] });
     } catch (filterError) {
       setError(
-        filterError instanceof Error ? filterError.message : "Filtreler kaydedilemedi.",
+        errorMessage(filterError, "Filtreler kaydedilemedi."),
       );
     } finally {
       setFilterBusy(false);
@@ -383,7 +382,7 @@ export default function DiscoverScreen() {
               Keşfet yüklenemedi
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              {deck.error instanceof Error ? deck.error.message : "Bağlantını kontrol edip tekrar dene."}
+              {errorMessage(deck.error, "Bağlantını kontrol edip tekrar dene.")}
             </Text>
             <Pressable onPress={refresh} className="mt-5 rounded-xl bg-brand px-5 py-3">
               <Text className="font-semibold text-white">Tekrar dene</Text>

@@ -25,6 +25,7 @@ import {
 } from "../../core/api/adoption";
 import { trackProductEvent } from "../../core/api/observability";
 import { formatAge } from "../../core/domain/age";
+import { errorMessage } from "../../core/domain/error-message";
 
 /**
  * Sahiplendirme yüzeyi.
@@ -158,7 +159,7 @@ export default function AdoptionScreen() {
     onError: (error) => {
       Alert.alert(
         "Başvuru gönderilemedi",
-        error instanceof Error ? error.message : "Bir şeyler ters gitti.",
+        errorMessage(error, "Bir şeyler ters gitti."),
       );
     },
   });

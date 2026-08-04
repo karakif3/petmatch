@@ -27,6 +27,7 @@ import type { Coordinates, Species } from "../core/domain/types";
 import { useTranslation } from "../core/i18n";
 import { ensureImageLibraryAccess } from "../core/media/image-library";
 import { useAuthStore } from "../stores/auth";
+import { errorMessage } from "../core/domain/error-message";
 
 type Step = 0 | 1 | 2;
 
@@ -171,7 +172,7 @@ export default function OnboardingScreen() {
         }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Konum alınamadı.");
+      setError(errorMessage(err, "Konum alınamadı."));
     } finally {
       setLocationBusy(false);
     }
@@ -220,7 +221,7 @@ export default function OnboardingScreen() {
       });
       setOnboarded(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Onboarding tamamlanamadı.");
+      setError(errorMessage(err, "Onboarding tamamlanamadı."));
     } finally {
       setBusy(false);
     }

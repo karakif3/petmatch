@@ -40,6 +40,7 @@ import {
 } from "../../core/domain/pet-age";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
+import { errorMessage } from "../../core/domain/error-message";
 
 type PhotoItem =
   | { id: string; kind: "remote"; storagePath: string; uri: string }
@@ -240,7 +241,7 @@ export default function PetProfileScreen() {
       await profile.refetch();
       setNotice("Pet profili ve fotoğraf sırası güncellendi.");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Pet profili kaydedilemedi.");
+      setError(errorMessage(saveError, "Pet profili kaydedilemedi."));
     } finally {
       setBusy(false);
     }

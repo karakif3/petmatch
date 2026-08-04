@@ -323,7 +323,7 @@ export default function ChatScreen() {
       router.replace("/(app)/matches");
     } catch (actionError) {
       setSendError(
-        actionError instanceof Error ? actionError.message : "İşlem tamamlanamadı.",
+        errorMessage(actionError, "İşlem tamamlanamadı."),
       );
     } finally {
       setSafetyBusy(false);

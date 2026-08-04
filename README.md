@@ -34,6 +34,7 @@ kullanıcının kontrolündedir.
 | [`docs/pet-first-connection.md`](docs/pet-first-connection.md) | Pet-first sosyal/dating kararı, veri sınırları ve yayın kapıları |
 | [`docs/i18n.md`](docs/i18n.md) | Çok dil katalogları, native metadata ve yeni dil yayın süreci |
 | [`docs/backlog.md`](docs/backlog.md) | **Tek numaralı ürün backlog'u** — P0, P1 ve P2 sırası |
+| [`docs/experience-roadmap.md`](docs/experience-roadmap.md) | Mikroanimasyon, buluşma+takvim, medya, sesli görüşme, petsiz kullanıcı, ilgi alanları ve çok dilin **gerçek durumu** |
 | [`docs/auth-release-checklist.md`](docs/auth-release-checklist.md) | Şifre reset deep link'i ve Supabase redirect URL yayın ayarı |
 | [`docs/legal-release-checklist.md`](docs/legal-release-checklist.md) | Yasal bilgiler, mağaza veri beyanı ve yayın kontrolleri |
 | [`docs/moderation-runbook.md`](docs/moderation-runbook.md) | Moderasyon kuyruğu, 24 saat SLA, push/crash/funnel operasyonu |

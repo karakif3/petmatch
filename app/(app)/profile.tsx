@@ -35,6 +35,7 @@ import {
 import { coarsenCoordinates } from "../../core/domain/distance";
 import type { Coordinates, OwnerVisibility } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
+import { errorMessage } from "../../core/domain/error-message";
 
 const visibilityOptions: {
   value: OwnerVisibility;
@@ -146,7 +147,7 @@ export default function ProfileScreen() {
       setNotice("Yeni yaklaşık konum alındı. Uygulamak için değişiklikleri kaydet.");
     } catch (locationError) {
       setError(
-        locationError instanceof Error ? locationError.message : "Konum alınamadı.",
+        errorMessage(locationError, "Konum alınamadı."),
       );
     } finally {
       setLocationBusy(false);
@@ -183,9 +184,7 @@ export default function ProfileScreen() {
         }
       } catch (notificationError) {
         setError(
-          notificationError instanceof Error
-            ? notificationError.message
-            : "Bildirim ayarı cihaza uygulanamadı.",
+          errorMessage(notificationError, "Bildirim ayarı cihaza uygulanamadı."),
         );
       }
 
@@ -196,7 +195,7 @@ export default function ProfileScreen() {
       ]);
       setNotice(`Profilin güncellendi.${notificationMessage}`);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Profil güncellenemedi.");
+      setError(errorMessage(saveError, "Profil güncellenemedi."));
     } finally {
       setSaveBusy(false);
     }
@@ -212,7 +211,7 @@ export default function ProfileScreen() {
       await signOut();
     } catch (deleteError) {
       setError(
-        deleteError instanceof Error ? deleteError.message : "Hesap silinemedi.",
+        errorMessage(deleteError, "Hesap silinemedi."),
       );
     } finally {
       setDeleteBusy(false);
@@ -260,9 +259,7 @@ export default function ProfileScreen() {
         <Ionicons name="cloud-offline-outline" color="#E5484D" size={46} />
         <Text className="mt-4 text-xl font-bold text-text-primary">Profil yüklenemedi</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-          {profile.error instanceof Error
-            ? profile.error.message
-            : "Bağlantını kontrol edip tekrar dene."}
+          {errorMessage(profile.error, "Bağlantını kontrol edip tekrar dene.")}
         </Text>
         <Pressable
           onPress={() => profile.refetch()}

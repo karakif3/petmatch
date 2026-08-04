@@ -3,6 +3,12 @@
 Bu dosya yayın öncesi işlerin tek ve numaralı referansıdır. Sıra değiştirilirse
 README yerine önce bu dosya güncellenir.
 
+> Deneyim tarafının planı ayrı bir dosyada:
+> [`experience-roadmap.md`](experience-roadmap.md) — mikroanimasyonlar,
+> yapılandırılmış buluşma + takvim, sohbette fotoğraf, sesli görüşme, petsiz
+> kullanıcılar, ilgi alanları ve çok dilin **gerçek durumu**. Hiçbiri MVP
+> kapıcısı değil ama sırası ve gerekçesi orada.
+
 ## P0 — Yayın öncesi kritik
 
 0. **Profil ekranları boş render ediliyordu** — ✅ **çözüldü (2026-08-04)**
@@ -50,8 +56,9 @@ README yerine önce bu dosya güncellenir.
    hatayı `client_errors`'a da yazıyor. Tekrarlarsa sebebi görünür olacak.
 
    - [ ] `client_errors` tablosunu ara ara kontrol et; `route = 'chat/send'`
-   - [ ] Aynı yutma kalıbı başka ekranlarda da var; hepsi `errorMessage()`'a
-         geçirilmeli
+   - [x] Aynı yutma kalıbı **15 çağrı yerinde** daha vardı; hepsi
+         `errorMessage()`'a geçirildi (onboarding, profil, keşfet,
+         sahiplendirme, sohbet, moderasyon, şikâyet, bildirimler)
 
 1. **Güvenlik ekranları** — tamamlandı
    - Sohbetten eşleşmeyi kaldırma

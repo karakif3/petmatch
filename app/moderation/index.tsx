@@ -21,6 +21,7 @@ import {
   reviewModerationItem,
   type ModerationQueueItem,
 } from "../../core/api/moderation";
+import { errorMessage } from "../../core/domain/error-message";
 
 export default function ModerationScreen() {
   const queryClient = useQueryClient();
@@ -47,7 +48,7 @@ export default function ModerationScreen() {
       });
       await queryClient.invalidateQueries({ queryKey: ["moderation-operations"] });
     } catch (reviewError) {
-      setError(reviewError instanceof Error ? reviewError.message : "Karar kaydedilemedi.");
+      setError(errorMessage(reviewError, "Karar kaydedilemedi."));
     } finally {
       setBusyId(null);
     }
