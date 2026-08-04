@@ -370,6 +370,16 @@ export async function updatePetProfile(input: PetProfileUpdate): Promise<string>
     p_bio: bio || "",
   });
   if (error) throw error;
+
+  // Kullanıcı bu formu kaydettiyse boyut/enerji/kısırlaştırma artık
+  // varsayılan değil, seçilmiş sayılır — profil tamamlama kartı bu adımı
+  // eksik göstermeyi bıraksın (0040).
+  const { error: markError } = await requireSupabaseClient().rpc(
+    "mark_pet_details_completed",
+    { p_pet_id: input.petId },
+  );
+  if (markError) throw markError;
+
   return data;
 }
 

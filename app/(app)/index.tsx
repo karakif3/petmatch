@@ -22,6 +22,7 @@ import {
   type DiscoverySegment,
 } from "../../components/discovery-segments";
 import { MatchCelebration } from "../../components/match-celebration";
+import { ProfileCompletionCard } from "../../components/profile-completion-card";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import { listAdoptablePets } from "../../core/api/adoption";
@@ -33,7 +34,9 @@ import {
   type DiscoveryFilterSettings,
   type OwnerDiscoveryFilterInput,
 } from "../../core/api/discovery";
+import { loadProfileCompletion } from "../../core/api/profile-completion";
 import { blockUser } from "../../core/api/safety";
+import { FEATURES } from "../../core/features";
 import type { SwipeDirection } from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
@@ -137,10 +140,20 @@ export default function DiscoverScreen() {
     setDismissedIds([]);
   }, [deck.dataUpdatedAt]);
 
+  const completion = useQuery({
+    queryKey: ["profile-completion", user?.id],
+    queryFn: () => loadProfileCompletion(user!.id),
+    enabled: Boolean(user),
+    staleTime: 60 * 1000,
+  });
+
   // Giriş kartı yalnızca gerçekten ilan varsa çıksın diye sayıyoruz.
+  // Bayrak kapalıyken sorgu hiç atılmıyor — gizli bir yüzey için her
+  // keşfet açılışında istek yapmanın anlamı yok.
   const adoptable = useQuery({
     queryKey: ["adoptable-pets", "count"],
     queryFn: () => listAdoptablePets(),
+    enabled: FEATURES.adoption,
     staleTime: 5 * 60 * 1000,
   });
   const adoptableCount = adoptable.data?.length ?? 0;
@@ -346,6 +359,13 @@ export default function DiscoverScreen() {
         </View>
 
 
+        {/*
+          Kayıt akışı artık ırk/boyut/enerji/biyografi sormuyor; bunlar
+          kullanıcı ürünü gördükten sonra buradan toplanıyor. Eksik yoksa
+          kart hiç render edilmiyor.
+        */}
+        <ProfileCompletionCard data={completion.data} />
+
         {deck.isLoading ? (
           <View className="flex-1 items-center justify-center py-24">
             <ActivityIndicator color="#F97362" size="large" />
@@ -380,23 +400,36 @@ export default function DiscoverScreen() {
               Henüz bir petin yok
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              Keşfet için aktif bir pet gerekiyor. Dilersen önce yuva arayan
-              hayvanlara göz at.
+              {FEATURES.adoption
+                ? "Keşfet için aktif bir pet gerekiyor. Dilersen önce yuva arayan hayvanlara göz at."
+                : "Keşfet için aktif bir pet gerekiyor."}
             </Text>
-            <Pressable
-              onPress={() => router.push("/adoption")}
-              accessibilityRole="button"
-              className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
-            >
-              <Ionicons name="home" size={17} color="#FFFFFF" />
-              <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
-            </Pressable>
+            {FEATURES.adoption ? (
+              <Pressable
+                onPress={() => router.push("/adoption")}
+                accessibilityRole="button"
+                className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
+              >
+                <Ionicons name="home" size={17} color="#FFFFFF" />
+                <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => router.push("/profile/pet")}
               accessibilityRole="button"
-              className="mt-2 min-h-12 items-center justify-center px-5"
+              className={
+                FEATURES.adoption
+                  ? "mt-2 min-h-12 items-center justify-center px-5"
+                  : "mt-5 min-h-12 items-center justify-center rounded-xl bg-brand px-5"
+              }
             >
-              <Text className="text-sm font-semibold text-text-secondary">
+              <Text
+                className={
+                  FEATURES.adoption
+                    ? "text-sm font-semibold text-text-secondary"
+                    : "text-sm font-bold text-white"
+                }
+              >
                 Pet profili oluştur
               </Text>
             </Pressable>
@@ -420,7 +453,7 @@ export default function DiscoverScreen() {
           olduğunu söyler; giriş noktasını içeriğe bağlamak bu sorunu kural
           olarak değil yapısal olarak çözüyor (bkz. docs/goal-model.md).
         */}
-        {deck.data?.viewer && adoptableCount > 0 ? (
+        {FEATURES.adoption && deck.data?.viewer && adoptableCount > 0 ? (
           <Pressable
             onPress={() => router.push("/adoption")}
             accessibilityRole="button"

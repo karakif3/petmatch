@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -622,6 +622,7 @@ export type Database = {
           breed: string | null
           city: string | null
           created_at: string
+          details_completed_at: string | null
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
@@ -647,6 +648,7 @@ export type Database = {
           breed?: string | null
           city?: string | null
           created_at?: string
+          details_completed_at?: string | null
           energy_level?: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals?: Database["public"]["Enums"]["match_goal"][]
@@ -672,6 +674,7 @@ export type Database = {
           breed?: string | null
           city?: string | null
           created_at?: string
+          details_completed_at?: string | null
           energy_level?: number
           gender?: Database["public"]["Enums"]["pet_gender"]
           goals?: Database["public"]["Enums"]["match_goal"][]
@@ -1121,6 +1124,10 @@ export type Database = {
         Returns: number
       }
       mark_onboarding_complete: { Args: never; Returns: undefined }
+      mark_pet_details_completed: {
+        Args: { p_pet_id: string }
+        Returns: undefined
+      }
       matched_owner_ids: { Args: never; Returns: string[] }
       my_conversation_ids: { Args: never; Returns: string[] }
       my_match_ids: { Args: never; Returns: string[] }

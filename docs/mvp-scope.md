@@ -22,6 +22,40 @@ Pet adı zorunludur ve ürünün birincil görünen kimliğidir. Sahip adı
 opsiyoneldir; boş bırakıldığında sahibi görünür yapma tercihi diğer profil
 bilgilerini açabilir fakat bir ad metni gösterilmez.
 
+## Kayıt akışında ne sorulur, ne sorulmaz (2026-08-04)
+
+Kayıt önce **17 giriş** istiyordu ve hiçbiri atlanamıyordu. `benchmark.md`'deki
+kıyas (Tinder/Bumble/Hinge) ad, doğum tarihi, cinsiyet ve fotoğraf istiyor;
+gerisini kullanıma yayıyor. Akış aynı ilkeye çekildi.
+
+**Kayıtta sorulanlar — hepsinin şemada zorlayıcı bir sebebi var:**
+
+| Alan | Neden ertelenemez |
+|---|---|
+| Sahip doğum tarihi | `profiles_adult` CHECK; 18+ yasal kapısı |
+| Pet adı / tür / cinsiyet | NOT NULL, varsayılanı yok |
+| En az 1 fotoğraf | Fotoğrafsız kart destede işe yaramaz |
+| Yasal onay | KVKK |
+| Bölge | Pilot ölçümünün anahtarı (`0037`); tek dokunuş |
+
+**Ertelenenler — hepsinin varsayılanı var ya da null olabiliyor:**
+ırk, boyut (`medium`), enerji (`3`), kısırlaştırma (`false`), pet doğum
+tarihi, biyografiler, sahip avatarı, sahip görünürlüğü (`after_match`).
+
+Bunlar keşfetin üstündeki **profil tamamlama kartından** toplanıyor. Kart
+kapatılabilir ve eksik yoksa hiç render edilmiyor.
+
+İki karar ayrıca not edilmeli:
+
+- **Pete tam doğum tarihi sorulmuyor, yaş soruluyor.** Sokaktan sahiplenen
+  kullanıcı doğum tarihini bilmiyor. "Bilmiyorum" gerçek bir seçenek ve
+  `null` yazıyor — uydurma tarih üretilmiyor. Ayrıntı:
+  `core/domain/pet-age.ts`.
+- **Sahip görünürlüğü kayıtta sorulmuyor.** Kullanıcı eşleşmenin ne demek
+  olduğunu görmeden verilecek bir karar değildi; varsayılan `after_match`
+  zaten herkese açık değil ve açık rıza, "Herkese açık"a geçiş anında
+  profilde alınıyor.
+
 ## Kapsam dışı (sonraki faz)
 
 Premium/freemium, video profil, grup sohbeti, etkinlik & buluşma organizasyonu,

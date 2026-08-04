@@ -194,7 +194,15 @@ export function MatchCelebration({
           <FloatingPaw key={paw.left} {...paw} enabled={animate} />
         ))}
 
-        <Text className="text-center text-4xl">🎉</Text>
+        {/*
+          Emoji DEĞİL: uygulamanın global fontu Inter ve emoji glifi
+          içermiyor — 🎉 cihazda "?" kutusu olarak çıkıyordu. Eşleşme
+          kutlaması ürünün en yüksek duygulu anı; orada tofu göstermek
+          anın tamamını bozar. Ionicons zaten her yerde kullanılıyor.
+        */}
+        <View className="items-center">
+          <Ionicons name="sparkles" size={40} color="#FFFFFF" />
+        </View>
         <Text
           className="mt-3 text-center text-3xl font-bold text-white"
           accessibilityRole="header"

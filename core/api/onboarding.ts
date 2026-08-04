@@ -1,4 +1,4 @@
-import type { Coordinates, OwnerVisibility, Size, Species } from "../domain/types";
+import type { Coordinates, Species } from "../domain/types";
 import { recordLegalAcceptances } from "./legal";
 import { trackProductEvent } from "./observability";
 import { requestNotificationDelivery } from "./notifications";
@@ -10,21 +10,31 @@ export type OnboardingPhoto = {
   mimeType: string | null;
 };
 
+/**
+ * Kayıt yalnızca ZORUNLU olanı ister.
+ *
+ * Irk, boyut, enerji, kısırlaştırma ve sahip görünürlüğü buradan çıkarıldı;
+ * hepsinin ya şemada makul bir varsayılanı var (`size='medium'`,
+ * `energy_level=3`, `is_neutered=false`, `owner_visibility='after_match'`) ya
+ * da null olabiliyor. Kullanıcı bunları profilinden, ürünü gördükten sonra
+ * dolduruyor — özellikle görünürlük kararı, kullanıcı eşleşmenin ne demek
+ * olduğunu görmeden sorulacak bir soru değildi.
+ *
+ * Burada alanları YAZMAMAK bilinçli: mevcut bir peti güncellerken de aynı
+ * yol işlediği için, kullanıcının profilden yaptığı seçimler kayıt akışı
+ * tekrar çalıştığında ezilmiyor.
+ */
 export type OnboardingInput = {
   userId: string;
   displayName: string | null;
   ownerBirthDate: string;
-  city: string;
-  ownerVisibility: OwnerVisibility;
+  /** Pilot bölgelerde bölgeden türetiliyor; "Diğer"de kullanıcı yazıyor. */
+  city: string | null;
   pet: {
     name: string;
     species: Species;
     gender: "male" | "female";
-    breed: string | null;
     birthDate: string | null;
-    size: Size;
-    energyLevel: number;
-    isNeutered: boolean;
     coordinates: Coordinates | null;
   };
   photos: OnboardingPhoto[];
@@ -32,7 +42,6 @@ export type OnboardingInput = {
     termsAccepted: boolean;
     privacyNoticeAcknowledged: boolean;
     locationConsent: boolean;
-    publicProfileConsent: boolean;
   };
 };
 
@@ -56,15 +65,22 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
   if (input.photos.length < 1 || input.photos.length > 6) {
     throw new Error("1–6 pet fotoğrafı eklemelisin.");
   }
-  await recordLegalAcceptances(input.legal);
+  await recordLegalAcceptances({
+    ...input.legal,
+    // Kayıt akışı görünürlüğü artık sormuyor; varsayılan `after_match`
+    // kalıyor ve o herkese açık bir profil değil. Ayrı açık rıza, kullanıcı
+    // profilinden "Herkese açık"a geçmek istediğinde orada alınıyor.
+    publicProfileConsent: false,
+  });
+
+  const city = input.city?.trim() || null;
 
   const { error: profileError } = await sb
     .from("profiles")
     .update({
       display_name: input.displayName?.trim() || null,
       birth_date: input.ownerBirthDate,
-      city: input.city.trim(),
-      owner_visibility: input.ownerVisibility,
+      city,
     })
     .eq("id", input.userId);
   if (profileError) throw profileError;
@@ -73,13 +89,9 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
     name: input.pet.name.trim(),
     species: input.pet.species,
     gender: input.pet.gender,
-    breed: input.pet.breed,
     birth_date: input.pet.birthDate,
-    size: input.pet.size,
-    energy_level: input.pet.energyLevel,
-    is_neutered: input.pet.isNeutered,
     goals: ["playdate" as const],
-    city: input.city.trim(),
+    city,
     latitude: input.pet.coordinates?.latitude ?? null,
     longitude: input.pet.coordinates?.longitude ?? null,
     is_active: true,

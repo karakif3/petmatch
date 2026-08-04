@@ -204,8 +204,11 @@ export function DiscoveryFilterModal({
             <Text className="mb-2 text-sm font-semibold text-text-primary">Tür</Text>
             <View className="mb-5 flex-row gap-2">
               {([
-                ["dog", "🐕 Köpek"],
-                ["cat", "🐈 Kedi"],
+                // Emoji YOK: uygulamanın global fontu Inter ve emoji glifi
+                // içermiyor; köpek/kedi emojileri cihazda "?" kutusu olarak
+                // render oluyordu.
+                ["dog", "Köpek"],
+                ["cat", "Kedi"],
               ] as const).map(([value, label]) => {
                 const active = species.includes(value);
                 return (
