@@ -60,6 +60,8 @@ import {
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
 import { useTranslation } from "../../core/i18n";
+import { captureClientError } from "../../core/api/observability";
+import { errorMessage } from "../../core/domain/error-message";
 import { useAuthStore } from "../../stores/auth";
 
 const TYPING_IDLE_MS = 2_500;
@@ -243,7 +245,11 @@ export default function ChatScreen() {
     onError: (error, text) => {
       setFailedMessage(text);
       setBody((current) => current || text);
-      setSendError(error instanceof Error ? error.message : "Mesaj gönderilemedi.");
+      // Supabase PostgrestError bir Error örneği DEĞİL; instanceof kontrolü
+      // her veritabanı hatasını yedek metne düşürüyordu ve gerçek sebep
+      // hiçbir yerde görünmüyordu.
+      setSendError(errorMessage(error, "Mesaj gönderilemedi."));
+      void captureClientError(error, "chat/send");
     },
   });
 

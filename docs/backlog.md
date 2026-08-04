@@ -33,6 +33,26 @@ README yerine önce bu dosya güncellenir.
    (`git stash` ile geri alınıp tekrarlandı — hata duruyordu).
 
 
+0b. **Mesaj gönderiminde tekrarlanamayan hata** — *izleniyor*
+
+   Eşleşme kutlamasından sohbete geçip ilk mesaj gönderilirken bir kez
+   "Mesaj gönderilemedi." alındı. Aynı kullanıcı, aynı konuşma ve aynı metin
+   API'den **HTTP 201** dönüyordu, yani şema ve RLS sağlamdı. Uygulama
+   yeniden başlatıldıktan sonra gönderim sorunsuz çalıştı ve bir daha
+   tekrarlanmadı.
+
+   **Sebep bulunamadı** çünkü gerçek hata mesajı yutuluyordu:
+   `error instanceof Error ? error.message : "..."` kalıbı, Supabase'in
+   `PostgrestError`'ı bir `Error` örneği OLMADIĞI için her veritabanı
+   hatasını yedek metne düşürüyordu.
+
+   O yutma düzeltildi (`core/domain/error-message.ts`) ve sohbet ekranı artık
+   hatayı `client_errors`'a da yazıyor. Tekrarlarsa sebebi görünür olacak.
+
+   - [ ] `client_errors` tablosunu ara ara kontrol et; `route = 'chat/send'`
+   - [ ] Aynı yutma kalıbı başka ekranlarda da var; hepsi `errorMessage()`'a
+         geçirilmeli
+
 1. **Güvenlik ekranları** — tamamlandı
    - Sohbetten eşleşmeyi kaldırma
    - Kullanıcı engelleme
