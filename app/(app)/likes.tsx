@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -10,21 +11,38 @@ import {
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { PendingLikeCard } from "../../components/pending-like-card";
 import { loadPendingLikes, loadPendingLikesCount } from "../../core/api/likes";
 
 export default function LikesScreen() {
+  /*
+    Zamanlayıcıyla YENİLENMİYOR — bilerek.
+
+    Önce iki sorgu da 15 saniyede bir polling yapıyordu. Üç sebeple
+    kaldırıldı:
+
+    1. Beğeni zaman kritik değil. Beş dakika sonra görmek hiçbir şey
+       kaybettirmiyor; sohbetten farkı bu. Realtime'ı sohbete koyduk çünkü
+       orası karşılıklı ve anlık bir alışveriş.
+    2. Ekran açık kaldıkça sürekli iki RPC atmak, hiçbir kullanıcı faydası
+       olmayan bir maliyet.
+    3. Asıl mesele ürün değeri: burası ödeme yüzeyi. Kullanıcı bakarken
+       kendiliğinden artan bir sayaç kumar makinesidir ve
+       `monetization.md`'deki "asla satılmayacaklar" duruşuyla çelişir.
+       Sayının artması kullanıcının EYLEMİNE bağlı olmalı, saate değil.
+
+    Yerine: sekmeye her girişte tazeleme + aşağı çekerek yenileme.
+  */
   const count = useQuery({
     queryKey: ["pending-likes", "count"],
     queryFn: loadPendingLikesCount,
-    refetchInterval: 15_000,
   });
   const likes = useQuery({
     queryKey: ["pending-likes", "cards"],
     queryFn: loadPendingLikes,
-    refetchInterval: 15_000,
   });
 
   const isLoading = count.isLoading || likes.isLoading;
@@ -34,6 +52,14 @@ export default function LikesScreen() {
     void count.refetch();
     void likes.refetch();
   };
+
+  // Sekmeye her dönüşte bir kez tazele.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">

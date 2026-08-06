@@ -362,3 +362,95 @@ Yoğunluk oluşmadan yapılması anlamsız olanları sona bıraktım:
 11. **Topluluk sekmesi + petsiz kullanıcı yüzeyi** — 9 veri üretince
 12. **Sesli görüşme** — yoğunluk ve gelir oluştuktan sonra
 13. **İngilizce katalog** — yayın hedefi belirlenince
+
+---
+
+## 8. Sahip görünürlüğü kurgusunun denetimi (2026-08-06)
+
+Model üç durumlu ve dört ayrı yerde uygulanıyor. Denetim ölçümle yapıldı;
+aşağıdakiler varsayım değil, koddan okundu.
+
+### Kural nerede uygulanıyor
+
+| Yüzey | Fonksiyon / politika |
+|---|---|
+| Keşfet | `discover_pets` (0012) + `discover_playdate_pets` (0024) |
+| Sohbet | `get_conversation_owner_profile` (0023) |
+| Beğeniler | `pending_likes` (0042) |
+| Avatar dosyası | `owner_avatars_read_visible` (0021 → 0039) |
+
+Dördü de aynı deseni izliyor: ad/avatar/bio yalnızca `public`'te, cinsiyet ve
+yaş kovası ise **hem karşı taraf hem de kendisi** `public` olduğunda. Yani
+"kendi göstermeden başkasınınkini görme" ilkesi cinsiyet/yaş için sunucuda
+kurulu.
+
+### ✅ Doğru çalışan: `after_match` boş blok üretmiyor
+
+`owner_visible` alanı `owner_visibility <> 'hidden'` diye hesaplanıyor, yani
+`after_match` için **true** dönüyor — ama ad/avatar/bio `public` şartına bağlı
+olduğundan hepsi `null` geliyor. Tek başına bu, kartta "Sahip profili görünür"
+yazan ama hiçbir şey göstermeyen bir blok üretirdi.
+
+İstemci bunu yakalıyor (`ownerSummary`, `core/api/discovery.ts`): üç alan da
+boşsa `owner` **null** dönüyor, blok hiç render edilmiyor, dolayısıyla yeni
+eklenen sahip paneli de açılamıyor. Doğru davranış.
+
+> Yine de `owner_visible` adı yanıltıcı: "gizli değil" demek, "görünür" demek
+> değil. Sunucunun ifade etmesi gereken şeyi istemci telafi ediyor.
+> - [ ] `owner_visible` yerine anlamı taşıyan bir alan (örn. `owner_disclosed`)
+>       ya da doğrudan `after_match`'te `false` döndürmek
+
+### ⚠️ Bulgu: filtrelerde karşılıklılık tutarsız
+
+Dört sahip filtresinden **ikisi çift yönlü, ikisi değil**:
+
+| Filtre | Karşılıklı mı | Değerlendirme |
+|---|---|---|
+| `require_visible_owner` | ✅ evet (0012, iki yönlü koşul) | doğru |
+| `require_owner_social` | ✅ evet (0024, sosyal değilsen hata) | doğru |
+| **`require_owner_photo`** | ❌ **hayır** | **tutarsız** |
+| `require_verified_owner` | ❌ hayır | **kasıtlı olmalı** |
+
+**`require_owner_photo` sorunlu.** Kendi avatarı olmayan ve görünürlüğü
+`hidden` olan bir kullanıcı "yalnızca fotoğrafı olan sahipleri göster"
+diyebiliyor: açıklama tüketiyor ama açıklama vermiyor. Bu, kod tabanının
+kendi kuralıyla çelişiyor — `0012`'deki yorum "Tek kaynaktan çift yönlü
+kural" diyor ama o kural yalnızca `require_visible_owner`'a uygulanmış.
+
+**`require_verified_owner` farklı ve öyle kalmalı.** Doğrulama bir *açıklama*
+değil *güvenlik* sinyali. "Yalnızca doğrulanmışları göster" diyen birine
+"önce sen doğrulan" demek, güvenlik isteyen kullanıcıyı cezalandırmak olur.
+Asimetri burada bilinçli olmalı — ama bugün hiçbir yerde yazılı değil.
+
+- [ ] `require_owner_photo` çift yönlü yapılsın (kendi avatarı olmayan bu
+      filtreyi kullanamasın) — `require_owner_social`'daki desen
+- [ ] `require_verified_owner`'ın neden kasıtlı olarak tek yönlü olduğu
+      migration yorumuna yazılsın, yoksa sonraki denetimde "hata" sanılır
+
+### Beğeniler sekmesi ve görünürlük
+
+`0042` aynı kuralı tekrarlıyor ve doğru uyguluyor. `228819c` ile sosyal-açık
+sahiplerin kartı bulanıklaştırılmadan gösteriliyor; bu, `public` +
+`owner_social_open` olan kişinin zaten keşfette açık olduğu gerçeğiyle
+tutarlı — ödeme duvarı, kullanıcının **zaten görebileceği** bir şeyi
+saklamamalı.
+
+## 9. Beğeniler otomatik yenilenmeli mi? — hayır
+
+İlk hali iki sorguyu da 15 saniyede bir yeniliyordu (`refetchInterval`).
+Kaldırıldı. Üç sebep:
+
+1. **Beğeni zaman kritik değil.** Beş dakika sonra görmek hiçbir şey
+   kaybettirmiyor. Realtime'ı sohbete koyduk çünkü orası karşılıklı ve anlık
+   bir alışveriş; beğeni öyle değil.
+2. **Maliyet karşılıksız.** Ekran açık kaldıkça sürekli iki RPC atmak, hiçbir
+   kullanıcı faydası olmayan bir yük.
+3. **Ürün değeri — asıl sebep bu.** Burası ödeme yüzeyi. Kullanıcı bakarken
+   kendiliğinden artan bir sayaç kumar makinesidir.
+   [`monetization.md`](monetization.md)'deki "asla satılmayacaklar" duruşu
+   alınmış bir karardır; sayının artması kullanıcının **eylemine** bağlı
+   olmalı, saate değil.
+
+Yerine: sekmeye her girişte bir kez tazeleme (`useFocusEffect`) + aşağı
+çekerek yenileme. Rozet sayısı da ileride uygulama öne geldiğinde ve swipe
+sonrasında güncellenmeli, zamanlayıcıyla değil.
