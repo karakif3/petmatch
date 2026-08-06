@@ -28,6 +28,7 @@ import { MatchCelebration } from "../../components/match-celebration";
 import { ProfileCompletionCard } from "../../components/profile-completion-card";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import { SwipeableCard } from "../../components/swipeable-card";
 import { listAdoptablePets } from "../../core/api/adoption";
 import { loadConversationIdForMatch } from "../../core/api/conversations";
 import {
@@ -546,7 +547,13 @@ export default function DiscoverScreen() {
         {currentCard ? (
           <>
             <View>
-              <DiscoveryCard card={currentCard} />
+              <SwipeableCard
+                resetKey={currentCard.id}
+                disabled={swipe.isPending}
+                onSwipe={handleSwipe}
+              >
+                <DiscoveryCard card={currentCard} />
+              </SwipeableCard>
               <Pressable
                 onPress={() => setSafetyVisible(true)}
                 disabled={safetyBusy}

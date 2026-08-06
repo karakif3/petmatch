@@ -173,15 +173,14 @@ Kurallar:
 
 Üçü de **bugün yok**; ölçüldü, varsayılmadı.
 
-### Sağa/sola kaydırma — yok
+### Sağa/sola kaydırma — ✅ yapıldı
 
-`components/discovery-card.tsx` ve keşfet ekranında hiçbir jest bağlı değil.
-Kullanıcı yalnızca X ve kalp düğmesine basabiliyor. Bu, §1'deki animasyon
-listesinin 1 numaralı maddesiyle **aynı iş**: kartın parmağı takip etmesi,
-eşikte "beğen/geç" damgasının belirmesi ve bırakınca uçup gitmesi.
+`components/swipeable-card.tsx`. Kart parmağı takip ediyor, hafifçe dönüyor,
+eşiğe yaklaşırken BEĞEN/GEÇ damgası beliriyor ve bırakınca uçup gidiyor.
+Kısa bir fiske de karar sayılıyor (hız eşiği).
 
-`react-native-gesture-handler` (2.28) ve `reanimated` (4.1) zaten kurulu —
-eksik olan bağlantı, bağımlılık değil.
+Simülatörde doğrulandı: sağa kaydırma eşleşme üretti, sola kaydırma geçti;
+`swipes` tablosunda yönler doğru kaydedildi.
 
 > Düğmeler **kalmalı**: kaydırma keşfedilebilir değil ve erişilebilirlik
 > açısından tek başına yeterli olmaz. İkisi bir arada.
@@ -298,8 +297,9 @@ büyümesin. Mevcut 250 metin ise ekran ekran, başka iş yaparken temizlensin.
 
 Yoğunluk oluşmadan yapılması anlamsız olanları sona bıraktım:
 
-1. **Swipe jesti + kart animasyonu** — imza etkileşim, bugün hiç yok,
-   yoğunluktan bağımsız. Bağımlılıklar zaten kurulu.
+1. ~~Swipe jesti + kart animasyonu~~ — ✅ yapıldı. Kart parmağı takip
+   ediyor, eşikte BEĞEN/GEÇ damgası beliriyor, bırakınca uçuyor.
+   Düğmeler korundu.
 2. ~~Mesaj gönderim/alım animasyonları~~ — ✅ yapıldı
 3. **Sahibe tıklayıp panele geçme** — yarım kalmış vaadi kapatıyor, küçük iş
 4. **İlgi alanları** — profil tamamlama kartına doğal ekleme; aynı zamanda
