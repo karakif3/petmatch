@@ -28,6 +28,7 @@ import { MatchCelebration } from "../../components/match-celebration";
 import { ProfileCompletionCard } from "../../components/profile-completion-card";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import { OwnerSheet } from "../../components/owner-sheet";
 import { SwipeableCard } from "../../components/swipeable-card";
 import { listAdoptablePets } from "../../core/api/adoption";
 import { loadConversationIdForMatch } from "../../core/api/conversations";
@@ -61,6 +62,7 @@ export default function DiscoverScreen() {
   } | null>(null);
   const [segment, setSegment] = useState<DiscoverySegment>("all");
   const [safetyVisible, setSafetyVisible] = useState(false);
+  const [ownerSheet, setOwnerSheet] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -144,6 +146,11 @@ export default function DiscoverScreen() {
   useEffect(() => {
     setDismissedIds([]);
   }, [deck.dataUpdatedAt]);
+
+  // Kart değişince açık kalan sahip paneli yeni kartın sahibini gösterirdi.
+  useEffect(() => {
+    setOwnerSheet(false);
+  }, [currentCard?.id]);
 
   const completion = useQuery({
     queryKey: ["profile-completion", user?.id],
@@ -552,7 +559,10 @@ export default function DiscoverScreen() {
                 disabled={swipe.isPending}
                 onSwipe={handleSwipe}
               >
-                <DiscoveryCard card={currentCard} />
+                <DiscoveryCard
+                  card={currentCard}
+                  onOwnerPress={currentCard.owner ? () => setOwnerSheet(true) : undefined}
+                />
               </SwipeableCard>
               <Pressable
                 onPress={() => setSafetyVisible(true)}
@@ -595,6 +605,13 @@ export default function DiscoverScreen() {
           </>
         ) : null}
       </ScrollView>
+      <OwnerSheet
+        owner={currentCard?.owner ?? null}
+        petName={currentCard?.name ?? ""}
+        visible={ownerSheet && Boolean(currentCard?.owner)}
+        onClose={() => setOwnerSheet(false)}
+      />
+
       <SafetyMenuModal
         visible={safetyVisible}
         busy={safetyBusy}

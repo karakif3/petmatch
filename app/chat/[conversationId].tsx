@@ -61,6 +61,7 @@ import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
 import { useTranslation } from "../../core/i18n";
 import { captureClientError } from "../../core/api/observability";
+import { OwnerSheet } from "../../components/owner-sheet";
 import { errorMessage } from "../../core/domain/error-message";
 import { useAuthStore } from "../../stores/auth";
 
@@ -80,6 +81,7 @@ export default function ChatScreen() {
   const nearBottomRef = useRef(true);
   const [body, setBody] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [ownerSheet, setOwnerSheet] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const [remoteOnline, setRemoteOnline] = useState(false);
   const [remoteTyping, setRemoteTyping] = useState(false);
@@ -405,7 +407,12 @@ export default function ChatScreen() {
         </View>
 
         {ownerProfile.data ? (
-          <View className="border-b border-border bg-bg-secondary px-4 py-3">
+          <Pressable
+            onPress={() => setOwnerSheet(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${ownerProfile.data.displayName ?? "Pet sahibi"} profilini aç`}
+            className="border-b border-border bg-bg-secondary px-4 py-3"
+          >
             <View className="flex-row items-center">
               {ownerProfile.data.photoUrl ? (
                 <Image
@@ -455,7 +462,13 @@ export default function ChatScreen() {
                 {ownerProfile.data.bio}
               </Text>
             ) : null}
-          </View>
+            <View className="mt-1.5 flex-row items-center">
+              <Text className="text-xs font-semibold text-brand-dark">
+                Sahip profiline bak
+              </Text>
+              <Ionicons name="chevron-forward" color="#F97362" size={14} />
+            </View>
+          </Pressable>
         ) : null}
 
         {conversation.isLoading || messages.isLoading ? (
@@ -673,6 +686,13 @@ export default function ChatScreen() {
           // kullanıcı gün/saat ekleyip kendi cümlesini kurabilsin.
           setBody(meetupProposalText(place));
         }}
+      />
+
+      <OwnerSheet
+        owner={ownerProfile.data ?? null}
+        petName={conversation.data?.petName ?? ""}
+        visible={ownerSheet && Boolean(ownerProfile.data)}
+        onClose={() => setOwnerSheet(false)}
       />
 
       <SafetyMenuModal

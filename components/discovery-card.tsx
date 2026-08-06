@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import type { DiscoveryDeckCard } from "../core/api/discovery";
 import { formatAge } from "../core/domain/age";
@@ -20,7 +20,14 @@ function activityLabel(bucket: string | null): string | null {
   return null;
 }
 
-export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
+export function DiscoveryCard({
+  card,
+  onOwnerPress,
+}: {
+  card: DiscoveryDeckCard;
+  /** Sahip bloğuna dokunulduğunda; verilmezse blok tıklanamaz kalır. */
+  onOwnerPress?: () => void;
+}) {
   const t = useTranslation();
   const age = formatAge(card.birthDate);
   const activity = activityLabel(card.activityBucket);
@@ -96,7 +103,17 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
         ) : null}
 
         {card.owner ? (
-          <View className="mt-5 rounded-2xl border border-border bg-bg-secondary p-3">
+          <Pressable
+            onPress={onOwnerPress}
+            disabled={!onOwnerPress}
+            accessibilityRole={onOwnerPress ? "button" : undefined}
+            accessibilityLabel={
+              onOwnerPress
+                ? `${card.owner.displayName ?? "Pet sahibi"} profilini aç`
+                : undefined
+            }
+            className="mt-5 rounded-2xl border border-border bg-bg-secondary p-3"
+          >
             <View className="flex-row items-center">
               {card.owner.photoUrl ? (
                 <Image
@@ -146,7 +163,15 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
                 {card.owner.bio}
               </Text>
             ) : null}
-          </View>
+            {onOwnerPress ? (
+              <View className="mt-2.5 flex-row items-center">
+                <Text className="text-xs font-semibold text-brand-dark">
+                  Sahip profiline bak
+                </Text>
+                <Ionicons name="chevron-forward" color="#F97362" size={14} />
+              </View>
+            ) : null}
+          </Pressable>
         ) : null}
 
         {activity ? (
