@@ -13,6 +13,7 @@ const EMPTY: ProfileCompletionInput = {
   petDetailsCompletedAt: null,
   ownerAvatarUrl: null,
   ownerBio: null,
+  ownerInterests: [],
 };
 
 const FULL: ProfileCompletionInput = {
@@ -22,11 +23,12 @@ const FULL: ProfileCompletionInput = {
   petDetailsCompletedAt: "2026-08-04T09:00:00Z",
   ownerAvatarUrl: "abc/avatar.jpg",
   ownerBio: "Kadıköy'de yaşıyorum.",
+  ownerInterests: ["walks"],
 };
 
 describe("missingProfileItems", () => {
   it("yeni kayıt olmuş kullanıcıda hepsi eksik", () => {
-    expect(missingProfileItems(EMPTY)).toHaveLength(6);
+    expect(missingProfileItems(EMPTY)).toHaveLength(7);
   });
 
   it("tamamlanmış profilde kart hiç çıkmaz", () => {
@@ -52,6 +54,13 @@ describe("missingProfileItems", () => {
     }).map((item) => item.key);
     expect(keys).toEqual(["petDetails"]);
   });
+
+  it("ilgi alanı eklemek de eksik sayısını düşürür", () => {
+    const keys = missingProfileItems({ ...FULL, ownerInterests: [] }).map(
+      (item) => item.key,
+    );
+    expect(keys).toEqual(["ownerInterests"]);
+  });
 });
 
 describe("completionRatio", () => {
@@ -61,6 +70,6 @@ describe("completionRatio", () => {
   });
 
   it("kısmi doluluğu oranlıyor", () => {
-    expect(completionRatio({ ...EMPTY, ownerBio: "merhaba" })).toBeCloseTo(1 / 6);
+    expect(completionRatio({ ...EMPTY, ownerBio: "merhaba" })).toBeCloseTo(1 / 7);
   });
 });

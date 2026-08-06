@@ -18,6 +18,7 @@ export type ProfileCompletionInput = {
   petDetailsCompletedAt: string | null;
   ownerAvatarUrl: string | null;
   ownerBio: string | null;
+  ownerInterests: readonly string[];
 };
 
 export type CompletionItem = {
@@ -81,6 +82,14 @@ export function missingProfileItems(
       route: "/profile/owner",
     });
   }
+  if (input.ownerInterests.length === 0) {
+    items.push({
+      key: "ownerInterests",
+      label: "İlgi alanların",
+      improvesMatching: false,
+      route: "/profile/owner",
+    });
+  }
 
   // Eşleşmeyi iyileştirenler öne; kullanıcı kartta ilk onları görsün.
   return items.sort(
@@ -90,7 +99,7 @@ export function missingProfileItems(
 
 /** 0 = hiç dolu değil, 1 = tamam. Kartın ilerleme çubuğu için. */
 export function completionRatio(input: ProfileCompletionInput): number {
-  const TOTAL = 6;
+  const TOTAL = 7;
   const missing = missingProfileItems(input).length;
   return (TOTAL - missing) / TOTAL;
 }

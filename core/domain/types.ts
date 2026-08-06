@@ -40,6 +40,32 @@ export const TEMPERAMENTS = [
 ] as const;
 export type Temperament = (typeof TEMPERAMENTS)[number];
 
+/**
+ * Sahibin ilgi alanları — pet ile ilgili ve nötr yaşam tarzı başlıklarıyla
+ * sınırlı. KVKK m.6 sınırı: din, siyasi görüş, sağlık, cinsel yaşam gibi
+ * özel nitelikli veriye giren hiçbir başlık burada YER ALMAZ
+ * (bkz. docs/experience-roadmap.md §6).
+ */
+export const OWNER_INTERESTS = [
+  "walks",
+  "hiking",
+  "running",
+  "agility",
+  "training",
+  "beach_trips",
+  "dog_park_regular",
+  "cat_behavior",
+  "coffee",
+  "photography",
+  "board_games",
+  "reading",
+  "cooking",
+  "travel",
+  "live_music",
+  "volunteering",
+] as const;
+export type OwnerInterest = (typeof OWNER_INTERESTS)[number];
+
 export type Coordinates = {
   latitude: number;
   longitude: number;

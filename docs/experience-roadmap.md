@@ -149,7 +149,7 @@ istediği "hayvan sevenleri bir araya toplamak" bu şekilde de oluyor —
 
 ---
 
-## 6. İlgi alanları
+## 6. İlgi alanları — ✅ yapıldı (veri + profil kartı)
 
 **Karar: evet, ama sahip profilinde ve sonradan.**
 
@@ -166,6 +166,13 @@ Kurallar:
   aynı gerekçeyle ayrı davranmıştık ([`goal-model.md`](goal-model.md)).
 - Pet ile ilgili olanlar (yürüyüş, çeviklik, kedi davranışı) ve nötr yaşam
   tarzı başlıkları (kahve, doğa yürüyüşü, fotoğraf) güvenli alan
+
+`0041_owner_interests.sql`: `profiles.interests text[]`, sabit 16'lık
+taksonomi (`core/domain/types.ts`'te `OWNER_INTERESTS`) `update_my_owner_details`
+RPC'sinde doğrulanıyor (tekrarsız, en fazla 8, listede olmayan değer
+reddediliyor). Sahip profili ekranında çip seçimi, profil tamamlama kartında
+eksik madde olarak eklendi (`ownerInterests`). Uyum skoruna bağlama ve 5.
+sekme (§6c) bilerek KAPSAM DIŞI — bu tur yalnızca veri toplamayı açtı.
 
 ---
 
@@ -205,7 +212,7 @@ Simülatörde doğrulandı: sağa kaydırma eşleşme üretti, sola kaydırma ge
 
 **Sıra:** Beğeniler sekmesi → süper beğeni. Tersi olmaz.
 
-### Sahibe tıklayıp profiline geçme — yok
+### Sahibe tıklayıp profiline geçme — ✅ yapıldı
 
 Kartta sahip bloğu (ad, avatar, bio) render ediliyor ama **tıklanabilir
 değil.** Görünürlüğü `public` olan bir sahibin fotoğrafını ve bio'sunu
@@ -220,8 +227,10 @@ Yapılırken iki kural:
   RPC'nin verdiğiyle sınırlı — istemci ek veri çekmemeli, yoksa
   `0021`'deki karşılıklı açıklama kuralı istemci tarafından delinir.
 
-Aynı geçiş **sohbetteki sahip şeridinde** de olmalı; orada da bugün
-tıklanamıyor.
+Aynı geçiş **sohbetteki sahip şeridinde** de yapıldı — `components/owner-sheet.tsx`,
+kartta ve sohbette aynı bileşen. Simülatörde uçtan uca doğrulandı: görünür
+sahip için panel açılıp kapanıyor, `after_match` sahipte (henüz eşleşmemiş)
+blok hiç render edilmediği için panel de açılamıyor.
 
 ---
 

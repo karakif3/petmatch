@@ -26,7 +26,7 @@ import {
   type LocalProfilePhoto,
 } from "../../core/api/profile";
 import { isAdultDate } from "../../core/domain/date-validation";
-import type { OwnerVisibility } from "../../core/domain/types";
+import { OWNER_INTERESTS, type OwnerInterest, type OwnerVisibility } from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
@@ -54,6 +54,27 @@ const visibilityOptions: {
     detail: "Fotoğrafın ve kısa profilin pet kartında gösterilir.",
   },
 ];
+
+const MAX_INTERESTS = 8;
+
+const interestLabels: Record<OwnerInterest, string> = {
+  walks: "Yürüyüş",
+  hiking: "Doğa yürüyüşü",
+  running: "Koşu",
+  agility: "Çeviklik",
+  training: "Eğitim",
+  beach_trips: "Sahil",
+  dog_park_regular: "Köpek parkı müptelası",
+  cat_behavior: "Kedi davranışı",
+  coffee: "Kahve",
+  photography: "Fotoğrafçılık",
+  board_games: "Kutu oyunları",
+  reading: "Kitap",
+  cooking: "Yemek yapmak",
+  travel: "Seyahat",
+  live_music: "Canlı müzik",
+  volunteering: "Gönüllülük",
+};
 
 const genderOptions: {
   value: "female" | "male" | "other" | null;
@@ -99,6 +120,7 @@ export default function OwnerProfileScreen() {
   const [gender, setGender] = useState<"female" | "male" | "other" | null>(null);
   const [visibility, setVisibility] = useState<OwnerVisibility>("after_match");
   const [socialOpen, setSocialOpen] = useState(false);
+  const [interests, setInterests] = useState<OwnerInterest[]>([]);
   const [avatar, setAvatar] = useState<AvatarState>(null);
   const [verificationPhoto, setVerificationPhoto] =
     useState<LocalProfilePhoto | null>(null);
@@ -116,6 +138,7 @@ export default function OwnerProfileScreen() {
     setGender(profile.data.ownerGender);
     setVisibility(profile.data.ownerVisibility);
     setSocialOpen(profile.data.ownerSocialOpen);
+    setInterests(profile.data.ownerInterests);
     setAvatar(
       profile.data.ownerAvatar
         ? {
@@ -170,6 +193,16 @@ export default function OwnerProfileScreen() {
     });
   };
 
+  const toggleInterest = (interest: OwnerInterest) => {
+    setInterests((current) =>
+      current.includes(interest)
+        ? current.filter((value) => value !== interest)
+        : current.length >= MAX_INTERESTS
+          ? current
+          : [...current, interest],
+    );
+  };
+
   const save = async () => {
     if (!user || !profile.data) return;
     if (!isAdultDate(birthDate)) {
@@ -193,6 +226,7 @@ export default function OwnerProfileScreen() {
         gender,
         ownerVisibility: visibility,
         ownerSocialOpen: socialOpen,
+        interests,
         previousAvatarPath: profile.data.ownerAvatar?.storagePath ?? null,
         avatar:
           avatar?.kind === "remote"
@@ -363,6 +397,38 @@ export default function OwnerProfileScreen() {
                 >
                   <Text className={`text-sm font-semibold ${active ? "text-brand-dark" : "text-text-secondary"}`}>
                     {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View className="mb-1 flex-row items-baseline justify-between">
+            <Text className="text-lg font-bold text-text-primary">
+              İlgi alanların (opsiyonel)
+            </Text>
+            <Text className="text-xs text-text-tertiary">
+              {interests.length}/{MAX_INTERESTS}
+            </Text>
+          </View>
+          <Text className="mb-3 text-xs leading-4 text-text-secondary">
+            Sahip-sahip uyumunu anlamlı kılar; en fazla {MAX_INTERESTS} tane seçebilirsin.
+          </Text>
+          <View className="mb-7 flex-row flex-wrap gap-2">
+            {OWNER_INTERESTS.map((interest) => {
+              const active = interests.includes(interest);
+              return (
+                <Pressable
+                  key={interest}
+                  onPress={() => toggleInterest(interest)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  className={`rounded-full border px-4 py-2.5 ${
+                    active ? "border-brand bg-brand/10" : "border-border bg-surface"
+                  }`}
+                >
+                  <Text className={`text-sm font-semibold ${active ? "text-brand-dark" : "text-text-secondary"}`}>
+                    {interestLabels[interest]}
                   </Text>
                 </Pressable>
               );

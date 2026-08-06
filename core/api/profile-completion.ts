@@ -14,7 +14,11 @@ export async function loadProfileCompletion(
 
   const [{ data: profile, error: profileError }, { data: pet, error: petError }] =
     await Promise.all([
-      sb.from("profiles").select("avatar_url,bio").eq("id", userId).maybeSingle(),
+      sb
+        .from("profiles")
+        .select("avatar_url,bio,interests")
+        .eq("id", userId)
+        .maybeSingle(),
       sb
         .from("pets")
         .select("breed,birth_date,bio,details_completed_at")
@@ -37,5 +41,6 @@ export async function loadProfileCompletion(
     petDetailsCompletedAt: pet.details_completed_at,
     ownerAvatarUrl: profile?.avatar_url ?? null,
     ownerBio: profile?.bio ?? null,
+    ownerInterests: profile?.interests ?? [],
   };
 }

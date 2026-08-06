@@ -2,6 +2,7 @@ import type { Database } from "../../types/database";
 import type {
   Coordinates,
   EnergyLevel,
+  OwnerInterest,
   OwnerVisibility,
   Size,
   Temperament,
@@ -22,6 +23,7 @@ export type EditableProfile = {
   ownerBirthDate: string;
   ownerGender: "female" | "male" | "other" | null;
   ownerSocialOpen: boolean;
+  ownerInterests: OwnerInterest[];
   ownerAvatar: {
     storagePath: string;
     url: string;
@@ -92,6 +94,7 @@ export type OwnerProfileUpdate = {
   gender: "female" | "male" | "other" | null;
   ownerVisibility: OwnerVisibility;
   ownerSocialOpen: boolean;
+  interests: OwnerInterest[];
   previousAvatarPath: string | null;
   avatar:
     | { kind: "remote"; storagePath: string }
@@ -126,7 +129,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
     sb
       .from("profiles")
       .select(
-        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,verification_status",
+        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,interests,verification_status",
       )
       .eq("id", userId)
       .single(),
@@ -185,6 +188,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
     ownerBirthDate: profileResult.data.birth_date ?? "",
     ownerGender: profileResult.data.gender as EditableProfile["ownerGender"],
     ownerSocialOpen: profileResult.data.owner_social_open,
+    ownerInterests: profileResult.data.interests as OwnerInterest[],
     ownerAvatar:
       profileResult.data.avatar_url && avatarResult.data
         ? {
@@ -261,6 +265,7 @@ export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void>
       p_owner_visibility: input.ownerVisibility,
       p_avatar_path: avatarPath ?? (null as unknown as string),
       p_owner_social_open: input.ownerSocialOpen,
+      p_interests: input.interests,
     });
     if (error) throw error;
   } catch (error) {

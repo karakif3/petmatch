@@ -737,6 +737,7 @@ export type Database = {
           display_name: string | null
           gender: string | null
           id: string
+          interests: string[]
           last_active_at: string
           onboarded_at: string | null
           owner_social_open: boolean
@@ -758,6 +759,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id: string
+          interests?: string[]
           last_active_at?: string
           onboarded_at?: string | null
           owner_social_open?: boolean
@@ -779,6 +781,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          interests?: string[]
           last_active_at?: string
           onboarded_at?: string | null
           owner_social_open?: boolean
@@ -1266,6 +1269,7 @@ export type Database = {
           p_birth_date: string
           p_display_name: string
           p_gender: string
+          p_interests: string[]
           p_owner_social_open: boolean
           p_owner_visibility: Database["public"]["Enums"]["owner_visibility"]
         }
