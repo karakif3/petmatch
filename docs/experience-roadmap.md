@@ -169,6 +169,106 @@ Kurallar:
 
 ---
 
+## 6b. Keşfet etkileşimi: kaydırma, süper beğeni, sahibe geçiş
+
+Üçü de **bugün yok**; ölçüldü, varsayılmadı.
+
+### Sağa/sola kaydırma — yok
+
+`components/discovery-card.tsx` ve keşfet ekranında hiçbir jest bağlı değil.
+Kullanıcı yalnızca X ve kalp düğmesine basabiliyor. Bu, §1'deki animasyon
+listesinin 1 numaralı maddesiyle **aynı iş**: kartın parmağı takip etmesi,
+eşikte "beğen/geç" damgasının belirmesi ve bırakınca uçup gitmesi.
+
+`react-native-gesture-handler` (2.28) ve `reanimated` (4.1) zaten kurulu —
+eksik olan bağlantı, bağımlılık değil.
+
+> Düğmeler **kalmalı**: kaydırma keşfedilebilir değil ve erişilebilirlik
+> açısından tek başına yeterli olmaz. İkisi bir arada.
+
+### Süper beğeni — yok, ve şema değişikliği istiyor
+
+`swipe_direction` enum'ı yalnızca `('like', 'pass')`. Süper beğeni eklemek
+üç şey gerektiriyor:
+
+1. **Şema:** enum'a yeni değer. Dikkat — PostgreSQL'de `alter type ... add
+   value` bazı sürümlerde transaction içinde çalışmaz; migration'lar
+   transaction'da koştuğu için ayrı bir migration ve muhtemelen enum yerine
+   ayrı bir kolon (`is_super boolean`) daha güvenli. Karar verilirken
+   ölçülmeli.
+2. **Ürün kuralı:** süper beğeni ne YAPAR? Sektör standardı: karşı tarafın
+   destesinde öne çıkarsın ve beğeninin süper olduğu görünsün. Yani
+   "Beğeniler" sekmesi ve sıralama ile doğrudan bağlantılı — o sekme
+   olmadan süper beğeninin gösterileceği yer yok.
+3. **Gelir kuralı:** [`monetization.md`](monetization.md)'de süper beğeni
+   geçmiyor. Eklenecekse oraya, "asla satılmayacaklar" listesiyle birlikte
+   değerlendirilmeli.
+
+**Sıra:** Beğeniler sekmesi → süper beğeni. Tersi olmaz.
+
+### Sahibe tıklayıp profiline geçme — yok
+
+Kartta sahip bloğu (ad, avatar, bio) render ediliyor ama **tıklanabilir
+değil.** Görünürlüğü `public` olan bir sahibin fotoğrafını ve bio'sunu
+görüp devamını görememek yarım kalmış bir vaat.
+
+Yapılırken iki kural:
+
+- **Tam ekran değil, alttan açılan panel.** Deste bağlamı kaybolmamalı;
+  kullanıcı bakıp kapatıp kaydırmaya devam edebilmeli.
+- **Görünürlük kuralına uymalı.** `hidden` sahipte hiç tıklanabilir olmamalı;
+  `after_match`'te ancak eşleştikten sonra açılmalı. Panelin içeriği zaten
+  RPC'nin verdiğiyle sınırlı — istemci ek veri çekmemeli, yoksa
+  `0021`'deki karşılıklı açıklama kuralı istemci tarafından delinir.
+
+Aynı geçiş **sohbetteki sahip şeridinde** de olmalı; orada da bugün
+tıklanamıyor.
+
+---
+
+## 6c. Beşinci sekme: topluluklar ve etkinlikler
+
+**Not: 5. sekmeye karar VERİLMEDİ.** Öneri 4 sekmeydi
+(Keşfet · Beğeniler · Sohbetler · Profil) ve 5.'ye karşı gerekçe
+`goal-model.md`'de yazılı: *"Boş bir tab uygulamanın ölü olduğunu söyler."*
+
+### Öneri: ilgi alanı toplulukları + etkinlik feed'i
+
+Fikir şu: ilgi alanlarına göre topluluklar, aralarına etkinlikler serpilmiş
+bir feed, "Katıl" düğmesiyle başvuru toplama.
+
+**Bu fikir üç ayrı ipi birbirine bağlıyor** ve bu yüzden güçlü:
+
+- **İlgi alanları** (§6) zaten planda — topluluğun tanımı onlardan çıkıyor
+- **`meetup_places`** (`0038`) doğrulanmış yerleri zaten tutuyor —
+  etkinliğin mekânı hazır
+- **Petsiz kullanıcılar** (§5) için önerdiğim "ayrı yüzey" tam olarak bu
+  olabilir: hayvan seven ama peti olmayan kişi topluluğa girer, etkinliğe
+  katılır, sahiplenirse ana döngüye geçer
+
+Yani ayrı ayrı düşündüğümüz üç şey tek bir sekmede buluşuyor.
+
+### Ama sekme olarak ŞİMDİ açılmamalı
+
+Pilot Kadıköy + Nişantaşı. O yoğunlukta topluluk feed'i boş açılır ve boş
+sekme ürünün ölü olduğunu söyler — sahiplendirme girişini tam da bu yüzden
+tab yerine **içeriğe bağlı kart** yapmıştık.
+
+**Önerilen sıra:**
+
+1. İlgi alanları toplansın (§6) — topluluk tanımının hammaddesi
+2. Etkinlikler önce **Keşfet'te kart** olarak çıksın, sahiplendirme
+   girişindeki desenle: gerçekten etkinlik varsa görünür, yoksa hiç
+3. Kart düzenli doluyor ve tıklanıyorsa **o zaman** sekmeye terfi etsin
+
+Terfi kararı tahminle değil veriyle verilir — `product_events` zaten
+`discovery_segment_changed` gibi sinyalleri topluyor, aynı yöntem.
+
+- [ ] Karar bekliyor: 5. sekme topluluklar mı olsun, yoksa 4 sekmede mi
+      kalalım ve etkinlikler kart olarak mı kalsın
+
+---
+
 ## 7. Çok dil — "ne kadar kolay" sorusunun dürüst cevabı
 
 **Altyapı hazır, içerik hazır değil.**
@@ -198,12 +298,20 @@ büyümesin. Mevcut 250 metin ise ekran ekran, başka iş yaparken temizlensin.
 
 Yoğunluk oluşmadan yapılması anlamsız olanları sona bıraktım:
 
-1. **Swipe kartı animasyonu** — imza etkileşim, yoğunluktan bağımsız
-2. **Mesaj gönderim/alım animasyonları** — en sık an
-3. **İlgi alanları** — profil tamamlama kartına doğal ekleme
-4. **Yapılandırılmış buluşma kaydı** — başarı metriğini ölçülebilir kılar
-5. **Takvime ekleme** — 4'ün üstüne
-6. **Sohbette fotoğraf** — moderasyon kapasitesi şartıyla
-7. **Petsiz kullanıcı yüzeyi** — karar verildikten sonra
-8. **Sesli görüşme** — yoğunluk ve gelir oluştuktan sonra
-9. **İngilizce katalog** — yayın hedefi belirlenince
+1. **Swipe jesti + kart animasyonu** — imza etkileşim, bugün hiç yok,
+   yoğunluktan bağımsız. Bağımlılıklar zaten kurulu.
+2. ~~Mesaj gönderim/alım animasyonları~~ — ✅ yapıldı
+3. **Sahibe tıklayıp panele geçme** — yarım kalmış vaadi kapatıyor, küçük iş
+4. **İlgi alanları** — profil tamamlama kartına doğal ekleme; aynı zamanda
+   toplulukların hammaddesi
+5. **Beğeniler sekmesi** — süper beğeninin gösterileceği yer; onsuz süper
+   beğeni yapılamaz
+6. **Süper beğeni** — 5'ten sonra; şema kararı (enum mu ayrı kolon mu)
+   ölçülerek verilecek
+7. **Yapılandırılmış buluşma kaydı** — başarı metriğini ölçülebilir kılar
+8. **Takvime ekleme** — 7'nin üstüne
+9. **Etkinlik kartı (Keşfet'te)** — topluluk sekmesinin ön adımı
+10. **Sohbette fotoğraf** — moderasyon kapasitesi şartıyla
+11. **Topluluk sekmesi + petsiz kullanıcı yüzeyi** — 9 veri üretince
+12. **Sesli görüşme** — yoğunluk ve gelir oluştuktan sonra
+13. **İngilizce katalog** — yayın hedefi belirlenince
