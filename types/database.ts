@@ -346,18 +346,21 @@ export type Database = {
         Row: {
           conversation_id: string
           created_at: string
+          meetup_id: string | null
           outcome: Database["public"]["Enums"]["meetup_outcome"]
           user_id: string
         }
         Insert: {
           conversation_id: string
           created_at?: string
+          meetup_id?: string | null
           outcome: Database["public"]["Enums"]["meetup_outcome"]
           user_id: string
         }
         Update: {
           conversation_id?: string
           created_at?: string
+          meetup_id?: string | null
           outcome?: Database["public"]["Enums"]["meetup_outcome"]
           user_id?: string
         }
@@ -367,6 +370,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetup_feedback_meetup_id_fkey"
+            columns: ["meetup_id"]
+            isOneToOne: false
+            referencedRelation: "meetups"
             referencedColumns: ["id"]
           },
           {
@@ -426,6 +436,61 @@ export type Database = {
           {
             foreignKeyName: "meetup_places_verified_by_fkey"
             columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetups: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          place_id: string
+          proposed_by: string
+          responded_at: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["meetup_status"]
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          place_id: string
+          proposed_by: string
+          responded_at?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["meetup_status"]
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          place_id?: string
+          proposed_by?: string
+          responded_at?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["meetup_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetups_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetups_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "meetup_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetups_proposed_by_fkey"
+            columns: ["proposed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -924,6 +989,7 @@ export type Database = {
         Args: { p_topic: string }
         Returns: boolean
       }
+      cancel_meetup: { Args: { p_meetup_id: string }; Returns: undefined }
       capture_client_error: {
         Args: {
           p_app_version?: string
@@ -938,6 +1004,19 @@ export type Database = {
       confirm_adoption_listing: {
         Args: { p_pet_id: string }
         Returns: undefined
+      }
+      conversation_meetup: {
+        Args: { p_conversation_id: string }
+        Returns: {
+          id: string
+          mine: boolean
+          place_id: string
+          place_name: string
+          place_note: string
+          proposed_by: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["meetup_status"]
+        }[]
       }
       discover_pets: {
         Args: {
@@ -1178,6 +1257,14 @@ export type Database = {
         }[]
       }
       pending_likes_count: { Args: never; Returns: number }
+      propose_meetup: {
+        Args: {
+          p_conversation_id: string
+          p_place_id: string
+          p_scheduled_at: string
+        }
+        Returns: string
+      }
       record_legal_acceptances: {
         Args: {
           p_document_version: string
@@ -1233,6 +1320,10 @@ export type Database = {
       respond_to_adoption_interest: {
         Args: { p_accept: boolean; p_interest_id: string }
         Returns: string
+      }
+      respond_to_meetup: {
+        Args: { p_accept: boolean; p_meetup_id: string }
+        Returns: undefined
       }
       review_moderation_item: {
         Args: {
@@ -1361,6 +1452,7 @@ export type Database = {
       adoption_status: "pending" | "accepted" | "declined" | "withdrawn"
       match_goal: "playdate" | "adoption"
       meetup_outcome: "met" | "not_yet" | "declined"
+      meetup_status: "proposed" | "accepted" | "declined" | "cancelled"
       moderation_kind: "report" | "verification" | "photo"
       moderation_status: "pending" | "approved" | "rejected"
       owner_visibility: "hidden" | "after_match" | "public"
@@ -1505,6 +1597,7 @@ export const Constants = {
       adoption_status: ["pending", "accepted", "declined", "withdrawn"],
       match_goal: ["playdate", "adoption"],
       meetup_outcome: ["met", "not_yet", "declined"],
+      meetup_status: ["proposed", "accepted", "declined", "cancelled"],
       moderation_kind: ["report", "verification", "photo"],
       moderation_status: ["pending", "approved", "rejected"],
       owner_visibility: ["hidden", "after_match", "public"],
