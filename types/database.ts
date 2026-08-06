@@ -1143,6 +1143,41 @@ export type Database = {
         Args: { p_days?: number }
         Returns: number
       }
+      pending_likes: {
+        Args: { p_limit?: number }
+        Returns: {
+          activity_bucket: string
+          bio: string
+          birth_date: string
+          breed: string
+          city: string
+          distance_bucket: string
+          energy_level: number
+          gender: Database["public"]["Enums"]["pet_gender"]
+          goals: Database["public"]["Enums"]["match_goal"][]
+          good_with_cats: boolean
+          good_with_dogs: boolean
+          good_with_kids: boolean
+          id: string
+          is_neutered: boolean
+          liked_at: string
+          name: string
+          owner_age_bucket: string
+          owner_avatar_path: string
+          owner_bio: string
+          owner_display_name: string
+          owner_gender: string
+          owner_id: string
+          owner_social_open: boolean
+          owner_verified: boolean
+          owner_visible: boolean
+          photo_paths: string[]
+          size: Database["public"]["Enums"]["pet_size"]
+          species: Database["public"]["Enums"]["species"]
+          temperaments: string[]
+        }[]
+      }
+      pending_likes_count: { Args: never; Returns: number }
       record_legal_acceptances: {
         Args: {
           p_document_version: string

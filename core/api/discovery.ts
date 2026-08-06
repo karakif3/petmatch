@@ -127,7 +127,7 @@ export function mapDiscoveryRow(row: DiscoveryRow): DiscoveryCandidate {
   };
 }
 
-async function ownerSummary(
+export async function ownerSummary(
   row: DiscoveryRow,
 ): Promise<DiscoveryDeckCard["owner"]> {
   if (

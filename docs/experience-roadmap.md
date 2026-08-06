@@ -192,6 +192,37 @@ Simülatörde doğrulandı: sağa kaydırma eşleşme üretti, sola kaydırma ge
 > Düğmeler **kalmalı**: kaydırma keşfedilebilir değil ve erişilebilirlik
 > açısından tek başına yeterli olmaz. İkisi bir arada.
 
+### Beğeniler sekmesi — ✅ yapıldı
+
+4. sekme oldu (Keşfet · Beğeniler · Eşleşmeler · Profil). `0042_likes_tab.sql`:
+`pending_likes_count()` her zaman gerçek sayı; `pending_likes()` kart
+verisini `discover_playdate_pets` ile aynı şekilde döndürüyor (aynı satır
+şekli, `mapDiscoveryRow`/`ownerSummary` doğrudan yeniden kullanıldı).
+"Pending" = biri petimi beğendi ve ben ona (herhangi bir yönde) henüz
+karşılık vermedim; karşılık verdiğim an — eşleşme ya da geçme — düşer.
+
+monetization.md'nin "ücretsiz = sayı, ücretli = kimlik" ayrımı gerçek bir
+ödeme katmanı olmadan (Faz 0) uygulandı: istemci tarafı kartları
+`blurRadius={60}` + `bg-black/70` örtüyle bulanıklaştırıyor, isim/bio hiç
+render edilmiyor (bulanık metin ekran görüntüsünde okunabilir kalabilir,
+görüntülemenin en garantili yolu hiç yazmamak). Tuzak: seed fotoğraflarına
+gömülü isim yazısı `blurRadius={22}`'yi net biçimde deldi — testte fark
+edildi, `60`'a çıkarılıp koyu örtü eklenince kapandı.
+
+RLS gevşetilmedi; katman ayrımı iki SECURITY DEFINER fonksiyonun içinde.
+`pending_likes()` da 0024'ün belgelediği RETURNS TABLE tuzağına düştü:
+`where id = auth.uid()` OUT parametresiyle çakışıp "ambiguous" hatası verdi,
+`where profiles.id = ...` ile düzeldi. `supabase/tests/likes.test.sql`
+davranışı kilitliyor (cevapsız/engellenen/eşleşen/geçilen dört senaryo).
+
+React Native'de `refetchOnWindowFocus` çalışmıyor — sekmeler arası geçişte
+liste anında güncellenmiyordu (simülatörde yakalandı). `matches.tsx`'teki
+`refetchInterval: 15_000` deseni buraya da uygulandı; ayrıca bir swipe
+sonrası `["pending-likes"]` invalidate ediliyor.
+
+**Sonraki tur (kapsam dışı bırakıldı):** gerçek ödeme/entitlement kontrolü,
+süper beğeni, "buluştunuz mu?" verisini sıralamaya bağlamak.
+
 ### Süper beğeni — yok, ve şema değişikliği istiyor
 
 `swipe_direction` enum'ı yalnızca `('like', 'pass')`. Süper beğeni eklemek

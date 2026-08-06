@@ -191,6 +191,9 @@ export default function DiscoverScreen() {
       const swipedCard = deck.data?.cards.find((card) => card.id === toPetId);
       setDismissedIds((ids) => [...ids, toPetId]);
       setError(null);
+      // Karşı taraf zaten beni beğenmişse bu karar (eşleşme ya da geçme)
+      // "Beğeniler" sekmesindeki bekleyen listeden onu düşürür.
+      void queryClient.invalidateQueries({ queryKey: ["pending-likes"] });
 
       if (direction === "like" && matchId && swipedCard) {
         setMatch({
