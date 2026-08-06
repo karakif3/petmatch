@@ -61,6 +61,17 @@ describe("missingProfileItems", () => {
     );
     expect(keys).toEqual(["ownerInterests"]);
   });
+
+  it("alan hiç yoksa çökmez", () => {
+    // Canlıda 11 çökme: ilgi alanları eklendiğinde önbellekteki eski şekilli
+    // veri ownerInterests taşımıyordu ve undefined.length patlıyordu.
+    const eksikAlan = { ...FULL, ownerInterests: undefined };
+    expect(() => missingProfileItems(eksikAlan)).not.toThrow();
+    expect(missingProfileItems(eksikAlan).map((i) => i.key)).toEqual([
+      "ownerInterests",
+    ]);
+    expect(missingProfileItems({ ...FULL, ownerInterests: null })).toHaveLength(1);
+  });
 });
 
 describe("completionRatio", () => {

@@ -48,12 +48,19 @@ PKCE `code` değişimi ve Türkçe hata durumları uygulamada hazırdır.
 
 Supabase Dashboard → Authentication → URL Configuration altında:
 
-- Development/standalone uygulama için `petmatch://**` Additional Redirect URL
-  listesine eklenmeli.
-- Web yayına alındığında kesin üretim callback URL'si ayrıca eklenmeli.
-- Üretim `Site URL` değeri gerçek web alanına ayarlanmalı.
-- E-posta şablonlarındaki callback bağlantıları `{{ .RedirectTo }}` değerini
-  korumalı.
+- [x] **`petmatch://**` allow list'e eklendi** (2026-08-06). Uygulama
+      `Linking.createURL("auth/callback")` kullanıyor; dev-client ve
+      standalone build'de bu `petmatch://auth/callback` üretiyor
+      (`exp://` yalnızca Expo Go'da geçerli, onu kullanmıyoruz).
+- [x] **`Site URL` = `petmatch://auth/callback`** yapıldı. Uygulama her
+      çağrıda `emailRedirectTo`/`redirectTo` gönderdiği için Site URL sadece
+      yedek; ama `http://localhost:3000` kalsaydı yedeğe düşen her e-posta
+      bağlantısı kırık açılırdı.
+- [ ] Web yayına alındığında gerçek callback URL'si allow list'e eklenmeli ve
+      `Site URL` web alanına çevrilmeli — o noktada `petmatch://**` de
+      listede kalmalı, mobil onsuz çalışmaz.
+- [ ] E-posta şablonlarındaki callback bağlantıları `{{ .RedirectTo }}`
+      değerini korumalı (özel SMTP yokken şablonlar düzenlenemiyor).
 
 Supabase resmi dokümantasyonu:
 

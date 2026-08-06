@@ -18,7 +18,12 @@ export type ProfileCompletionInput = {
   petDetailsCompletedAt: string | null;
   ownerAvatarUrl: string | null;
   ownerBio: string | null;
-  ownerInterests: readonly string[];
+  /**
+   * Ağ sınırından geliyor: alan sonradan eklendiğinde önbellekteki eski
+   * şekilli veri bunu HİÇ taşımıyor. Tip zorunlu olduğu için TypeScript
+   * yakalayamadı ve `undefined.length` canlıda 11 çökme üretti.
+   */
+  ownerInterests: readonly string[] | null | undefined;
 };
 
 export type CompletionItem = {
@@ -82,7 +87,7 @@ export function missingProfileItems(
       route: "/profile/owner",
     });
   }
-  if (input.ownerInterests.length === 0) {
+  if ((input.ownerInterests ?? []).length === 0) {
     items.push({
       key: "ownerInterests",
       label: "İlgi alanların",
