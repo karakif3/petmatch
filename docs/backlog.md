@@ -3,6 +3,94 @@
 Bu dosya yayın öncesi işlerin tek ve numaralı referansıdır. Sıra değiştirilirse
 README yerine önce bu dosya güncellenir.
 
+---
+
+## Güncel durum ve sıra (2026-08-07)
+
+Bu bölüm en üstte duruyor çünkü aşağıdaki numaralı liste tarihsel; **sıradaki
+iş burada.**
+
+### Son turlarda kapananlar
+
+Keşfette sağa/sola kaydırma jesti · sahip profiline geçiş paneli (kart ve
+sohbet) · ilgi alanları · **Beğeniler sekmesi** (4 sekmeli yapı) ·
+**yapılandırılmış buluşma kaydı** (öneri → yanıt → iptal, `0043`) ·
+auth redirect URL'leri · Supabase hata yutmasının 16 çağrı yerinde
+kapatılması · deprecated `SafeAreaView` yüzünden boş render edilen profil
+ekranları · telemetriden çıkan `profile-completion` çökmesi.
+
+### ⛔ Yayın kapıcıları — sırayla
+
+1. **`Confirm email` kapalı.** Test için `mailer_autoconfirm = true`
+   yapıldı. Açık kalırsa herkes başkasının e-postasıyla hesap açabilir ve
+   şifre sıfırlama akışı gerçek sahibine kaptırılabilir.
+   Geri alma: [`auth-release-checklist.md`](auth-release-checklist.md).
+2. **Test hesapları silinecek.** 10 hesap (`test1/2@petmatch.app`, altı
+   `@petmatch.test`) + **storage nesneleri cascade OLMUYOR**;
+   `pet-photos/` ve `owner-avatars/` altı ayrıca silinmeli.
+3. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir
+   kullanıcı "yalnızca fotoğraflı sahipleri göster" diyebiliyor: açıklama
+   tüketiyor, vermiyor. Kod tabanının kendi kuralıyla çelişiyor —
+   `require_visible_owner` ve `require_owner_social` çift yönlü.
+   Ayrıntı: [`experience-roadmap.md`](experience-roadmap.md) §8.
+4. **Yasal alanlar.** Veri sorumlusu unvanı/adresi, destek e-postası,
+   herkese açık politika ve hesap silme URL'leri.
+   [`legal-release-checklist.md`](legal-release-checklist.md).
+5. **Fiziksel cihazda iki hesapla uçtan uca test.** Push bildirimleri
+   yalnızca gerçek cihazda doğrulanabiliyor; simülatörde keychain
+   entitlement hatası veriyor.
+
+### Sıradaki ürün işleri
+
+6. **Buluşma yanıtı canlı düşmüyor.** Karşı taraf onayladığında kart
+   güncellenmiyor; kullanıcı ekrandan çıkıp girmek zorunda. Mesajlarda
+   realtime var, `meetups` publication'da yok. Buluşma yanıtı sohbetin bir
+   parçası olduğu için realtime burada haklı (Beğeniler'den farkı bu —
+   orada bilerek zamanlayıcı kullanmadık).
+7. **Geri bildirim sorusunu buluşma kaydına bağla.** `0043`'ün asıl
+   getirisi bu ve henüz yapılmadı: `list_my_conversations` hâlâ "4+ mesaj,
+   2 farklı gönderen, 3 günden eski" sezgisini kullanıyor. Onaylanmış ve
+   zamanı geçmiş buluşma varsa soru **kesin** sorulmalı ve yeri/tarihi
+   adıyla anmalı; yoksa eski sezgi yedek kalmalı.
+8. **Takvime ekle** — `expo-calendar` kurulu değil. Yalnızca onaylanmış
+   buluşmada, izin buluşma onaylanmadan istenmemeli.
+9. **Süper beğeni.** Beğeniler sekmesi geldiğine göre artık yapılabilir.
+   Şema kararı ölçülerek verilecek: `swipe_direction` enum'una değer
+   eklemek transaction içinde çalışmayabilir, ayrı `is_super` kolonu daha
+   güvenli olabilir. [`monetization.md`](monetization.md)'ye de yazılmalı.
+10. **Beğeniler ödeme duvarı gerçek olsun.** Bugün istemci tarafı ücretsiz
+    görünümü bulanıklaştırarak simüle ediyor; ödeme altyapısı yok (Faz 0).
+11. **`owner_visible` alan adı yanıltıcı.** "Gizli değil" ile "görünür" aynı
+    şey değil; `after_match` için `true` dönüyor ve boş alanlarla geliyor.
+    Bugün istemci telafi ediyor (`ownerSummary` null'a çeviriyor) ama
+    sunucunun ifade etmesi gereken şey bu.
+12. **Profil ekranı:** hata mesajları formun altında tek kutuda (satır içi
+    olmalı), fotoğraf eklemede kamera seçeneği yok.
+
+### Kararı bekleyenler
+
+- **Petsiz kullanıcılar** ayrı yüzey mi (sahiplendirme + etkinlik), deste
+  segmenti mi. Öneri: ayrı yüzey — destede eşleşecek şeyleri yok ve
+  "petsizlere görünme" seçeneği iki katmanlı bir deste yaratır.
+- **5. sekme** topluluklar mı olsun. Öneri: önce Keşfet'te etkinlik kartı,
+  veri gelirse sekmeye terfi. Pilot yoğunluğunda boş sekme ürünün ölü
+  olduğunu söyler.
+- **Sohbette fotoğraf** — moderasyon kapasitesi olmadan açılmamalı.
+- **Sesli görüşme** — güven özelliği, yoğunluk ve gelir oluştuktan sonra.
+
+### Borç
+
+- **İngilizce katalog.** Altyapı hazır, kataloglar boş; kodda ~250 sabit
+  Türkçe metin var. Artımlı yapılabilir — yeni yazılan her metin doğrudan
+  kataloğa gitsin ki borç büyümesin.
+- **Türkçe büyük/küçük harf tuzağı.** Bugün hata yok ama arama/eşleştirme
+  eklendiği an görünmez şekilde bozulur. Kurallar
+  [`i18n.md`](i18n.md) sonunda.
+- **`pause_stale_adoption_listings` zamanlanmadı** (`pg_cron` kurulu değil).
+  Sahiplendirme bayrakla gizli olduğu için acil değil, açmadan önce şart.
+
+---
+
 > Deneyim tarafının planı ayrı bir dosyada:
 > [`experience-roadmap.md`](experience-roadmap.md) — mikroanimasyonlar,
 > yapılandırılmış buluşma + takvim, sohbette fotoğraf, sesli görüşme, petsiz

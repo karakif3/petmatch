@@ -44,7 +44,9 @@ import {
 } from "../../core/api/conversations";
 import { DateSeparator } from "../../components/chat/date-separator";
 import { MeetupFeedbackPrompt } from "../../components/chat/meetup-feedback-prompt";
+import { MeetupCard } from "../../components/chat/meetup-card";
 import { MeetupPlacePicker } from "../../components/chat/meetup-place-picker";
+import { MeetupScheduleSheet } from "../../components/chat/meetup-schedule-sheet";
 import { MessageBubble } from "../../components/chat/message-bubble";
 import {
   QuickReplyBar,
@@ -55,13 +57,19 @@ import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import {
   listMeetupPlaces,
-  meetupProposalText,
 } from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
 import { useTranslation } from "../../core/i18n";
 import { captureClientError } from "../../core/api/observability";
 import { OwnerSheet } from "../../components/owner-sheet";
+import {
+  cancelMeetup,
+  loadConversationMeetup,
+  proposeMeetup,
+  respondToMeetup,
+} from "../../core/api/meetups";
+import type { MeetupPlace } from "../../core/api/meetup-places";
 import { errorMessage } from "../../core/domain/error-message";
 import { useAuthStore } from "../../stores/auth";
 
@@ -90,6 +98,7 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [placePickerVisible, setPlacePickerVisible] = useState(false);
+  const [pendingPlace, setPendingPlace] = useState<MeetupPlace | null>(null);
 
   const conversation = useQuery({
     queryKey: ["conversation", conversationId],
@@ -118,6 +127,45 @@ export default function ChatScreen() {
     queryKey: ["conversation-owner", conversationId],
     queryFn: () => loadConversationOwnerProfile(conversationId),
     enabled: Boolean(conversationId && conversation.data?.isActive),
+  });
+
+  const meetup = useQuery({
+    queryKey: ["conversation-meetup", conversationId],
+    queryFn: () => loadConversationMeetup(conversationId),
+    enabled: Boolean(conversationId),
+  });
+
+  const meetupAction = useMutation({
+    mutationFn: async (
+      action:
+        | { kind: "propose"; placeId: string; when: Date }
+        | { kind: "respond"; meetupId: string; accept: boolean }
+        | { kind: "cancel"; meetupId: string },
+    ) => {
+      if (action.kind === "propose") {
+        await proposeMeetup({
+          conversationId,
+          placeId: action.placeId,
+          scheduledAt: action.when,
+        });
+        return;
+      }
+      if (action.kind === "respond") {
+        await respondToMeetup(action.meetupId, action.accept);
+        return;
+      }
+      await cancelMeetup(action.meetupId);
+    },
+    onSuccess: () => {
+      setPendingPlace(null);
+      void meetup.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: (error) => {
+      setPendingPlace(null);
+      setSendError(errorMessage(error, "Buluşma işlemi tamamlanamadı."));
+      void captureClientError(error, "chat/meetup");
+    },
   });
 
   // Sayfalar yeniden eskiye gelir, her sayfa kendi içinde eskiden yeniye.
@@ -471,6 +519,25 @@ export default function ChatScreen() {
           </Pressable>
         ) : null}
 
+        {meetup.data ? (
+          <View className="pt-3">
+            <MeetupCard
+              meetup={meetup.data}
+              busy={meetupAction.isPending}
+              onRespond={(accept) =>
+                meetupAction.mutate({
+                  kind: "respond",
+                  meetupId: meetup.data!.id,
+                  accept,
+                })
+              }
+              onCancel={() =>
+                meetupAction.mutate({ kind: "cancel", meetupId: meetup.data!.id })
+              }
+            />
+          </View>
+        ) : null}
+
         {conversation.isLoading || messages.isLoading ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator color="#F97362" />
@@ -616,7 +683,9 @@ export default function ChatScreen() {
           <View className="border-t border-border bg-surface pb-2 pt-2">
             {messageItems.length ? (
               <View className="flex-row items-center">
-                {(meetupPlaces.data?.length ?? 0) > 0 ? (
+                {/* Canlı buluşma varken ikinci öneri açılamıyor (0043'teki
+                    tek-canlı-buluşma kuralı); düğmeyi de göstermiyoruz. */}
+                {(meetupPlaces.data?.length ?? 0) > 0 && !meetup.data ? (
                   <Pressable
                     onPress={() => setPlacePickerVisible(true)}
                     accessibilityRole="button"
@@ -682,10 +751,23 @@ export default function ChatScreen() {
         onClose={() => setPlacePickerVisible(false)}
         onSelect={(place) => {
           setPlacePickerVisible(false);
-          // Metni doğrudan göndermek yerine yazma alanına koyuyoruz:
-          // kullanıcı gün/saat ekleyip kendi cümlesini kurabilsin.
-          setBody(meetupProposalText(place));
+          // Artık metin yazmıyoruz: buluşma bir KAYIT (0043). Yer seçildi,
+          // sırada zorunlu olan gün/saat adımı var.
+          setPendingPlace(place);
         }}
+      />
+
+      <MeetupScheduleSheet
+        place={pendingPlace}
+        busy={meetupAction.isPending}
+        onClose={() => setPendingPlace(null)}
+        onPropose={(when) =>
+          meetupAction.mutate({
+            kind: "propose",
+            placeId: pendingPlace!.id,
+            when,
+          })
+        }
       />
 
       <OwnerSheet

@@ -13,6 +13,14 @@ export type ProductEventName =
   | "verification_submitted"
   // Ürünün asıl başarı metriği: kaç konuşma gerçek buluşmaya döndü.
   // Uygulamada geçen süre değil bu ölçülüyor (bkz. docs/benchmark.md).
+  //
+  // 0043 buluşmayı kayda çevirdikten sonra huninin her adımı ayrı ayrı
+  // ölçülebiliyor: öneri → yanıt → gerçekleşme. Önceden yalnızca en sondaki
+  // geri bildirim vardı ve o da tahmine dayalı bir soruyla tetikleniyordu.
+  | "meetup_proposed"
+  | "meetup_accepted"
+  | "meetup_declined"
+  | "meetup_cancelled"
   | "meetup_feedback"
   | "discovery_segment_changed"
   | "adoption_surface_viewed"
