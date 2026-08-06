@@ -220,6 +220,13 @@ liste anında güncellenmiyordu (simülatörde yakalandı). `matches.tsx`'teki
 `refetchInterval: 15_000` deseni buraya da uygulandı; ayrıca bir swipe
 sonrası `["pending-likes"]` invalidate ediliyor.
 
+**Bilinçli yumuşatma:** beğenen tarafın sahibi `owner_social_open` ise (bu
+zaten `public` görünürlük + ad + avatar şartına bağlı — yani Keşfet'te
+teşhis edilebilir) kart açık gösteriliyor: gerçek fotoğraf, sahibin küçük
+yuvarlak avatarı sol üstte, alt bantta pet adı + sahip adı. Yeni bir kimlik
+sızdırmıyor, sadece "bu kişi seni beğendi" eşlemesini bu kohort için erken
+açıyor. Gerçek premium eklenince koşul `socialOpen || isPremium` olacak.
+
 **Sonraki tur (kapsam dışı bırakıldı):** gerçek ödeme/entitlement kontrolü,
 süper beğeni, "buluştunuz mu?" verisini sıralamaya bağlamak.
 
