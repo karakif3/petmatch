@@ -18,6 +18,12 @@ import type { PendingLikeCard as PendingLikeCardData } from "../core/api/likes";
  * hiç render EDİLMİYOR (bulanık metin ekran görüntüsünde okunabilir kalır,
  * o yüzden hiç yazılmıyor). Koyu örtü ikinci kat güvence — bazı fotoğraflara
  * gömülü keskin kenarlı yazı blurRadius'u delebiliyor.
+ *
+ * Kilitli kartta sahibin avatarı VARSA (public görünürlük ama social_open
+ * değil) köşede bulanık bir daire olarak beliriyor — isim yok, sadece
+ * "birinin fotoğrafı var" ipucu. `hidden`/`after_match` sahiplerde bu daire
+ * de yok: o, sahibin kendi gizlilik tercihi, ödeme onu aşmaz — sadece bu
+ * paywall katmanını açar.
  */
 export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
   const photoUrl = card.photoUrls[0] ?? null;
@@ -70,6 +76,16 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
           {card.species === "cat" ? "Bir kedi" : "Bir köpek"}
         </Text>
       </View>
+      {card.owner?.photoUrl ? (
+        <View className="absolute left-2.5 top-2.5 h-9 w-9 overflow-hidden rounded-full border-2 border-white/70">
+          <Image
+            source={card.owner.photoUrl}
+            contentFit="cover"
+            blurRadius={25}
+            style={{ width: "100%", height: "100%" }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
