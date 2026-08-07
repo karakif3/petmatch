@@ -118,7 +118,8 @@ export type DiscoveryCandidate = Pet & {
   city: string | null;
   distanceBucket: string | null;
   activityBucket: string | null;
-  ownerVisible: boolean;
+  /** Bu satırda sahip alanları (isim/foto/bio) gerçekten dolu mu — yalnızca `public` görünürlükte. */
+  ownerProfileShown: boolean;
 };
 
 /**

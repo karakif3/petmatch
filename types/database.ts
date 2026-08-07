@@ -1083,9 +1083,9 @@ export type Database = {
           owner_display_name: string
           owner_gender: string
           owner_id: string
+          owner_profile_shown: boolean
           owner_social_open: boolean
           owner_verified: boolean
-          owner_visible: boolean
           photo_paths: string[]
           size: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
@@ -1253,9 +1253,9 @@ export type Database = {
           owner_display_name: string
           owner_gender: string
           owner_id: string
+          owner_profile_shown: boolean
           owner_social_open: boolean
           owner_verified: boolean
-          owner_visible: boolean
           photo_paths: string[]
           size: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]

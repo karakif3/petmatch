@@ -124,15 +124,18 @@ export function mapDiscoveryRow(row: DiscoveryRow): DiscoveryCandidate {
     city: row.city || null,
     distanceBucket: row.distance_bucket || null,
     activityBucket: row.activity_bucket || null,
-    ownerVisible: row.owner_visible,
+    ownerProfileShown: row.owner_profile_shown,
   };
 }
 
 export async function ownerSummary(
   row: DiscoveryRow,
 ): Promise<DiscoveryDeckCard["owner"]> {
+  // `owner_profile_shown` sunucuda zaten "bu satırda alanlar dolu mu" demek
+  // (bkz. 0047) — burada ayrıca kalan boşluk kontrolü, sahibi `public` ama
+  // isim/foto/bio'nun üçünü de doldurmamış farklı bir durumu kapatıyor.
   if (
-    !row.owner_visible ||
+    !row.owner_profile_shown ||
     (!row.owner_display_name && !row.owner_avatar_path && !row.owner_bio)
   ) {
     return null;
