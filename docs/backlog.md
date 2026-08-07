@@ -58,34 +58,33 @@ onboarding ipucu (tur değil, tek satır, ilk karar anında kapanıyor).
 
 ### Sıradaki ürün işleri
 
-6. **Buluşma yanıtı canlı düşmüyor.** Karşı taraf onayladığında kart
-   güncellenmiyor; kullanıcı ekrandan çıkıp girmek zorunda. Mesajlarda
-   realtime var, `meetups` publication'da yok. Buluşma yanıtı sohbetin bir
-   parçası olduğu için realtime burada haklı (Beğeniler'den farkı bu —
-   orada bilerek zamanlayıcı kullanmadık).
-7. **Geri bildirim sorusunu buluşma kaydına bağla.** `0043`'ün asıl
-   getirisi bu ve henüz yapılmadı: `list_my_conversations` hâlâ "4+ mesaj,
-   2 farklı gönderen, 3 günden eski" sezgisini kullanıyor. Onaylanmış ve
-   zamanı geçmiş buluşma varsa soru **kesin** sorulmalı ve yeri/tarihi
-   adıyla anmalı; yoksa eski sezgi yedek kalmalı.
-8. **Takvime ekle** — `expo-calendar` kurulu değil. Yalnızca onaylanmış
-   buluşmada, izin buluşma onaylanmadan istenmemeli.
 9. **Beğeniler ödeme duvarı gerçek olsun.** Bugün istemci tarafı ücretsiz
    görünümü bulanıklaştırarak simüle ediyor; ödeme altyapısı yok (Faz 0).
    Süper beğeni sınırsız gönderiliyor — günlük limit de bu ödeme duvarıyla
-   birlikte gelecek doğal kapı.
-10. **`owner_visible` alan adı yanıltıcı.** "Gizli değil" ile "görünür" aynı
-    şey değil; `after_match` için `true` dönüyor ve boş alanlarla geliyor.
-    Bugün istemci telafi ediyor (`ownerSummary` null'a çeviriyor) ama
-    sunucunun ifade etmesi gereken şey bu.
-11. **Profil ekranı:** hata mesajları formun altında tek kutuda (satır içi
-    olmalı), fotoğraf eklemede kamera seçeneği yok.
-12. **Süper beğeni bildirimi yok.** Gönderildiğinde alıcıya anlık push
-    gitmiyor ("X seni süper beğendi"); `notification_deliveries`'e yeni bir
-    `event_type` eklemek gerekiyor, bilerek kapsam dışı bırakıldı.
+   birlikte gelecek doğal kapı. **Kararı bekleyenler**'e taşındı: hangi
+   ödeme sağlayıcısı (RevenueCat vb.) kullanılacağı bir ürün kararı.
+
+**2026-08-07 turunda kapananlar (6, 7, 8, 10, 11, 12):** buluşma yanıtı artık
+canlı (`meetups` realtime publication'a eklendi, `0045`) · geri bildirim
+sorusu buluşma kaydına bağlandı (onaylanmış ve zamanı geçmiş `meetups`
+kaydı varsa soru kesin soruluyor, yeri/tarihi adıyla anıyor, `0046`) ·
+takvime ekle (`expo-calendar`, yalnızca onaylanmış buluşmada) ·
+`owner_visible` → `owner_profile_shown` (`discover_playdate_pets` ve
+`pending_likes`, `0047` — istemcideki boş-alan telafisi artık ikincil bir
+savunma, birincil sinyal doğru) · profil ekranında satır içi hatalar +
+pet fotoğrafında kamera seçeneği · süper beğeni push bildirimi
+(`notification_deliveries`'e `super_like` event_type, `0048` —
+`send-notification` edge function'ı yerel TLS/sertifika sorunu yüzünden bu
+oturumda deploy edilemedi, ayrıca deploy edilmeli:
+`npx supabase functions deploy send-notification`).
 
 ### Kararı bekleyenler
 
+- **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Bugün
+  istemci tarafı ücretsiz görünümü bulanıklaştırarak simüle ediyor; ödeme
+  altyapısı yok (Faz 0). Süper beğeni sınırsız gönderiliyor — günlük limit
+  de bu ödeme duvarıyla birlikte gelecek doğal kapı. Hangi sağlayıcı
+  (RevenueCat vb.) kullanılacağı ürün kararı, kod kararı değil.
 - **Petsiz kullanıcılar** ayrı yüzey mi (sahiplendirme + etkinlik), deste
   segmenti mi. Öneri: ayrı yüzey — destede eşleşecek şeyleri yok ve
   "petsizlere görünme" seçeneği iki katmanlı bir deste yaratır.
