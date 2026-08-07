@@ -701,6 +701,8 @@ export default function ChatScreen() {
         {conversation.data?.askMeetupFeedback ? (
           <MeetupFeedbackPrompt
             petName={conversation.data.petName}
+            meetupPlaceName={conversation.data.meetupPlaceName}
+            meetupScheduledAt={conversation.data.meetupScheduledAt}
             onAnswer={async (outcome) => {
               await recordMeetupFeedback(conversationId, outcome);
               await queryClient.invalidateQueries({ queryKey: ["conversations"] });

@@ -1198,6 +1198,8 @@ export type Database = {
           is_active: boolean
           last_message: string
           last_message_at: string
+          meetup_place_name: string
+          meetup_scheduled_at: string
           pet_id: string
           pet_name: string
           pet_photo_path: string
