@@ -591,7 +591,7 @@ export default function ChatScreen() {
                 flexGrow: 1,
                 justifyContent: "flex-end",
                 paddingTop: 10,
-                paddingBottom: 10,
+                paddingBottom: 20,
               }}
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
