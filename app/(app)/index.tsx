@@ -76,6 +76,29 @@ export default function DiscoverScreen() {
   });
   const scrollRef = useRef<ScrollView>(null);
   const discoveryTrackedRef = useRef<string | null>(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  /**
+   * Mini onboarding — bilerek TUR değil, bağlamsal ipucu.
+   *
+   * Kayıt akışı 17 alandan 6'ya indirildi; üstüne bir de adım adım tur
+   * eklemek o sadeleştirmeyle gerilirdi. Turlar genelde atlanır; bağlamsal
+   * ipucu davranışın gerçekleştiği anda öğretir. İlk karar anında (ilk
+   * swipe/düğme) ya da birkaç saniye sonra kendiliğinden kapanıyor, bir
+   * daha hiç çıkmıyor.
+   */
+  useEffect(() => {
+    if (!user) return;
+    void AsyncStorage.getItem(`petmatch:seen-swipe-hint:${user.id}`).then((value) => {
+      if (!value) setShowSwipeHint(true);
+    });
+  }, [user]);
+
+  const dismissSwipeHint = () => {
+    if (!showSwipeHint || !user) return;
+    setShowSwipeHint(false);
+    void AsyncStorage.setItem(`petmatch:seen-swipe-hint:${user.id}`, "1");
+  };
 
   useEffect(() => {
     let active = true;
@@ -136,6 +159,15 @@ export default function DiscoverScreen() {
   );
   const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
   const currentCard = activeCards[0] ?? null;
+
+  // İpucu ekranda GERÇEKTEN görünmüyorsa (kart yoksa) sayaç işlemeye
+  // başlamıyor — yoksa kullanıcı hiç görmeden "görüldü" işaretlenirdi.
+  useEffect(() => {
+    if (!showSwipeHint || !currentCard) return;
+    const timeout = setTimeout(dismissSwipeHint, 5000);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSwipeHint, currentCard?.id]);
 
   // Segment gizlenecek kadar az kart kaldıysa kullanıcıyı orada bırakma.
   useEffect(() => {
@@ -228,11 +260,13 @@ export default function DiscoverScreen() {
 
   const handleSwipe = (direction: SwipeDirection) => {
     if (!currentCard || swipe.isPending) return;
+    dismissSwipeHint();
     swipe.mutate({ toPetId: currentCard.id, direction });
   };
 
   const handleSuperLike = () => {
     if (!currentCard || swipe.isPending) return;
+    dismissSwipeHint();
     swipe.mutate({ toPetId: currentCard.id, direction: "like", isSuper: true });
   };
 
@@ -595,6 +629,18 @@ export default function DiscoverScreen() {
           </>
         ) : null}
       </ScrollView>
+
+      {showSwipeHint && currentCard ? (
+        <View className="flex-row items-center gap-2 border-t border-border bg-bg-secondary px-4 py-2.5">
+          <Ionicons name="hand-left-outline" color="#6B5D55" size={16} />
+          <Text className="flex-1 text-xs text-text-secondary">
+            Kartı sağa/sola sürükle ya da alttaki düğmelere dokun
+          </Text>
+          <Pressable onPress={dismissSwipeHint} accessibilityLabel="İpucunu kapat" hitSlop={8}>
+            <Ionicons name="close" color="#9A8B82" size={16} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {/*
         Düğmeler bilerek ScrollView'ın DIŞINDA — kart + tamamlama kartı +
