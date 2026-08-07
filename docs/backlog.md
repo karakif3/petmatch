@@ -25,6 +25,16 @@ beri genişletilmemişti; `meetup_*`, `discovery_segment_changed`,
 `adoption_*` olayları aylardır sessizce reddediliyordu (`track_product_event`
 hatayı yutup `console.warn`'a düşürüyor). Kısıt güncel listeyle genişletildi.
 
+**Aynı gece devam eden kapanışlar:** Keşfet'te beğen düğmesi sabit alt
+şeride taşındı (kart + tamamlama kartı üst üste gelince kaydırmadan hiç
+görünmüyordu) · sohbette son mesajın kardeş öğe (buluşma istemi, hata
+şeridi) boy değiştirince görünüm dışında kalması düzeltildi — kök sebep
+RLS/sorgu değil, tek `requestAnimationFrame`'in eksik yüksekliğe göre
+`scrollToEnd` hesaplaması; çözüm `onLayout` tabanlı düzeltici kaydırma ·
+Eşleşmeler'deki 15sn polling kaldırıldı (Beğeniler'deki gibi odağa-girince-
+tazele) · eşleşme kutlamasında sahip fotoğrafı rozeti · bağlamsal mini
+onboarding ipucu (tur değil, tek satır, ilk karar anında kapanıyor).
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`Confirm email` kapalı.** Test için `mailer_autoconfirm = true`
