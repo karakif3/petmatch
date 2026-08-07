@@ -1,3 +1,5 @@
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
 import { requireSupabaseClient } from "./supabase.client";
 import { trackProductEvent } from "./observability";
 
@@ -75,4 +77,33 @@ export async function cancelMeetup(meetupId: string): Promise<void> {
   });
   if (error) throw error;
   void trackProductEvent("meetup_cancelled");
+}
+
+/**
+ * Sohbetteki buluşma satırı değiştiğinde (öneri/onay/ret/iptal) haber verir.
+ * `messages` için `subscribeToConversation`'daki desenin aynısı — 0045'te
+ * `meetups` de `supabase_realtime` publication'ına eklendi.
+ */
+export function subscribeToMeetup(
+  conversationId: string,
+  onChange: () => void,
+): () => void {
+  const sb = requireSupabaseClient();
+  const channel: RealtimeChannel = sb
+    .channel(`conversation:${conversationId}:meetup`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "meetups",
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      onChange,
+    )
+    .subscribe();
+
+  return () => {
+    void sb.removeChannel(channel);
+  };
 }

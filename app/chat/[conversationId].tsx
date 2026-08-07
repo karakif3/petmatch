@@ -68,6 +68,7 @@ import {
   loadConversationMeetup,
   proposeMeetup,
   respondToMeetup,
+  subscribeToMeetup,
 } from "../../core/api/meetups";
 import type { MeetupPlace } from "../../core/api/meetup-places";
 import { errorMessage } from "../../core/domain/error-message";
@@ -184,6 +185,14 @@ export default function ChatScreen() {
     if (!conversationId) return;
     return subscribeToConversation(conversationId, () => {
       void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+  }, [conversationId, queryClient]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    return subscribeToMeetup(conversationId, () => {
+      void queryClient.invalidateQueries({ queryKey: ["conversation-meetup", conversationId] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     });
   }, [conversationId, queryClient]);
