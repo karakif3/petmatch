@@ -85,7 +85,13 @@
           "defaultChannel": "petmatch"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Onaylanmış buluşmaları takvimine ekleyebilmek için takvim izni gerekiyor."
+        }
+      ]
     ],
     "locales": {
       "tr": "./locales/tr.json"

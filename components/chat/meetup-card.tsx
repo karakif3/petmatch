@@ -1,7 +1,9 @@
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { ConversationMeetup } from "../../core/api/meetups";
+import { addMeetupToCalendar } from "../../core/calendar";
 import { getIntlLocale } from "../../core/i18n";
 
 function formatWhen(iso: string): string {
@@ -40,6 +42,32 @@ export function MeetupCard({
 }) {
   const accepted = meetup.status === "accepted";
   const past = new Date(meetup.scheduledAt).getTime() < Date.now();
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
+
+  const addToCalendar = async () => {
+    if (addingToCalendar) return;
+    setAddingToCalendar(true);
+    try {
+      const result = await addMeetupToCalendar({
+        title: `PetMatch buluşması: ${meetup.placeName}`,
+        location: meetup.placeName,
+        notes: meetup.placeNote ?? undefined,
+        startDate: new Date(meetup.scheduledAt),
+      });
+      if (result === "denied") {
+        Alert.alert(
+          "Takvim izni gerekiyor",
+          "Buluşmayı takvimine ekleyebilmek için ayarlardan takvim izni vermen gerekiyor.",
+        );
+        return;
+      }
+      Alert.alert("Eklendi", "Buluşma takvimine eklendi.");
+    } catch {
+      Alert.alert("Olmadı", "Buluşma takvime eklenemedi, tekrar dener misin?");
+    } finally {
+      setAddingToCalendar(false);
+    }
+  };
 
   return (
     <View
@@ -103,13 +131,33 @@ export function MeetupCard({
           </Pressable>
         </View>
       ) : accepted && !past ? (
-        <View className="mt-3 flex-row items-center justify-between">
+        <View className="mt-3">
           <Text className="text-xs text-text-tertiary">
             Halka açık bir yerde buluşun, planınızı bir yakınınıza söyleyin.
           </Text>
-          <Pressable onPress={onCancel} accessibilityRole="button" hitSlop={8}>
-            <Text className="ml-3 text-xs font-semibold text-danger">İptal</Text>
-          </Pressable>
+          <View className="mt-2.5 flex-row items-center justify-between">
+            <Pressable
+              onPress={() => void addToCalendar()}
+              disabled={addingToCalendar}
+              accessibilityRole="button"
+              accessibilityLabel="Takvime ekle"
+              className="min-h-9 flex-row items-center rounded-lg border border-border bg-surface px-3 disabled:opacity-60"
+            >
+              {addingToCalendar ? (
+                <ActivityIndicator color="#F97362" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="calendar-outline" color="#F97362" size={14} />
+                  <Text className="ml-1.5 text-xs font-semibold text-text-primary">
+                    Takvime ekle
+                  </Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable onPress={onCancel} accessibilityRole="button" hitSlop={8}>
+              <Text className="ml-3 text-xs font-semibold text-danger">İptal</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
     </View>
