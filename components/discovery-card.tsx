@@ -43,18 +43,18 @@ export function DiscoveryCard({
           source={card.photoUrls[0]}
           contentFit="cover"
           transition={180}
-          style={{ width: "100%", aspectRatio: 1.05 }}
+          style={{ width: "100%", aspectRatio: 1.3 }}
         />
       ) : (
         <View
           className="items-center justify-center bg-bg-tertiary"
-          style={{ width: "100%", aspectRatio: 1.05 }}
+          style={{ width: "100%", aspectRatio: 1.3 }}
         >
           <Ionicons name="paw" color="#C4B7AE" size={72} />
         </View>
       )}
 
-      <View className="p-5">
+      <View className="p-4">
         <View className="flex-row items-start justify-between gap-4">
           <View className="flex-1">
             <View className="flex-row items-center gap-2">
@@ -72,7 +72,7 @@ export function DiscoveryCard({
           </View>
         </View>
 
-        <View className="mt-4 flex-row flex-wrap gap-2">
+        <View className="mt-3 flex-row flex-wrap gap-2">
           <View className="flex-row items-center gap-1 rounded-full bg-bg-secondary px-3 py-2">
             <Ionicons name="location-outline" color="#6B5D55" size={15} />
             <Text className="text-xs font-semibold text-text-secondary">
@@ -97,7 +97,7 @@ export function DiscoveryCard({
         </View>
 
         {card.bio ? (
-          <Text className="mt-4 text-sm leading-5 text-text-secondary" numberOfLines={3}>
+          <Text className="mt-3 text-sm leading-5 text-text-secondary" numberOfLines={3}>
             {card.bio}
           </Text>
         ) : null}
@@ -112,7 +112,7 @@ export function DiscoveryCard({
                 ? `${card.owner.displayName ?? "Pet sahibi"} profilini aç`
                 : undefined
             }
-            className="mt-5 rounded-2xl border border-border bg-bg-secondary p-3"
+            className="mt-4 rounded-2xl border border-border bg-bg-secondary p-3"
           >
             <View className="flex-row items-center">
               {card.owner.photoUrl ? (
@@ -175,7 +175,7 @@ export function DiscoveryCard({
         ) : null}
 
         {activity ? (
-          <View className="mt-4 flex-row items-center gap-1.5">
+          <View className="mt-3 flex-row items-center gap-1.5">
             <View className="h-2 w-2 rounded-full bg-accent" />
             <Text className="text-xs font-semibold text-accent-dark">{activity}</Text>
           </View>

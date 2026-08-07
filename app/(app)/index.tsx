@@ -13,6 +13,7 @@ import {
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,16 @@ import { useAuthStore } from "../../stores/auth";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
+
+// NativeWind'in shadow-sm'i Android'de görünmüyor (elevation gerekiyor) ve
+// iOS'ta da Tinder/Bumble'daki "yüzen düğme" hissi için fazla hafif kalıyor.
+const floatingButtonShadow = {
+  shadowColor: "#1F1A17",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.16,
+  shadowRadius: 8,
+  elevation: 5,
+};
 
 export default function DiscoverScreen() {
   const t = useTranslation();
@@ -647,38 +658,56 @@ export default function DiscoverScreen() {
         segment çubuğu üst üste geldiğinde beğen düğmesi kaydırmadan hiç
         görünmüyordu. Tinder/Bumble'daki gibi sabit alt şerit: kart ne kadar
         uzun olursa olsun düğmeler her zaman ekranda.
+        Düz bir araç çubuğu değil, deste'nin üstüne binen bir gradyan —
+        negatif üst boşluk son kaydırma pikselleriyle örtüşüyor, sert bir
+        çizgi yerine yumuşak bir geçiş. Düğmeler kendi gölgeleriyle
+        yüzüyor (Tinder/Bumble referansı).
       */}
       {currentCard ? (
-        <View className="flex-row items-center justify-center gap-6 border-t border-border bg-bg-primary px-5 py-4">
+        <LinearGradient
+          colors={["rgba(255,251,247,0)", "#FFFBF7", "#FFFBF7"]}
+          locations={[0, 0.55, 1]}
+          // İpucu şeridi görünüyorken üste binmesin — kendi zemini var,
+          // gradyanın şeffaf ucu onunla çakışırsa renk dikişi oluşur.
+          style={
+            showSwipeHint
+              ? { paddingTop: 20 }
+              : { marginTop: -36, paddingTop: 36 }
+          }
+          className="flex-row items-center justify-center gap-6 px-5 pb-4"
+        >
           <Pressable
             onPress={() => handleSwipe("pass")}
             disabled={swipe.isPending}
             accessibilityLabel="Geç"
-            className="h-16 w-16 items-center justify-center rounded-full border border-border bg-surface shadow-sm disabled:opacity-50"
+            style={floatingButtonShadow}
+            className="h-16 w-16 items-center justify-center rounded-full bg-surface disabled:opacity-50"
           >
-            <Ionicons name="close" color="#9A8B82" size={32} />
+            <Ionicons name="close" color="#9A8B82" size={30} />
           </Pressable>
           <Pressable
             onPress={handleSuperLike}
             disabled={swipe.isPending}
             accessibilityLabel="Süper beğen"
-            className="h-14 w-14 items-center justify-center rounded-full bg-warning shadow-sm disabled:opacity-50"
+            style={floatingButtonShadow}
+            className="h-12 w-12 items-center justify-center rounded-full bg-warning disabled:opacity-50"
           >
-            <Ionicons name="star" color="#FFFFFF" size={24} />
+            <Ionicons name="star" color="#FFFFFF" size={20} />
           </Pressable>
           <Pressable
             onPress={() => handleSwipe("like")}
             disabled={swipe.isPending}
             accessibilityLabel="Beğen"
-            className="h-20 w-20 items-center justify-center rounded-full bg-brand shadow-sm disabled:opacity-50"
+            style={floatingButtonShadow}
+            className="h-[70px] w-[70px] items-center justify-center rounded-full bg-brand disabled:opacity-50"
           >
             {swipe.isPending ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Ionicons name="heart" color="#FFFFFF" size={36} />
+              <Ionicons name="heart" color="#FFFFFF" size={32} />
             )}
           </Pressable>
-        </View>
+        </LinearGradient>
       ) : null}
       <OwnerSheet
         owner={currentCard?.owner ?? null}
