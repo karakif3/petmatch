@@ -115,6 +115,8 @@ export default function ProfileScreen() {
   const [saveBusy, setSaveBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -130,7 +132,7 @@ export default function ProfileScreen() {
 
   const refreshLocation = async () => {
     setLocationBusy(true);
-    setError(null);
+    setLocationError(null);
     setNotice(null);
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
@@ -146,7 +148,7 @@ export default function ProfileScreen() {
       );
       setNotice("Yeni yaklaşık konum alındı. Uygulamak için değişiklikleri kaydet.");
     } catch (locationError) {
-      setError(
+      setLocationError(
         errorMessage(locationError, "Konum alınamadı."),
       );
     } finally {
@@ -157,6 +159,8 @@ export default function ProfileScreen() {
   const save = async () => {
     setSaveBusy(true);
     setError(null);
+    setLocationError(null);
+    setNotificationError(null);
     setNotice(null);
     try {
       await Promise.all([
@@ -183,7 +187,7 @@ export default function ProfileScreen() {
           notificationMessage = " Bu cihaz için bildirimler kapatıldı.";
         }
       } catch (notificationError) {
-        setError(
+        setNotificationError(
           errorMessage(notificationError, "Bildirim ayarı cihaza uygulanamadı."),
         );
       }
@@ -430,6 +434,9 @@ export default function ProfileScreen() {
                 </Text>
               )}
             </Pressable>
+            {locationError ? (
+              <Text className="mt-3 text-xs font-semibold text-danger">{locationError}</Text>
+            ) : null}
           </View>
 
           <Text className="mb-3 text-lg font-bold text-text-primary">Bildirimler</Text>
@@ -452,6 +459,9 @@ export default function ProfileScreen() {
                 ? "Cihaz izni iOS veya Android uygulamasında verilir."
                 : "İlk etkinleştirmede cihazın bildirim izni istenir."}
             </Text>
+            {notificationError ? (
+              <Text className="pb-3 text-xs font-semibold text-danger">{notificationError}</Text>
+            ) : null}
           </View>
 
           {error ? (

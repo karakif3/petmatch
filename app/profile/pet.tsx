@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -64,16 +65,20 @@ const temperamentLabels: Record<Temperament, string> = {
 
 function Field({
   label,
+  error,
   ...props
-}: { label: string } & React.ComponentProps<typeof TextInput>) {
+}: { label: string; error?: string | null } & React.ComponentProps<typeof TextInput>) {
   return (
     <View className="mb-5">
       <Text className="mb-2 text-sm font-semibold text-text-primary">{label}</Text>
       <TextInput
         placeholderTextColor="#9A8B82"
-        className="rounded-xl border border-border bg-surface px-4 py-3.5 text-text-primary"
+        className={`rounded-xl border bg-surface px-4 py-3.5 text-text-primary ${
+          error ? "border-danger" : "border-border"
+        }`}
         {...props}
       />
+      {error ? <Text className="mt-1.5 text-xs font-semibold text-danger">{error}</Text> : null}
     </View>
   );
 }
@@ -132,6 +137,8 @@ export default function PetProfileScreen() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [photosError, setPhotosError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -158,15 +165,9 @@ export default function PetProfileScreen() {
     );
   }, [profile.data]);
 
-  const pickPhotos = async () => {
-    setError(null);
-    const available = 6 - photos.length;
-    if (available < 1) {
-      setError("En fazla 6 fotoğraf ekleyebilirsin.");
-      return;
-    }
+  const pickFromLibrary = async (available: number) => {
     if (!(await ensureImageLibraryAccess())) {
-      setError("Fotoğraf seçmek için galeri izni gerekiyor.");
+      setPhotosError("Fotoğraf seçmek için galeri izni gerekiyor.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -186,6 +187,46 @@ export default function PetProfileScreen() {
     setPhotos((items) => [...items, ...selected]);
   };
 
+  // Doğrulama akışındaki (`app/profile/owner.tsx`) kamera deseniyle aynı:
+  // izin doğrudan burada istenir, önceden istenmez.
+  const pickFromCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setPhotosError("Fotoğraf çekmek için kamera izni gerekiyor.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+    });
+    if (result.canceled) return;
+    const photo = result.assets[0];
+    setPhotos((items) => [
+      ...items,
+      {
+        id: `${photo.uri}-${Date.now()}`,
+        kind: "local",
+        uri: photo.uri,
+        fileName: photo.fileName ?? null,
+        mimeType: photo.mimeType ?? null,
+      },
+    ]);
+  };
+
+  const pickPhotos = () => {
+    setPhotosError(null);
+    const available = 6 - photos.length;
+    if (available < 1) {
+      setPhotosError("En fazla 6 fotoğraf ekleyebilirsin.");
+      return;
+    }
+    Alert.alert("Fotoğraf ekle", undefined, [
+      { text: "Vazgeç", style: "cancel" },
+      { text: "Galeriden seç", onPress: () => void pickFromLibrary(available) },
+      { text: "Fotoğraf çek", onPress: () => void pickFromCamera() },
+    ]);
+  };
+
   const toggleTemperament = (value: Temperament) => {
     setTemperaments((values) =>
       values.includes(value)
@@ -196,8 +237,10 @@ export default function PetProfileScreen() {
 
   const save = async () => {
     if (!user || !profile.data) return;
-    if (!name.trim()) return setError("Petinin adını yazmalısın.");
-    if (!photos.length) return setError("En az bir pet fotoğrafı kalmalı.");
+    setNameError(null);
+    setPhotosError(null);
+    if (!name.trim()) return setNameError("Petinin adını yazmalısın.");
+    if (!photos.length) return setPhotosError("En az bir pet fotoğrafı kalmalı.");
 
     setBusy(true);
     setError(null);
@@ -311,9 +354,19 @@ export default function PetProfileScreen() {
               }
               onAdd={pickPhotos}
             />
+            {photosError ? (
+              <Text className="mt-2 text-xs font-semibold text-danger">{photosError}</Text>
+            ) : null}
           </View>
 
-          <Field label="Adı" value={name} onChangeText={setName} maxLength={40} autoCapitalize="words" />
+          <Field
+            label="Adı"
+            value={name}
+            onChangeText={setName}
+            maxLength={40}
+            autoCapitalize="words"
+            error={nameError}
+          />
           <Field label="Irkı (opsiyonel)" value={breed} onChangeText={setBreed} maxLength={80} autoCapitalize="words" />
           {/*
             Kayıt akışıyla AYNI kontrol. Onboarding yaşı kovalarla sorup
