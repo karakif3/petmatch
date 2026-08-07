@@ -24,7 +24,20 @@ import type { PendingLikeCard as PendingLikeCardData } from "../core/api/likes";
  * "birinin fotoğrafı var" ipucu. `hidden`/`after_match` sahiplerde bu daire
  * de yok: o, sahibin kendi gizlilik tercihi, ödeme onu aşmaz — sadece bu
  * paywall katmanını açar.
+ *
+ * "Süper" rozeti kilitli kartta bile görünür — deste zaten swipe edilmiş
+ * çiftleri göstermediği için §6b'deki "karşı tarafın destesinde öne çıkma"
+ * pratikte bu rozet + sunucudaki `is_super desc` sıralaması demek.
  */
+function SuperBadge() {
+  return (
+    <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1 rounded-full bg-warning px-2 py-1">
+      <Ionicons name="star" size={11} color="#FFFFFF" />
+      <Text className="text-[10px] font-bold text-white">Süper</Text>
+    </View>
+  );
+}
+
 export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
   const photoUrl = card.photoUrls[0] ?? null;
   const unlocked = card.owner?.socialOpen ?? false;
@@ -54,6 +67,7 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
             </Text>
           ) : null}
         </View>
+        {card.isSuper ? <SuperBadge /> : null}
       </View>
     );
   }
@@ -86,6 +100,7 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
           />
         </View>
       ) : null}
+      {card.isSuper ? <SuperBadge /> : null}
     </View>
   );
 }

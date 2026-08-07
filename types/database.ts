@@ -935,6 +935,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["swipe_direction"]
           from_pet_id: string
           id: string
+          is_super: boolean
           to_pet_id: string
         }
         Insert: {
@@ -943,6 +944,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["swipe_direction"]
           from_pet_id: string
           id?: string
+          is_super?: boolean
           to_pet_id: string
         }
         Update: {
@@ -951,6 +953,7 @@ export type Database = {
           direction?: Database["public"]["Enums"]["swipe_direction"]
           from_pet_id?: string
           id?: string
+          is_super?: boolean
           to_pet_id?: string
         }
         Relationships: [
@@ -1239,6 +1242,7 @@ export type Database = {
           good_with_kids: boolean
           id: string
           is_neutered: boolean
+          is_super: boolean
           liked_at: string
           name: string
           owner_age_bucket: string
@@ -1358,6 +1362,7 @@ export type Database = {
         Args: {
           p_direction: Database["public"]["Enums"]["swipe_direction"]
           p_from_pet_id: string
+          p_is_super?: boolean
           p_to_pet_id: string
         }
         Returns: string

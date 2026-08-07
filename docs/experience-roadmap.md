@@ -228,27 +228,28 @@ sızdırmıyor, sadece "bu kişi seni beğendi" eşlemesini bu kohort için erke
 açıyor. Gerçek premium eklenince koşul `socialOpen || isPremium` olacak.
 
 **Sonraki tur (kapsam dışı bırakıldı):** gerçek ödeme/entitlement kontrolü,
-süper beğeni, "buluştunuz mu?" verisini sıralamaya bağlamak.
+"buluştunuz mu?" verisini sıralamaya bağlamak.
 
-### Süper beğeni — yok, ve şema değişikliği istiyor
+### Süper beğeni — ✅ yapıldı
 
-`swipe_direction` enum'ı yalnızca `('like', 'pass')`. Süper beğeni eklemek
-üç şey gerektiriyor:
+Şema kararı ölçülerek verildi: enum'a değer eklemek yerine ayrı
+`swipes.is_super boolean` (0044) — `alter type ... add value`'nun bazı
+akışlarda transaction içinde çalışmaması riskini sıfırladı. Yalnızca
+`like` üstüne süper olunabilir, `pass` DB seviyesinde CHECK ile reddediliyor.
 
-1. **Şema:** enum'a yeni değer. Dikkat — PostgreSQL'de `alter type ... add
-   value` bazı sürümlerde transaction içinde çalışmaz; migration'lar
-   transaction'da koştuğu için ayrı bir migration ve muhtemelen enum yerine
-   ayrı bir kolon (`is_super boolean`) daha güvenli. Karar verilirken
-   ölçülmeli.
-2. **Ürün kuralı:** süper beğeni ne YAPAR? Sektör standardı: karşı tarafın
-   destesinde öne çıkarsın ve beğeninin süper olduğu görünsün. Yani
-   "Beğeniler" sekmesi ve sıralama ile doğrudan bağlantılı — o sekme
-   olmadan süper beğeninin gösterileceği yer yok.
-3. **Gelir kuralı:** [`monetization.md`](monetization.md)'de süper beğeni
-   geçmiyor. Eklenecekse oraya, "asla satılmayacaklar" listesiyle birlikte
-   değerlendirilmeli.
+Ürün kuralı öngörüldüğü gibi Beğeniler sekmesine bağlandı: "karşı tarafın
+destesinde öne çıkma" pratikte **Beğeniler sıralaması** demek (deste zaten
+swipe edilmiş çiftleri göstermiyor). `pending_likes()` `is_super desc,
+created_at desc` sıralıyor; "Süper" rozeti kilitli kartta bile görünüyor
+(kimlik değil, sadece "bu beğeni özel" sinyali — `monetization.md`'ye de
+yazıldı). Keşfet ekranına üçüncü bir düğme eklendi (X · ★ · kalp).
 
-**Sıra:** Beğeniler sekmesi → süper beğeni. Tersi olmaz.
+Simülatörde uçtan uca doğrulandı: gönderilen süper beğeni `is_super=true`
+olarak kaydedildi, karşılıklıysa anında eşleşme oluşturdu; alıcı tarafta
+kilitli kartta bile "★ Süper" rozeti göründü.
+
+**Kapsam dışı bırakılan:** anlık push bildirimi, günlük gönderim limiti
+(`docs/backlog.md`'ye taşındı).
 
 ### Sahibe tıklayıp profiline geçme — ✅ yapıldı
 

@@ -15,9 +15,15 @@ iş burada.**
 Keşfette sağa/sola kaydırma jesti · sahip profiline geçiş paneli (kart ve
 sohbet) · ilgi alanları · **Beğeniler sekmesi** (4 sekmeli yapı) ·
 **yapılandırılmış buluşma kaydı** (öneri → yanıt → iptal, `0043`) ·
+**süper beğeni** (`is_super` kolonu, Beğeniler sıralaması + rozeti, `0044`) ·
 auth redirect URL'leri · Supabase hata yutmasının 16 çağrı yerinde
 kapatılması · deprecated `SafeAreaView` yüzünden boş render edilen profil
 ekranları · telemetriden çıkan `profile-completion` çökmesi.
+
+**Bulgu (0044 sırasında):** `product_events.event_name` DB kısıtı 0027'den
+beri genişletilmemişti; `meetup_*`, `discovery_segment_changed`,
+`adoption_*` olayları aylardır sessizce reddediliyordu (`track_product_event`
+hatayı yutup `console.warn`'a düşürüyor). Kısıt güncel listeyle genişletildi.
 
 ### ⛔ Yayın kapıcıları — sırayla
 
@@ -54,18 +60,19 @@ ekranları · telemetriden çıkan `profile-completion` çökmesi.
    adıyla anmalı; yoksa eski sezgi yedek kalmalı.
 8. **Takvime ekle** — `expo-calendar` kurulu değil. Yalnızca onaylanmış
    buluşmada, izin buluşma onaylanmadan istenmemeli.
-9. **Süper beğeni.** Beğeniler sekmesi geldiğine göre artık yapılabilir.
-   Şema kararı ölçülerek verilecek: `swipe_direction` enum'una değer
-   eklemek transaction içinde çalışmayabilir, ayrı `is_super` kolonu daha
-   güvenli olabilir. [`monetization.md`](monetization.md)'ye de yazılmalı.
-10. **Beğeniler ödeme duvarı gerçek olsun.** Bugün istemci tarafı ücretsiz
-    görünümü bulanıklaştırarak simüle ediyor; ödeme altyapısı yok (Faz 0).
-11. **`owner_visible` alan adı yanıltıcı.** "Gizli değil" ile "görünür" aynı
+9. **Beğeniler ödeme duvarı gerçek olsun.** Bugün istemci tarafı ücretsiz
+   görünümü bulanıklaştırarak simüle ediyor; ödeme altyapısı yok (Faz 0).
+   Süper beğeni sınırsız gönderiliyor — günlük limit de bu ödeme duvarıyla
+   birlikte gelecek doğal kapı.
+10. **`owner_visible` alan adı yanıltıcı.** "Gizli değil" ile "görünür" aynı
     şey değil; `after_match` için `true` dönüyor ve boş alanlarla geliyor.
     Bugün istemci telafi ediyor (`ownerSummary` null'a çeviriyor) ama
     sunucunun ifade etmesi gereken şey bu.
-12. **Profil ekranı:** hata mesajları formun altında tek kutuda (satır içi
+11. **Profil ekranı:** hata mesajları formun altında tek kutuda (satır içi
     olmalı), fotoğraf eklemede kamera seçeneği yok.
+12. **Süper beğeni bildirimi yok.** Gönderildiğinde alıcıya anlık push
+    gitmiyor ("X seni süper beğendi"); `notification_deliveries`'e yeni bir
+    `event_type` eklemek gerekiyor, bilerek kapsam dışı bırakıldı.
 
 ### Kararı bekleyenler
 

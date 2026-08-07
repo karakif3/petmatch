@@ -7,6 +7,7 @@ export type ProductEventName =
   | "discovery_viewed"
   | "swipe_like"
   | "swipe_pass"
+  | "swipe_super_like"
   | "match_created"
   | "message_sent"
   | "report_submitted"

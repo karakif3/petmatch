@@ -279,14 +279,18 @@ export async function swipePet(input: {
   fromPetId: string;
   toPetId: string;
   direction: SwipeDirection;
+  isSuper?: boolean;
 }): Promise<string | null> {
   const { data, error } = await requireSupabaseClient().rpc("swipe_pet", {
     p_from_pet_id: input.fromPetId,
     p_to_pet_id: input.toPetId,
     p_direction: input.direction,
+    p_is_super: input.isSuper ?? false,
   });
   if (error) throw error;
-  void trackProductEvent(input.direction === "like" ? "swipe_like" : "swipe_pass");
+  void trackProductEvent(
+    input.isSuper ? "swipe_super_like" : input.direction === "like" ? "swipe_like" : "swipe_pass",
+  );
   if (data) {
     void trackProductEvent("match_created");
     void requestNotificationDelivery({ type: "match", matchId: data }).catch(

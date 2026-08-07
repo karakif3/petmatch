@@ -174,9 +174,11 @@ export default function DiscoverScreen() {
     mutationFn: async ({
       toPetId,
       direction,
+      isSuper,
     }: {
       toPetId: string;
       direction: SwipeDirection;
+      isSuper?: boolean;
     }) => {
       const viewer = deck.data?.viewer;
       if (!viewer) throw new Error("Aktif pet bulunamadı.");
@@ -184,6 +186,7 @@ export default function DiscoverScreen() {
         fromPetId: viewer.id,
         toPetId,
         direction,
+        isSuper,
       });
       return { direction, matchId, toPetId };
     },
@@ -224,6 +227,11 @@ export default function DiscoverScreen() {
   const handleSwipe = (direction: SwipeDirection) => {
     if (!currentCard || swipe.isPending) return;
     swipe.mutate({ toPetId: currentCard.id, direction });
+  };
+
+  const handleSuperLike = () => {
+    if (!currentCard || swipe.isPending) return;
+    swipe.mutate({ toPetId: currentCard.id, direction: "like", isSuper: true });
   };
 
   const refresh = async () => {
@@ -591,6 +599,14 @@ export default function DiscoverScreen() {
                 className="h-16 w-16 items-center justify-center rounded-full border border-border bg-surface shadow-sm disabled:opacity-50"
               >
                 <Ionicons name="close" color="#9A8B82" size={32} />
+              </Pressable>
+              <Pressable
+                onPress={handleSuperLike}
+                disabled={swipe.isPending}
+                accessibilityLabel="Süper beğen"
+                className="h-14 w-14 items-center justify-center rounded-full bg-warning shadow-sm disabled:opacity-50"
+              >
+                <Ionicons name="star" color="#FFFFFF" size={24} />
               </Pressable>
               <Pressable
                 onPress={() => handleSwipe("like")}

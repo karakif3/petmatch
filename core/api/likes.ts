@@ -2,7 +2,10 @@ import { mapDiscoveryRow, ownerSummary, type DiscoveryDeckCard } from "./discove
 import { requireSupabaseClient } from "./supabase.client";
 
 /** Uyum skoru yok — henüz beğenilmiş, karşılaştırılacak bir kart değil. */
-export type PendingLikeCard = Omit<DiscoveryDeckCard, "compatibility">;
+export type PendingLikeCard = Omit<DiscoveryDeckCard, "compatibility"> & {
+  /** Kilitli kartta bile görünür — kimlik değil, "bu beğeni özel" sinyali. */
+  isSuper: boolean;
+};
 
 export type PendingLike = {
   card: PendingLikeCard;
@@ -29,7 +32,7 @@ export async function loadPendingLikes(): Promise<PendingLike[]> {
 
   const owners = await Promise.all((rows ?? []).map(ownerSummary));
   return (rows ?? []).map((row, index) => ({
-    card: { ...mapDiscoveryRow(row), owner: owners[index] },
+    card: { ...mapDiscoveryRow(row), owner: owners[index], isSuper: row.is_super },
     likedAt: row.liked_at,
   }));
 }

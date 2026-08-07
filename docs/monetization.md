@@ -95,6 +95,26 @@ mahallede günlük limit, kullanıcıya pazarı bitirtip uygulamayı sildirir.
 > sağlıyor — fiilen bedava rewind. Rewind ücretli hale getirilecekse o politika
 > gözden geçirilmeli. Öneri: iyi niyet özelliği olarak ücretsiz kalsın.
 
+### Süper beğeni — ✅ yapıldı, şema: enum yerine `is_super` kolonu
+
+`swipe_direction` enum'una üçüncü değer eklemek yerine `swipes.is_super
+boolean` seçildi — `alter type ... add value` bazı akışlarda transaction
+içinde çalışmıyor, ayrı kolon riski sıfırladı. Yalnızca `like` üstüne süper
+olunabilir (`pass` olamaz), DB seviyesinde CHECK ile kapatıldı.
+
+Sektör standardı uygulandı: karşı tarafın destesinde "öne çıkma" pratikte
+**Beğeniler sıralaması** demek — deste zaten swipe edilmiş çiftleri
+göstermiyor, yani süper beğenen kişi karşı tarafa ancak Beğeniler'de
+görünür. `pending_likes()` bu yüzden `is_super desc, created_at desc` sıralıyor.
+
+"Süper" rozeti kilitli (ücretsiz) kartta bile görünür — bu bir kimlik
+sızıntısı değil, "asla satılmayacaklar" listesini ihlal etmiyor. Ödeme
+altyapısı yok (Faz 0), bu yüzden süper beğeni **sınırsız** — swipe
+limitiyle aynı duruş: önce ölç, kıtlığı yoğunluk oluşunca ekle.
+
+**Kapsam dışı bırakılan (sonraki tur):** anlık push bildirimi ("X seni süper
+beğendi"), günlük gönderim limiti (premium'un doğal kapısı).
+
 ### Sahiplendirme yüzeyi parasızdır — sıralama yanıt vermeye göre
 
 Sahiplendirmede öne çıkma **satın alınamaz**. Gerekçe ahlaki değil yapısal:
