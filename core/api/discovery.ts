@@ -36,6 +36,7 @@ export type DiscoveryDeck = {
     visibility: "hidden" | "after_match" | "public";
     gender: "female" | "male" | "other" | null;
     socialOpen: boolean;
+    avatarUrl: string | null;
     /** Doğrulama istemini doğru anda gösterebilmek için. */
     verificationStatus: "pending" | "approved" | "rejected" | null;
     requirePhoto: boolean;
@@ -174,7 +175,7 @@ export async function loadDiscoveryDeck(
     sb
       .from("profiles")
       .select(
-        "owner_visibility,gender,owner_social_open,require_visible_owner,verification_status",
+        "owner_visibility,gender,owner_social_open,require_visible_owner,verification_status,avatar_url",
       )
       .eq("id", userId)
       .single(),
@@ -191,10 +192,22 @@ export async function loadDiscoveryDeck(
   if (profileResult.error) throw profileResult.error;
   if (preferencesResult.error) throw preferencesResult.error;
 
+  // Kendi fotoğrafımı kendime gösteriyorum — görünürlük ayarı BAŞKALARININ
+  // ne göreceğini kısıtlar, kendi eşleşme kutlamamda kendi avatarımı
+  // görmemi engellemez.
+  let ownerAvatarUrl: string | null = null;
+  if (profileResult.data.avatar_url) {
+    const { data: signed } = await sb.storage
+      .from(STORAGE_BUCKETS.ownerAvatars)
+      .createSignedUrl(profileResult.data.avatar_url, 60 * 30);
+    ownerAvatarUrl = signed?.signedUrl ?? null;
+  }
+
   const ownerSettings: DiscoveryDeck["ownerSettings"] = {
     visibility: profileResult.data.owner_visibility,
     gender: profileResult.data.gender as DiscoveryDeck["ownerSettings"]["gender"],
     socialOpen: profileResult.data.owner_social_open,
+    avatarUrl: ownerAvatarUrl,
     verificationStatus: profileResult.data.verification_status,
     requirePhoto: preferencesResult.data.require_owner_photo,
     requireSocial: preferencesResult.data.require_owner_social,

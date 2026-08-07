@@ -43,12 +43,12 @@ export function DiscoveryCard({
           source={card.photoUrls[0]}
           contentFit="cover"
           transition={180}
-          style={{ width: "100%", aspectRatio: 0.92 }}
+          style={{ width: "100%", aspectRatio: 1.05 }}
         />
       ) : (
         <View
           className="items-center justify-center bg-bg-tertiary"
-          style={{ width: "100%", aspectRatio: 0.92 }}
+          style={{ width: "100%", aspectRatio: 1.05 }}
         >
           <Ionicons name="paw" color="#C4B7AE" size={72} />
         </View>

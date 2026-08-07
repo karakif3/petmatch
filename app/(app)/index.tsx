@@ -58,6 +58,7 @@ export default function DiscoverScreen() {
   const [match, setMatch] = useState<{
     petName: string;
     photoUrl: string | null;
+    ownerPhotoUrl: string | null;
     conversationId: string | null;
   } | null>(null);
   const [segment, setSegment] = useState<DiscoverySegment>("all");
@@ -202,6 +203,7 @@ export default function DiscoverScreen() {
         setMatch({
           petName: swipedCard.name,
           photoUrl: swipedCard.photoUrls[0] ?? null,
+          ownerPhotoUrl: swipedCard.owner?.photoUrl ?? null,
           conversationId: null,
         });
         // Konuşma id'si ayrı bir sorgu; kutlama onu beklemeden açılıyor,
@@ -590,40 +592,48 @@ export default function DiscoverScreen() {
                 <Text className="text-center text-sm text-danger">{error}</Text>
               </View>
             ) : null}
-
-            <View className="mt-5 flex-row items-center justify-center gap-6">
-              <Pressable
-                onPress={() => handleSwipe("pass")}
-                disabled={swipe.isPending}
-                accessibilityLabel="Geç"
-                className="h-16 w-16 items-center justify-center rounded-full border border-border bg-surface shadow-sm disabled:opacity-50"
-              >
-                <Ionicons name="close" color="#9A8B82" size={32} />
-              </Pressable>
-              <Pressable
-                onPress={handleSuperLike}
-                disabled={swipe.isPending}
-                accessibilityLabel="Süper beğen"
-                className="h-14 w-14 items-center justify-center rounded-full bg-warning shadow-sm disabled:opacity-50"
-              >
-                <Ionicons name="star" color="#FFFFFF" size={24} />
-              </Pressable>
-              <Pressable
-                onPress={() => handleSwipe("like")}
-                disabled={swipe.isPending}
-                accessibilityLabel="Beğen"
-                className="h-20 w-20 items-center justify-center rounded-full bg-brand shadow-sm disabled:opacity-50"
-              >
-                {swipe.isPending ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Ionicons name="heart" color="#FFFFFF" size={36} />
-                )}
-              </Pressable>
-            </View>
           </>
         ) : null}
       </ScrollView>
+
+      {/*
+        Düğmeler bilerek ScrollView'ın DIŞINDA — kart + tamamlama kartı +
+        segment çubuğu üst üste geldiğinde beğen düğmesi kaydırmadan hiç
+        görünmüyordu. Tinder/Bumble'daki gibi sabit alt şerit: kart ne kadar
+        uzun olursa olsun düğmeler her zaman ekranda.
+      */}
+      {currentCard ? (
+        <View className="flex-row items-center justify-center gap-6 border-t border-border bg-bg-primary px-5 py-4">
+          <Pressable
+            onPress={() => handleSwipe("pass")}
+            disabled={swipe.isPending}
+            accessibilityLabel="Geç"
+            className="h-16 w-16 items-center justify-center rounded-full border border-border bg-surface shadow-sm disabled:opacity-50"
+          >
+            <Ionicons name="close" color="#9A8B82" size={32} />
+          </Pressable>
+          <Pressable
+            onPress={handleSuperLike}
+            disabled={swipe.isPending}
+            accessibilityLabel="Süper beğen"
+            className="h-14 w-14 items-center justify-center rounded-full bg-warning shadow-sm disabled:opacity-50"
+          >
+            <Ionicons name="star" color="#FFFFFF" size={24} />
+          </Pressable>
+          <Pressable
+            onPress={() => handleSwipe("like")}
+            disabled={swipe.isPending}
+            accessibilityLabel="Beğen"
+            className="h-20 w-20 items-center justify-center rounded-full bg-brand shadow-sm disabled:opacity-50"
+          >
+            {swipe.isPending ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="heart" color="#FFFFFF" size={36} />
+            )}
+          </Pressable>
+        </View>
+      ) : null}
       <OwnerSheet
         owner={currentCard?.owner ?? null}
         petName={currentCard?.name ?? ""}
@@ -673,8 +683,10 @@ export default function DiscoverScreen() {
         visible={Boolean(match)}
         viewerPetName={deck.data?.viewer?.name ?? "Petin"}
         viewerPhotoUrl={deck.data?.viewer?.photoUrls[0] ?? null}
+        viewerOwnerPhotoUrl={deck.data?.ownerSettings.avatarUrl ?? null}
         matchedPetName={match?.petName ?? ""}
         matchedPhotoUrl={match?.photoUrl ?? null}
+        matchedOwnerPhotoUrl={match?.ownerPhotoUrl ?? null}
         canOpenChat={Boolean(match?.conversationId)}
         // Doğrulama istemi kayıt akışında değil BURADA: ilk eşleşme, rozetin
         // değerinin somutlaştığı ilk an (bkz. docs/benchmark.md).
