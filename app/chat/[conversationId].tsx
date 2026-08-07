@@ -310,10 +310,20 @@ export default function ChatScreen() {
     latestMessageRef.current = latestMessage.id;
     const mine = latestMessage.senderId === user?.id;
     if (initial || mine || nearBottomRef.current) {
+      // Tek requestAnimationFrame'in içerik hâlâ ölçülürken (üstteki
+      // buluşma/sahip kartı, tarih ayracı) çağrılması yeterli olmuyordu —
+      // scrollToEnd o anki eksik yüksekliğe göre hesaplanıp son mesajı
+      // katlanmış görünüm dışında bırakıyordu. İkinci, biraz geciktirilmiş
+      // çağrı düzen kesinleştikten sonra pozisyonu düzeltiyor.
       requestAnimationFrame(() =>
         listRef.current?.scrollToEnd({ animated: !initial }),
       );
+      const settle = setTimeout(
+        () => listRef.current?.scrollToEnd({ animated: false }),
+        120,
+      );
       setNewMessageBelow(false);
+      return () => clearTimeout(settle);
     } else {
       setNewMessageBelow(true);
     }
@@ -567,7 +577,20 @@ export default function ChatScreen() {
         !messages.isLoading &&
         !conversation.isError &&
         !messages.isError ? (
-          <View className="flex-1">
+          <View
+            className="flex-1"
+            onLayout={() => {
+              // Buluşma istemi/hata şeridi gibi ALTTAKİ kardeşler farklı bir
+              // anda mount olup bu View'a kalan yüksekliği değiştirdiğinde de
+              // tetiklenir — mesajlar hiç değişmese bile son mesajın hâlâ
+              // dışarıda kalmadığını garantiliyor.
+              if (nearBottomRef.current) {
+                requestAnimationFrame(() =>
+                  listRef.current?.scrollToEnd({ animated: false }),
+                );
+              }
+            }}
+          >
             <FlatList
               ref={listRef}
               data={chatItems}
