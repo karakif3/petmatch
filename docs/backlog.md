@@ -74,9 +74,7 @@ takvime ekle (`expo-calendar`, yalnızca onaylanmış buluşmada) ·
 savunma, birincil sinyal doğru) · profil ekranında satır içi hatalar +
 pet fotoğrafında kamera seçeneği · süper beğeni push bildirimi
 (`notification_deliveries`'e `super_like` event_type, `0048` —
-`send-notification` edge function'ı yerel TLS/sertifika sorunu yüzünden bu
-oturumda deploy edilemedi, ayrıca deploy edilmeli:
-`npx supabase functions deploy send-notification`) · Keşfet kartı
+`send-notification` **2026-08-07'de deploy edildi**, v2 ACTIVE) · Keşfet kartı
 Tinder/Bumble referansıyla küçültüldü (foto en-boy oranı 1.05→1.3, panel
 boşlukları sıkılaştırıldı) ve düğme şeridi sert kenarlı araç çubuğundan
 deste'nin üstüne binen gradyanlı, gölgeli yüzen düğmelere geçti — canlı
