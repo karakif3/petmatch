@@ -1367,7 +1367,10 @@ export type Database = {
           p_is_super?: boolean
           p_to_pet_id: string
         }
-        Returns: string
+        Returns: {
+          match_id: string
+          swipe_id: string
+        }[]
       }
       touch_last_active: { Args: never; Returns: undefined }
       track_product_event: {

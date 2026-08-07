@@ -307,13 +307,22 @@ export async function swipePet(input: {
   void trackProductEvent(
     input.isSuper ? "swipe_super_like" : input.direction === "like" ? "swipe_like" : "swipe_pass",
   );
-  if (data) {
+  const row = data?.[0];
+  if (row?.match_id) {
     void trackProductEvent("match_created");
-    void requestNotificationDelivery({ type: "match", matchId: data }).catch(
+    void requestNotificationDelivery({ type: "match", matchId: row.match_id }).catch(
       (notificationError) => {
         console.error("Eşleşme bildirimi gönderilemedi:", notificationError);
       },
     );
+  } else if (input.isSuper && row?.swipe_id) {
+    // Eşleşme henüz yoksa (tek taraflı süper beğeni) alıcıya yine de haber
+    // verilmeli — 0044'te bilerek kapsam dışı bırakılmıştı.
+    void requestNotificationDelivery({ type: "super_like", swipeId: row.swipe_id }).catch(
+      (notificationError) => {
+        console.error("Süper beğeni bildirimi gönderilemedi:", notificationError);
+      },
+    );
   }
-  return data ?? null;
+  return row?.match_id ?? null;
 }

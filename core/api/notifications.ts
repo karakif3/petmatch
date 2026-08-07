@@ -23,7 +23,8 @@ export type PushRegistrationResult = {
 type NotificationEvent =
   | { type: "match"; matchId: string }
   | { type: "message"; messageId: string }
-  | { type: "new_candidate"; petId: string };
+  | { type: "new_candidate"; petId: string }
+  | { type: "super_like"; swipeId: string };
 
 function easProjectId(): string | null {
   const configured =

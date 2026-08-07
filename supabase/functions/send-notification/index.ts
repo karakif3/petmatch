@@ -8,7 +8,8 @@ const corsHeaders = {
 type EventBody =
   | { type: "match"; matchId: string }
   | { type: "message"; messageId: string }
-  | { type: "new_candidate"; petId: string };
+  | { type: "new_candidate"; petId: string }
+  | { type: "super_like"; swipeId: string };
 
 type PushContent = {
   title: string;
@@ -43,6 +44,9 @@ function eventBody(value: unknown): EventBody | null {
   }
   if (body.type === "new_candidate" && isUuid(body.petId)) {
     return { type: "new_candidate", petId: body.petId };
+  }
+  if (body.type === "super_like" && isUuid(body.swipeId)) {
+    return { type: "super_like", swipeId: body.swipeId };
   }
   return null;
 }
@@ -80,8 +84,11 @@ async function claimAndSend(
     content: PushContent;
   },
 ): Promise<"sent" | "skipped" | "duplicate"> {
+  // super_like'ın kendi tercihi yok; "yeni eşleşme" ile aynı ilgi
+  // kategorisine giriyor (biri seninle ilgileniyor), ayrı bir ayar
+  // eklemek bu görevin kapsamı dışında.
   const preferenceColumn =
-    input.eventType === "match"
+    input.eventType === "match" || input.eventType === "super_like"
       ? "notify_on_match"
       : input.eventType === "message"
         ? "notify_on_message"
@@ -257,6 +264,45 @@ Deno.serve(async (request) => {
             type: "match",
             conversationId: match.conversation_id,
           },
+        },
+      });
+      return json({ status: result });
+    }
+
+    if (body.type === "super_like") {
+      const { data: swipe, error: swipeError } = await admin
+        .from("swipes")
+        .select("id,from_pet_id,to_pet_id,actor_id,direction,is_super")
+        .eq("id", body.swipeId)
+        .single();
+      if (
+        swipeError ||
+        !swipe ||
+        !swipe.is_super ||
+        swipe.direction !== "like" ||
+        swipe.actor_id !== authData.user.id
+      ) {
+        return json({ error: "Super like not found" }, 404);
+      }
+
+      const { data: pets, error: petsError } = await admin
+        .from("pets")
+        .select("id,owner_id,name")
+        .in("id", [swipe.from_pet_id, swipe.to_pet_id]);
+      if (petsError) throw petsError;
+
+      const fromPet = pets?.find((pet) => pet.id === swipe.from_pet_id);
+      const toPet = pets?.find((pet) => pet.id === swipe.to_pet_id);
+      if (!fromPet || !toPet) return json({ error: "Pet not found" }, 404);
+
+      const result = await claimAndSend(admin, {
+        eventType: "super_like",
+        eventId: swipe.id,
+        recipientId: toPet.owner_id,
+        content: {
+          title: "Süper beğeni! ⭐",
+          body: `${fromPet.name} seni süper beğendi.`,
+          data: { type: "super_like" },
         },
       });
       return json({ status: result });
