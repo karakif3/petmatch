@@ -1,4 +1,11 @@
-import { Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { ChatMessage } from "../../core/api/conversations";
@@ -18,6 +25,16 @@ export function messageTime(value: string): string {
  * boşluğu daraltıyor; hangi mesajın gruplu olduğuna `core/domain/chat-items`
  * karar veriyor. Okundu bilgisi yalnızca kendi SON mesajında gösteriliyor —
  * her balonda tekrar etmesi gürültü yaratıyor.
+ *
+ * **Giriş animasyonu süs değil, durum bildirimi.** Gönderilen mesaj sağdan,
+ * gelen mesaj soldan yaylanarak giriyor; yön kimin yazdığını hareketin
+ * kendisiyle söylüyor ve realtime'la düşen mesaj "liste birden değişti"
+ * yerine "yeni bir şey geldi" gibi okunuyor. Ağ yavaşken en çok merak
+ * edilen şey mesajın gidip gitmediği; hareketin varlığı o belirsizliği
+ * kapatıyor.
+ *
+ * Hareket azaltma açıkken animasyon YOK — `match-celebration` ile aynı
+ * kural. Balon doğrudan son halinde görünüyor.
  */
 export function MessageBubble({
   message,
@@ -32,6 +49,37 @@ export function MessageBubble({
 }) {
   const status = message.readAt ? "Okundu" : "Gönderildi";
 
+  const [animate, setAnimate] = useState(false);
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => {
+        if (!active) return;
+        if (reduced) {
+          progress.value = 1;
+          return;
+        }
+        setAnimate(true);
+        progress.value = withSpring(1, { damping: 18, stiffness: 190 });
+      })
+      .catch(() => {
+        if (active) progress.value = 1;
+      });
+    return () => {
+      active = false;
+    };
+  }, [progress]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: animate ? withTiming(progress.value, { duration: 140 }) : 1,
+    transform: [
+      { scale: 0.94 + progress.value * 0.06 },
+      { translateX: (mine ? 14 : -14) * (1 - progress.value) },
+    ],
+  }));
+
   return (
     <View
       className={`${grouped ? "mb-1" : "mb-2.5"} px-4 ${mine ? "items-end" : "items-start"}`}
@@ -40,7 +88,8 @@ export function MessageBubble({
         message.createdAt,
       )}${latestMine ? `. ${status}` : ""}`}
     >
-      <View
+      <Animated.View
+        style={style}
         className={`max-w-[82%] px-4 py-2.5 ${
           mine
             ? `bg-brand ${grouped ? "rounded-2xl rounded-r-md" : "rounded-2xl rounded-br-md"}`
@@ -69,7 +118,7 @@ export function MessageBubble({
             </>
           ) : null}
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

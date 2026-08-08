@@ -4,12 +4,16 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   Text,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,8 +26,11 @@ import {
   type DiscoverySegment,
 } from "../../components/discovery-segments";
 import { MatchCelebration } from "../../components/match-celebration";
+import { ProfileCompletionCard } from "../../components/profile-completion-card";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
+import { OwnerSheet } from "../../components/owner-sheet";
+import { SwipeableCard } from "../../components/swipeable-card";
 import { listAdoptablePets } from "../../core/api/adoption";
 import { loadConversationIdForMatch } from "../../core/api/conversations";
 import {
@@ -33,12 +40,25 @@ import {
   type DiscoveryFilterSettings,
   type OwnerDiscoveryFilterInput,
 } from "../../core/api/discovery";
+import { loadProfileCompletion } from "../../core/api/profile-completion";
 import { blockUser } from "../../core/api/safety";
+import { FEATURES } from "../../core/features";
 import type { SwipeDirection } from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
+import { errorMessage } from "../../core/domain/error-message";
+
+// NativeWind'in shadow-sm'i Android'de görünmüyor (elevation gerekiyor) ve
+// iOS'ta da Tinder/Bumble'daki "yüzen düğme" hissi için fazla hafif kalıyor.
+const floatingButtonShadow = {
+  shadowColor: "#1F1A17",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.16,
+  shadowRadius: 8,
+  elevation: 5,
+};
 
 export default function DiscoverScreen() {
   const t = useTranslation();
@@ -49,10 +69,12 @@ export default function DiscoverScreen() {
   const [match, setMatch] = useState<{
     petName: string;
     photoUrl: string | null;
+    ownerPhotoUrl: string | null;
     conversationId: string | null;
   } | null>(null);
   const [segment, setSegment] = useState<DiscoverySegment>("all");
   const [safetyVisible, setSafetyVisible] = useState(false);
+  const [ownerSheet, setOwnerSheet] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -65,6 +87,29 @@ export default function DiscoverScreen() {
   });
   const scrollRef = useRef<ScrollView>(null);
   const discoveryTrackedRef = useRef<string | null>(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  /**
+   * Mini onboarding — bilerek TUR değil, bağlamsal ipucu.
+   *
+   * Kayıt akışı 17 alandan 6'ya indirildi; üstüne bir de adım adım tur
+   * eklemek o sadeleştirmeyle gerilirdi. Turlar genelde atlanır; bağlamsal
+   * ipucu davranışın gerçekleştiği anda öğretir. İlk karar anında (ilk
+   * swipe/düğme) ya da birkaç saniye sonra kendiliğinden kapanıyor, bir
+   * daha hiç çıkmıyor.
+   */
+  useEffect(() => {
+    if (!user) return;
+    void AsyncStorage.getItem(`petmatch:seen-swipe-hint:${user.id}`).then((value) => {
+      if (!value) setShowSwipeHint(true);
+    });
+  }, [user]);
+
+  const dismissSwipeHint = () => {
+    if (!showSwipeHint || !user) return;
+    setShowSwipeHint(false);
+    void AsyncStorage.setItem(`petmatch:seen-swipe-hint:${user.id}`, "1");
+  };
 
   useEffect(() => {
     let active = true;
@@ -126,6 +171,15 @@ export default function DiscoverScreen() {
   const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
   const currentCard = activeCards[0] ?? null;
 
+  // İpucu ekranda GERÇEKTEN görünmüyorsa (kart yoksa) sayaç işlemeye
+  // başlamıyor — yoksa kullanıcı hiç görmeden "görüldü" işaretlenirdi.
+  useEffect(() => {
+    if (!showSwipeHint || !currentCard) return;
+    const timeout = setTimeout(dismissSwipeHint, 5000);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSwipeHint, currentCard?.id]);
+
   // Segment gizlenecek kadar az kart kaldıysa kullanıcıyı orada bırakma.
   useEffect(() => {
     if (segment === "owner_visible" && ownerVisibleCards.length < OWNER_SEGMENT_MIN_CARDS) {
@@ -137,10 +191,25 @@ export default function DiscoverScreen() {
     setDismissedIds([]);
   }, [deck.dataUpdatedAt]);
 
+  // Kart değişince açık kalan sahip paneli yeni kartın sahibini gösterirdi.
+  useEffect(() => {
+    setOwnerSheet(false);
+  }, [currentCard?.id]);
+
+  const completion = useQuery({
+    queryKey: ["profile-completion", user?.id],
+    queryFn: () => loadProfileCompletion(user!.id),
+    enabled: Boolean(user),
+    staleTime: 60 * 1000,
+  });
+
   // Giriş kartı yalnızca gerçekten ilan varsa çıksın diye sayıyoruz.
+  // Bayrak kapalıyken sorgu hiç atılmıyor — gizli bir yüzey için her
+  // keşfet açılışında istek yapmanın anlamı yok.
   const adoptable = useQuery({
     queryKey: ["adoptable-pets", "count"],
     queryFn: () => listAdoptablePets(),
+    enabled: FEATURES.adoption,
     staleTime: 5 * 60 * 1000,
   });
   const adoptableCount = adoptable.data?.length ?? 0;
@@ -149,9 +218,11 @@ export default function DiscoverScreen() {
     mutationFn: async ({
       toPetId,
       direction,
+      isSuper,
     }: {
       toPetId: string;
       direction: SwipeDirection;
+      isSuper?: boolean;
     }) => {
       const viewer = deck.data?.viewer;
       if (!viewer) throw new Error("Aktif pet bulunamadı.");
@@ -159,6 +230,7 @@ export default function DiscoverScreen() {
         fromPetId: viewer.id,
         toPetId,
         direction,
+        isSuper,
       });
       return { direction, matchId, toPetId };
     },
@@ -166,11 +238,15 @@ export default function DiscoverScreen() {
       const swipedCard = deck.data?.cards.find((card) => card.id === toPetId);
       setDismissedIds((ids) => [...ids, toPetId]);
       setError(null);
+      // Karşı taraf zaten beni beğenmişse bu karar (eşleşme ya da geçme)
+      // "Beğeniler" sekmesindeki bekleyen listeden onu düşürür.
+      void queryClient.invalidateQueries({ queryKey: ["pending-likes"] });
 
       if (direction === "like" && matchId && swipedCard) {
         setMatch({
           petName: swipedCard.name,
           photoUrl: swipedCard.photoUrls[0] ?? null,
+          ownerPhotoUrl: swipedCard.owner?.photoUrl ?? null,
           conversationId: null,
         });
         // Konuşma id'si ayrı bir sorgu; kutlama onu beklemeden açılıyor,
@@ -188,14 +264,21 @@ export default function DiscoverScreen() {
     },
     onError: (mutationError) => {
       setError(
-        mutationError instanceof Error ? mutationError.message : "Beğeni kaydedilemedi.",
+        errorMessage(mutationError, "Beğeni kaydedilemedi."),
       );
     },
   });
 
   const handleSwipe = (direction: SwipeDirection) => {
     if (!currentCard || swipe.isPending) return;
+    dismissSwipeHint();
     swipe.mutate({ toPetId: currentCard.id, direction });
+  };
+
+  const handleSuperLike = () => {
+    if (!currentCard || swipe.isPending) return;
+    dismissSwipeHint();
+    swipe.mutate({ toPetId: currentCard.id, direction: "like", isSuper: true });
   };
 
   const refresh = async () => {
@@ -229,9 +312,7 @@ export default function DiscoverScreen() {
               })
               .catch((blockError) => {
                 setError(
-                  blockError instanceof Error
-                    ? blockError.message
-                    : "Kullanıcı engellenemedi.",
+                  errorMessage(blockError, "Kullanıcı engellenemedi."),
                 );
               })
               .finally(() => setSafetyBusy(false));
@@ -260,7 +341,7 @@ export default function DiscoverScreen() {
       await queryClient.invalidateQueries({ queryKey: ["discovery", user.id] });
     } catch (filterError) {
       setError(
-        filterError instanceof Error ? filterError.message : "Filtreler kaydedilemedi.",
+        errorMessage(filterError, "Filtreler kaydedilemedi."),
       );
     } finally {
       setFilterBusy(false);
@@ -346,6 +427,13 @@ export default function DiscoverScreen() {
         </View>
 
 
+        {/*
+          Kayıt akışı artık ırk/boyut/enerji/biyografi sormuyor; bunlar
+          kullanıcı ürünü gördükten sonra buradan toplanıyor. Eksik yoksa
+          kart hiç render edilmiyor.
+        */}
+        <ProfileCompletionCard data={completion.data} />
+
         {deck.isLoading ? (
           <View className="flex-1 items-center justify-center py-24">
             <ActivityIndicator color="#F97362" size="large" />
@@ -360,7 +448,7 @@ export default function DiscoverScreen() {
               Keşfet yüklenemedi
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              {deck.error instanceof Error ? deck.error.message : "Bağlantını kontrol edip tekrar dene."}
+              {errorMessage(deck.error, "Bağlantını kontrol edip tekrar dene.")}
             </Text>
             <Pressable onPress={refresh} className="mt-5 rounded-xl bg-brand px-5 py-3">
               <Text className="font-semibold text-white">Tekrar dene</Text>
@@ -380,23 +468,36 @@ export default function DiscoverScreen() {
               Henüz bir petin yok
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              Keşfet için aktif bir pet gerekiyor. Dilersen önce yuva arayan
-              hayvanlara göz at.
+              {FEATURES.adoption
+                ? "Keşfet için aktif bir pet gerekiyor. Dilersen önce yuva arayan hayvanlara göz at."
+                : "Keşfet için aktif bir pet gerekiyor."}
             </Text>
-            <Pressable
-              onPress={() => router.push("/adoption")}
-              accessibilityRole="button"
-              className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
-            >
-              <Ionicons name="home" size={17} color="#FFFFFF" />
-              <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
-            </Pressable>
+            {FEATURES.adoption ? (
+              <Pressable
+                onPress={() => router.push("/adoption")}
+                accessibilityRole="button"
+                className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
+              >
+                <Ionicons name="home" size={17} color="#FFFFFF" />
+                <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => router.push("/profile/pet")}
               accessibilityRole="button"
-              className="mt-2 min-h-12 items-center justify-center px-5"
+              className={
+                FEATURES.adoption
+                  ? "mt-2 min-h-12 items-center justify-center px-5"
+                  : "mt-5 min-h-12 items-center justify-center rounded-xl bg-brand px-5"
+              }
             >
-              <Text className="text-sm font-semibold text-text-secondary">
+              <Text
+                className={
+                  FEATURES.adoption
+                    ? "text-sm font-semibold text-text-secondary"
+                    : "text-sm font-bold text-white"
+                }
+              >
                 Pet profili oluştur
               </Text>
             </Pressable>
@@ -420,7 +521,7 @@ export default function DiscoverScreen() {
           olduğunu söyler; giriş noktasını içeriğe bağlamak bu sorunu kural
           olarak değil yapısal olarak çözüyor (bkz. docs/goal-model.md).
         */}
-        {deck.data?.viewer && adoptableCount > 0 ? (
+        {FEATURES.adoption && deck.data?.viewer && adoptableCount > 0 ? (
           <Pressable
             onPress={() => router.push("/adoption")}
             accessibilityRole="button"
@@ -511,7 +612,16 @@ export default function DiscoverScreen() {
         {currentCard ? (
           <>
             <View>
-              <DiscoveryCard card={currentCard} />
+              <SwipeableCard
+                resetKey={currentCard.id}
+                disabled={swipe.isPending}
+                onSwipe={handleSwipe}
+              >
+                <DiscoveryCard
+                  card={currentCard}
+                  onOwnerPress={currentCard.owner ? () => setOwnerSheet(true) : undefined}
+                />
+              </SwipeableCard>
               <Pressable
                 onPress={() => setSafetyVisible(true)}
                 disabled={safetyBusy}
@@ -527,32 +637,85 @@ export default function DiscoverScreen() {
                 <Text className="text-center text-sm text-danger">{error}</Text>
               </View>
             ) : null}
-
-            <View className="mt-5 flex-row items-center justify-center gap-6">
-              <Pressable
-                onPress={() => handleSwipe("pass")}
-                disabled={swipe.isPending}
-                accessibilityLabel="Geç"
-                className="h-16 w-16 items-center justify-center rounded-full border border-border bg-surface shadow-sm disabled:opacity-50"
-              >
-                <Ionicons name="close" color="#9A8B82" size={32} />
-              </Pressable>
-              <Pressable
-                onPress={() => handleSwipe("like")}
-                disabled={swipe.isPending}
-                accessibilityLabel="Beğen"
-                className="h-20 w-20 items-center justify-center rounded-full bg-brand shadow-sm disabled:opacity-50"
-              >
-                {swipe.isPending ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Ionicons name="heart" color="#FFFFFF" size={36} />
-                )}
-              </Pressable>
-            </View>
           </>
         ) : null}
       </ScrollView>
+
+      {showSwipeHint && currentCard ? (
+        <View className="flex-row items-center gap-2 border-t border-border bg-bg-secondary px-4 py-2.5">
+          <Ionicons name="hand-left-outline" color="#6B5D55" size={16} />
+          <Text className="flex-1 text-xs text-text-secondary">
+            Kartı sağa/sola sürükle ya da alttaki düğmelere dokun
+          </Text>
+          <Pressable onPress={dismissSwipeHint} accessibilityLabel="İpucunu kapat" hitSlop={8}>
+            <Ionicons name="close" color="#9A8B82" size={16} />
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/*
+        Düğmeler bilerek ScrollView'ın DIŞINDA — kart + tamamlama kartı +
+        segment çubuğu üst üste geldiğinde beğen düğmesi kaydırmadan hiç
+        görünmüyordu. Tinder/Bumble'daki gibi sabit alt şerit: kart ne kadar
+        uzun olursa olsun düğmeler her zaman ekranda.
+        Düz bir araç çubuğu değil, deste'nin üstüne binen bir gradyan —
+        negatif üst boşluk son kaydırma pikselleriyle örtüşüyor, sert bir
+        çizgi yerine yumuşak bir geçiş. Düğmeler kendi gölgeleriyle
+        yüzüyor (Tinder/Bumble referansı).
+      */}
+      {currentCard ? (
+        <LinearGradient
+          colors={["rgba(255,251,247,0)", "#FFFBF7", "#FFFBF7"]}
+          locations={[0, 0.55, 1]}
+          // İpucu şeridi görünüyorken üste binmesin — kendi zemini var,
+          // gradyanın şeffaf ucu onunla çakışırsa renk dikişi oluşur.
+          style={
+            showSwipeHint
+              ? { paddingTop: 20 }
+              : { marginTop: -36, paddingTop: 36 }
+          }
+          className="flex-row items-center justify-center gap-6 px-5 pb-4"
+        >
+          <Pressable
+            onPress={() => handleSwipe("pass")}
+            disabled={swipe.isPending}
+            accessibilityLabel="Geç"
+            style={floatingButtonShadow}
+            className="h-16 w-16 items-center justify-center rounded-full bg-surface disabled:opacity-50"
+          >
+            <Ionicons name="close" color="#9A8B82" size={30} />
+          </Pressable>
+          <Pressable
+            onPress={handleSuperLike}
+            disabled={swipe.isPending}
+            accessibilityLabel="Süper beğen"
+            style={floatingButtonShadow}
+            className="h-12 w-12 items-center justify-center rounded-full bg-warning disabled:opacity-50"
+          >
+            <Ionicons name="star" color="#FFFFFF" size={20} />
+          </Pressable>
+          <Pressable
+            onPress={() => handleSwipe("like")}
+            disabled={swipe.isPending}
+            accessibilityLabel="Beğen"
+            style={floatingButtonShadow}
+            className="h-[70px] w-[70px] items-center justify-center rounded-full bg-brand disabled:opacity-50"
+          >
+            {swipe.isPending ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="heart" color="#FFFFFF" size={32} />
+            )}
+          </Pressable>
+        </LinearGradient>
+      ) : null}
+      <OwnerSheet
+        owner={currentCard?.owner ?? null}
+        petName={currentCard?.name ?? ""}
+        visible={ownerSheet && Boolean(currentCard?.owner)}
+        onClose={() => setOwnerSheet(false)}
+      />
+
       <SafetyMenuModal
         visible={safetyVisible}
         busy={safetyBusy}
@@ -595,8 +758,10 @@ export default function DiscoverScreen() {
         visible={Boolean(match)}
         viewerPetName={deck.data?.viewer?.name ?? "Petin"}
         viewerPhotoUrl={deck.data?.viewer?.photoUrls[0] ?? null}
+        viewerOwnerPhotoUrl={deck.data?.ownerSettings.avatarUrl ?? null}
         matchedPetName={match?.petName ?? ""}
         matchedPhotoUrl={match?.photoUrl ?? null}
+        matchedOwnerPhotoUrl={match?.ownerPhotoUrl ?? null}
         canOpenChat={Boolean(match?.conversationId)}
         // Doğrulama istemi kayıt akışında değil BURADA: ilk eşleşme, rozetin
         // değerinin somutlaştığı ilk an (bkz. docs/benchmark.md).

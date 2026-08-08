@@ -15,28 +15,21 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
+import { BirthDateField } from "../components/birth-date-field";
 import { BrandMark } from "../components/brand-mark";
+import { PetAgePicker } from "../components/pet-age-picker";
 import { completeOnboarding, type OnboardingPhoto } from "../core/api/onboarding";
 import { listRegions, setMyRegion } from "../core/api/regions";
-import { isAdultDate, isPastOrTodayDate } from "../core/domain/date-validation";
+import { isAdultDate } from "../core/domain/date-validation";
+import { PET_AGE_UNKNOWN, petAgeToBirthDate } from "../core/domain/pet-age";
 import { coarsenCoordinates } from "../core/domain/distance";
-import type { Coordinates, OwnerVisibility, Size, Species } from "../core/domain/types";
+import type { Coordinates, Species } from "../core/domain/types";
 import { useTranslation } from "../core/i18n";
+import { ensureImageLibraryAccess } from "../core/media/image-library";
 import { useAuthStore } from "../stores/auth";
+import { errorMessage } from "../core/domain/error-message";
 
 type Step = 0 | 1 | 2;
-
-const ownerVisibilityOptions: { value: OwnerVisibility; label: string; detail: string }[] = [
-  { value: "hidden", label: "Gizli", detail: "Sadece petin görünür" },
-  { value: "after_match", label: "Eşleşince", detail: "Varsayılan ve önerilen" },
-  { value: "public", label: "Herkese açık", detail: "Kartta sahibin de görünür" },
-];
-
-const sizeOptions: { value: Size; label: string }[] = [
-  { value: "small", label: "Küçük" },
-  { value: "medium", label: "Orta" },
-  { value: "large", label: "Büyük" },
-];
 
 function Choice({
   active,
@@ -90,22 +83,15 @@ export default function OnboardingScreen() {
   const [ownerBirthDate, setOwnerBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [regionSlug, setRegionSlug] = useState<string | null>(null);
-  const [ownerVisibility, setOwnerVisibility] =
-    useState<OwnerVisibility>("after_match");
 
   const [petName, setPetName] = useState("");
   const [species, setSpecies] = useState<Species>("dog");
   const [gender, setGender] = useState<"male" | "female">("female");
-  const [breed, setBreed] = useState("");
-  const [petBirthDate, setPetBirthDate] = useState("");
-  const [size, setSize] = useState<Size>("medium");
-  const [energyLevel, setEnergyLevel] = useState(3);
-  const [isNeutered, setIsNeutered] = useState(false);
+  const [petAge, setPetAge] = useState<string>(PET_AGE_UNKNOWN);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [photos, setPhotos] = useState<OnboardingPhoto[]>([]);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [locationConsent, setLocationConsent] = useState(false);
-  const [publicProfileConsent, setPublicProfileConsent] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
@@ -117,30 +103,38 @@ export default function OnboardingScreen() {
 
   const progress = useMemo(() => `${step + 1} / 3`, [step]);
 
+  const selectedRegion = useMemo(
+    () => (regions.data ?? []).find((region) => region.slug === regionSlug) ?? null,
+    [regions.data, regionSlug],
+  );
+
+  // Pilot bölgelerin şehri `regions.city`'den geliyor; yalnızca "Diğer"
+  // seçilirse kullanıcıya sorulur.
+  const needsManualCity = selectedRegion !== null && selectedRegion.city === null;
+  const resolvedCity = needsManualCity ? city.trim() || null : selectedRegion?.city ?? null;
+
   const next = () => {
     setError(null);
     if (step === 0) {
+      // Takvim 18 yaş altını zaten seçtirmiyor; burada kalan tek durum
+      // kullanıcının tarihe hiç dokunmamış olması.
       if (!isAdultDate(ownerBirthDate)) {
-        return setError("Geçerli bir doğum tarihi yazmalısın ve 18 yaşında olmalısın.");
+        return setError("Doğum tarihini seçmelisin.");
       }
-      if (!city.trim()) return setError("Şehrini yazmalısın.");
       if (!regionSlug) return setError("Bölgeni seçmelisin.");
+      if (needsManualCity && !city.trim()) return setError("Şehrini yazmalısın.");
       setStep(1);
       return;
     }
     if (step === 1) {
       if (!petName.trim()) return setError("Petinin adını yazmalısın.");
-      if (petBirthDate && !isPastOrTodayDate(petBirthDate)) {
-        return setError("Petinin geçmişteki doğum tarihini YYYY-AA-GG biçiminde yaz.");
-      }
       setStep(2);
     }
   };
 
   const pickPhotos = async () => {
     setError(null);
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    if (!(await ensureImageLibraryAccess())) {
       setError("Fotoğraf seçmek için galeri izni gerekiyor.");
       return;
     }
@@ -178,7 +172,7 @@ export default function OnboardingScreen() {
         }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Konum alınamadı.");
+      setError(errorMessage(err, "Konum alınamadı."));
     } finally {
       setLocationBusy(false);
     }
@@ -198,10 +192,6 @@ export default function OnboardingScreen() {
       setError("Yaklaşık konumu kullanmak için ayrı açık rıza seçimini yapmalısın.");
       return;
     }
-    if (ownerVisibility === "public" && !publicProfileConsent) {
-      setError("Sahip profilini herkese açık yapmak için ayrı açık rıza seçimini yapmalısın.");
-      return;
-    }
 
     setBusy(true);
     setError(null);
@@ -214,17 +204,12 @@ export default function OnboardingScreen() {
         userId: user.id,
         displayName,
         ownerBirthDate,
-        city,
-        ownerVisibility,
+        city: resolvedCity,
         pet: {
           name: petName,
           species,
           gender,
-          breed: breed.trim() || null,
-          birthDate: petBirthDate || null,
-          size,
-          energyLevel,
-          isNeutered,
+          birthDate: petAgeToBirthDate(petAge),
           coordinates,
         },
         photos,
@@ -232,13 +217,11 @@ export default function OnboardingScreen() {
           termsAccepted: legalAccepted,
           privacyNoticeAcknowledged: legalAccepted,
           locationConsent: coordinates !== null && locationConsent,
-          publicProfileConsent:
-            ownerVisibility === "public" && publicProfileConsent,
         },
       });
       setOnboarded(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Onboarding tamamlanamadı.");
+      setError(errorMessage(err, "Onboarding tamamlanamadı."));
     } finally {
       setBusy(false);
     }
@@ -292,28 +275,17 @@ export default function OnboardingScreen() {
               onChangeText={setDisplayName}
               placeholder="Sana nasıl hitap edelim?"
               autoCapitalize="words"
+              autoComplete="name"
               maxLength={60}
             />
             <Text className="-mt-2 mb-4 text-xs text-text-tertiary">
               Petinin adı profilde her zaman görünür; kendi adını paylaşmak zorunda değilsin.
             </Text>
-            <Field
+            <BirthDateField
               label="Doğum tarihin"
+              helper="PetMatch yalnızca 18 yaş ve üzeri kullanıcılar içindir; takvim zaten 18 yaş altını seçtirmiyor."
               value={ownerBirthDate}
-              onChangeText={setOwnerBirthDate}
-              placeholder="YYYY-AA-GG"
-              keyboardType="numbers-and-punctuation"
-              maxLength={10}
-            />
-            <Text className="-mt-2 mb-4 text-xs text-text-tertiary">
-              PetMatch yalnızca 18 yaş ve üzeri kullanıcılar içindir.
-            </Text>
-            <Field
-              label="Şehir"
-              value={city}
-              onChangeText={setCity}
-              placeholder="Örn. İstanbul"
-              autoCapitalize="words"
+              onChange={setOwnerBirthDate}
             />
             <Text className="mb-2 text-sm font-semibold text-text-primary">
               Bölgen
@@ -347,20 +319,60 @@ export default function OnboardingScreen() {
                 );
               })}
             </View>
-            <Text className="mb-3 text-sm font-semibold text-text-primary">
-              Sahip profilin ne zaman görünsün?
+            {/*
+              Şehir yalnızca "Diğer" seçilince soruluyor. Pilot bölgelerin
+              ikisi de İstanbul; bölge seçildiği an şehir zaten belli ve
+              `regions.city` üzerinden geliyor. Hedef kitleye aynı soruyu iki
+              kez sormanın anlamı yoktu.
+            */}
+            {needsManualCity ? (
+              <Field
+                label="Şehir"
+                value={city}
+                onChangeText={setCity}
+                placeholder="Örn. Ankara"
+                autoCapitalize="words"
+              />
+            ) : null}
+
+            {/*
+              Konum bölgeyle AYNI blokta duruyor.
+              Ayrı adımlardayken kullanıcıya "nerede yaşıyorsun" iki kez
+              sorulmuş gibi geliyordu. Aynı şey değiller — bölge zorunlu ve
+              pilot ölçümünün anahtarı, konum ise opsiyonel ve yalnızca
+              mesafeye göre sıralama için — ama bu ayrım ancak yan yana
+              dururken anlaşılıyor. Konum bölgeden TÜRETİLEMİYOR: izni
+              vermeyen kullanıcı pilot ölçümünden düşerdi.
+            */}
+            <Text className="mb-1 text-sm font-semibold text-text-primary">
+              Yaklaşık konum (opsiyonel)
             </Text>
-            <View className="gap-2">
-              {ownerVisibilityOptions.map((option) => (
-                <Choice
-                  key={option.value}
-                  active={ownerVisibility === option.value}
-                  label={option.label}
-                  detail={option.detail}
-                  onPress={() => setOwnerVisibility(option.value)}
-                />
-              ))}
-            </View>
+            <Text className="mb-3 text-xs leading-5 text-text-tertiary">
+              Bölgen kimlerle eşleştiğini belirliyor; konum ise onları sana
+              yakınlıklarına göre sıralıyor. Tam konumun saklanmaz, uygulama
+              göndermeden önce yaklaşık 1 km&apos;lik alana yuvarlar.
+            </Text>
+            <Pressable
+              onPress={useCurrentLocation}
+              disabled={locationBusy}
+              className={`min-h-12 items-center justify-center rounded-xl border px-4 ${
+                coordinates ? "border-accent bg-accent/10" : "border-border bg-surface"
+              }`}
+            >
+              {locationBusy ? (
+                <ActivityIndicator color="#2FB8A6" />
+              ) : (
+                <Text
+                  className={
+                    coordinates
+                      ? "font-semibold text-accent-dark"
+                      : "font-semibold text-text-primary"
+                  }
+                >
+                  {coordinates ? "Konum hazır ✓" : "Konumumu kullan"}
+                </Text>
+              )}
+            </Pressable>
           </>
         ) : null}
 
@@ -379,34 +391,15 @@ export default function OnboardingScreen() {
               <View className="flex-1">
                 <Choice
                   active={species === "dog"}
-                  label="🐕 Köpek"
+                  label="Köpek"
                   onPress={() => setSpecies("dog")}
                 />
               </View>
               <View className="flex-1">
                 <Choice
                   active={species === "cat"}
-                  label="🐈 Kedi"
+                  label="Kedi"
                   onPress={() => setSpecies("cat")}
-                />
-              </View>
-            </View>
-            <View className="flex-row gap-3">
-              <View className="flex-1">
-                <Field
-                  label="Irk (opsiyonel)"
-                  value={breed}
-                  onChangeText={setBreed}
-                  placeholder="Örn. Tekir"
-                />
-              </View>
-              <View className="flex-1">
-                <Field
-                  label="Doğum tarihi"
-                  value={petBirthDate}
-                  onChangeText={setPetBirthDate}
-                  placeholder="YYYY-AA-GG"
-                  maxLength={10}
                 />
               </View>
             </View>
@@ -427,43 +420,18 @@ export default function OnboardingScreen() {
                 />
               </View>
             </View>
-            <Text className="mb-2 text-sm font-semibold text-text-primary">Boyutu</Text>
-            <View className="mb-4 flex-row gap-2">
-              {sizeOptions.map((option) => (
-                <View className="flex-1" key={option.value}>
-                  <Choice
-                    active={size === option.value}
-                    label={option.label}
-                    onPress={() => setSize(option.value)}
-                  />
-                </View>
-              ))}
-            </View>
-            <Text className="mb-2 text-sm font-semibold text-text-primary">
-              Enerji seviyesi: {energyLevel}/5
+
+            <PetAgePicker value={petAge} onChange={setPetAge} />
+
+            {/*
+              Irk, boyut, enerji ve kısırlaştırma buradan çıkarıldı. Hepsinin
+              şemada varsayılanı var; kullanıcı bunları ürünü gördükten sonra,
+              keşfetteki profil tamamlama kartından dolduruyor.
+            */}
+            <Text className="text-xs leading-5 text-text-tertiary">
+              Irk, boyut ve enerji gibi ayrıntıları sonra profilinden
+              ekleyebilirsin — eşleşme önerileri onlarla daha isabetli olur.
             </Text>
-            <View className="mb-4 flex-row gap-2">
-              {[1, 2, 3, 4, 5].map((level) => (
-                <Pressable
-                  key={level}
-                  onPress={() => setEnergyLevel(level)}
-                  className={`h-11 flex-1 items-center justify-center rounded-xl border ${
-                    level === energyLevel
-                      ? "border-brand bg-brand"
-                      : "border-border bg-surface"
-                  }`}
-                >
-                  <Text className={level === energyLevel ? "text-white" : "text-text-primary"}>
-                    {level}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Choice
-              active={isNeutered}
-              label={isNeutered ? "Kısırlaştırıldı" : "Kısırlaştırılmadı"}
-              onPress={() => setIsNeutered((value) => !value)}
-            />
           </>
         ) : null}
 
@@ -503,27 +471,10 @@ export default function OnboardingScreen() {
               </Text>
             </Pressable>
 
-            <Text className="mb-2 text-sm font-semibold text-text-primary">Yaklaşık konum</Text>
-            <Text className="mb-4 text-sm leading-5 text-text-secondary">
-              Tam konumun saklanmaz; uygulama göndermeden önce yaklaşık 1 km’lik alana yuvarlar.
-            </Text>
-            <Pressable
-              onPress={useCurrentLocation}
-              disabled={locationBusy}
-              className={`items-center rounded-xl border px-4 py-4 ${
-                coordinates ? "border-accent bg-accent/10" : "border-border bg-surface"
-              }`}
-            >
-              {locationBusy ? (
-                <ActivityIndicator color="#2FB8A6" />
-              ) : (
-                <Text className={coordinates ? "font-semibold text-accent-dark" : "font-semibold text-text-primary"}>
-                  {coordinates ? "Konum hazır ✓" : "Konumumu kullan"}
-                </Text>
-              )}
-            </Pressable>
+            {/* Konum artık adım 1'de, bölgenin yanında. Rızası burada
+                kalıyor çünkü diğer yasal onaylarla birlikte alınıyor. */}
 
-            <View className="mt-6 rounded-2xl border border-border bg-surface p-4">
+            <View className="mt-2 rounded-2xl border border-border bg-surface p-4">
               <Pressable
                 onPress={() => setLegalAccepted((value) => !value)}
                 className="flex-row items-start"
@@ -551,18 +502,13 @@ export default function OnboardingScreen() {
                 </Pressable>
               ) : null}
 
-              {ownerVisibility === "public" ? (
-                <Pressable
-                  onPress={() => setPublicProfileConsent((value) => !value)}
-                  className="mt-4 flex-row items-start border-t border-border pt-4"
-                >
-                  <Text className="mr-3 text-xl">{publicProfileConsent ? "☑" : "☐"}</Text>
-                  <Text className="flex-1 text-sm leading-5 text-text-secondary">
-                    Sahip profilimin keşfette herkese açık gösterilmesine açık rıza
-                    veriyorum. Bu görünürlüğü sonradan kapatabilirim.
-                  </Text>
-                </Pressable>
-              ) : null}
+              {/*
+                Herkese açık profil rızası buradan kaldırıldı: kayıt akışı
+                artık görünürlük sormuyor, varsayılan `after_match` kalıyor ve
+                o herkese açık bir profil değil. Rıza, kullanıcı profilinden
+                "Herkese açık"a geçmek istediğinde orada alınıyor — kararın
+                yanında, bir ekran ötesinde değil.
+              */}
             </View>
           </>
         ) : null}

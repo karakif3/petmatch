@@ -20,6 +20,13 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="likes"
+        options={{
+          title: "Beğeniler",
+          tabBarIcon: ({ color, size }) => <Ionicons name="heart" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="matches"
         options={{
           title: "Eşleşmeler",

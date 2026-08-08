@@ -3,6 +3,14 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { MeetupOutcome } from "../../core/api/conversations";
+import { getIntlLocale } from "../../core/i18n";
+
+function formatWhen(iso: string): string {
+  return new Date(iso).toLocaleDateString(getIntlLocale(), {
+    day: "numeric",
+    month: "long",
+  });
+}
 
 /**
  * "Buluştunuz mu?"
@@ -20,9 +28,14 @@ import type { MeetupOutcome } from "../../core/api/conversations";
  */
 export function MeetupFeedbackPrompt({
   petName,
+  meetupPlaceName,
+  meetupScheduledAt,
   onAnswer,
 }: {
   petName: string | null;
+  /** Kayıtlı, onaylanmış buluşmadan geliyorsa yeri/tarihi — sorada adıyla anmak için. */
+  meetupPlaceName?: string | null;
+  meetupScheduledAt?: string | null;
   onAnswer: (outcome: MeetupOutcome) => Promise<void>;
 }) {
   const [busy, setBusy] = useState<MeetupOutcome | null>(null);
@@ -37,6 +50,17 @@ export function MeetupFeedbackPrompt({
     }
   };
 
+  const question = (() => {
+    const who = petName ? `${petName} ile` : null;
+    if (meetupPlaceName && meetupScheduledAt) {
+      const when = formatWhen(meetupScheduledAt);
+      return who
+        ? `${who} ${meetupPlaceName}'de ${when} buluştunuz mu?`
+        : `${meetupPlaceName}'de ${when} buluştunuz mu?`;
+    }
+    return who ? `${who} buluştunuz mu?` : "Buluştunuz mu?";
+  })();
+
   return (
     <View
       className="mx-4 mb-3 rounded-2xl border border-border bg-bg-secondary p-4"
@@ -44,9 +68,7 @@ export function MeetupFeedbackPrompt({
     >
       <View className="flex-row items-center">
         <Ionicons name="paw-outline" color="#F97362" size={18} />
-        <Text className="ml-2 flex-1 text-sm font-bold text-text-primary">
-          {petName ? `${petName} ile buluştunuz mu?` : "Buluştunuz mu?"}
-        </Text>
+        <Text className="ml-2 flex-1 text-sm font-bold text-text-primary">{question}</Text>
       </View>
 
       <Text className="mt-1.5 text-xs leading-4 text-text-secondary">

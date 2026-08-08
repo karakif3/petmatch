@@ -34,6 +34,7 @@ kullanıcının kontrolündedir.
 | [`docs/pet-first-connection.md`](docs/pet-first-connection.md) | Pet-first sosyal/dating kararı, veri sınırları ve yayın kapıları |
 | [`docs/i18n.md`](docs/i18n.md) | Çok dil katalogları, native metadata ve yeni dil yayın süreci |
 | [`docs/backlog.md`](docs/backlog.md) | **Tek numaralı ürün backlog'u** — P0, P1 ve P2 sırası |
+| [`docs/experience-roadmap.md`](docs/experience-roadmap.md) | Mikroanimasyon, buluşma+takvim, medya, sesli görüşme, petsiz kullanıcı, ilgi alanları ve çok dilin **gerçek durumu** |
 | [`docs/auth-release-checklist.md`](docs/auth-release-checklist.md) | Şifre reset deep link'i ve Supabase redirect URL yayın ayarı |
 | [`docs/legal-release-checklist.md`](docs/legal-release-checklist.md) | Yasal bilgiler, mağaza veri beyanı ve yayın kontrolleri |
 | [`docs/moderation-runbook.md`](docs/moderation-runbook.md) | Moderasyon kuyruğu, 24 saat SLA, push/crash/funnel operasyonu |
@@ -76,6 +77,41 @@ fiziksel cihaz build'i üzerinde denenir.
 > Yerel geliştirme için `supabase init` ile `config.toml` üretmek gerekir;
 > repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
 > olabilir — portlar çakışırsa `config.toml` içinde değiştir.
+
+### iOS simülatöründe çalıştırma
+
+`npm run ios` (`expo run:ios`) bu geliştirme makinesinde **simülatör için
+çalışmıyor**. Sebep Expo değil: `devicectl` beklenmedik bir sürüm çıktısı
+veriyor, Expo cihaz listesini ayrıştıramayınca her hedefi fiziksel cihaz
+sayıyor ve kod imzalama sertifikası istiyor. `--device` ister UDID ister
+cihaz adı olsun sonuç aynı.
+
+Simülatör derlemesi doğrudan Xcode üzerinden yapılır:
+
+```bash
+cd ios && LANG=en_US.UTF-8 xcodebuild -workspace PetMatch.xcworkspace -scheme PetMatch -configuration Debug -sdk iphonesimulator -destination "id=<simulator-udid>" -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+```
+
+Sonra kurup açmak için:
+
+```bash
+xcrun simctl install <udid> ios/build/Build/Products/Debug-iphonesimulator/PetMatch.app && xcrun simctl launch <udid> com.petmatch.app
+```
+
+Metro ayrıca başlatılır (`npx expo start --dev-client`). Bu makinede 8081
+başka bir projeye ait olabilir; çakışırsa `--port` ver.
+
+**İki tuzak:**
+
+- **`LANG` boşsa CocoaPods çöker.** Ruby `US-ASCII` moduna düşüyor ve
+  `pod install` her çağrıda `Encoding::CompatibilityError` veriyor.
+  `LANG=en_US.UTF-8` şart — yukarıdaki komutlarda o yüzden var.
+- **`ios/Podfile.properties.json` içinde `ios.useFrameworks: static`.**
+  Kullanılmayan `@react-native-google-signin/google-signin` bağımlılığı
+  AppCheckCore → GoogleUtilities zincirini getiriyor ve static linkage
+  olmadan Swift pod'ları entegre olmuyor. **Bu dosya `expo prebuild` ile
+  sıfırlanır**; prebuild sonrası ayarı tekrar koymak ya da
+  `expo-build-properties` ile `app.json`'a taşımak gerekir.
 
 ---
 

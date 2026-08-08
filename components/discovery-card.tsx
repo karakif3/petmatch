@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import type { DiscoveryDeckCard } from "../core/api/discovery";
 import { formatAge } from "../core/domain/age";
@@ -20,7 +20,14 @@ function activityLabel(bucket: string | null): string | null {
   return null;
 }
 
-export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
+export function DiscoveryCard({
+  card,
+  onOwnerPress,
+}: {
+  card: DiscoveryDeckCard;
+  /** Sahip bloğuna dokunulduğunda; verilmezse blok tıklanamaz kalır. */
+  onOwnerPress?: () => void;
+}) {
   const t = useTranslation();
   const age = formatAge(card.birthDate);
   const activity = activityLabel(card.activityBucket);
@@ -36,18 +43,18 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
           source={card.photoUrls[0]}
           contentFit="cover"
           transition={180}
-          style={{ width: "100%", aspectRatio: 0.92 }}
+          style={{ width: "100%", aspectRatio: 1.3 }}
         />
       ) : (
         <View
           className="items-center justify-center bg-bg-tertiary"
-          style={{ width: "100%", aspectRatio: 0.92 }}
+          style={{ width: "100%", aspectRatio: 1.3 }}
         >
           <Ionicons name="paw" color="#C4B7AE" size={72} />
         </View>
       )}
 
-      <View className="p-5">
+      <View className="p-4">
         <View className="flex-row items-start justify-between gap-4">
           <View className="flex-1">
             <View className="flex-row items-center gap-2">
@@ -65,7 +72,7 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
           </View>
         </View>
 
-        <View className="mt-4 flex-row flex-wrap gap-2">
+        <View className="mt-3 flex-row flex-wrap gap-2">
           <View className="flex-row items-center gap-1 rounded-full bg-bg-secondary px-3 py-2">
             <Ionicons name="location-outline" color="#6B5D55" size={15} />
             <Text className="text-xs font-semibold text-text-secondary">
@@ -90,13 +97,23 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
         </View>
 
         {card.bio ? (
-          <Text className="mt-4 text-sm leading-5 text-text-secondary" numberOfLines={3}>
+          <Text className="mt-3 text-sm leading-5 text-text-secondary" numberOfLines={3}>
             {card.bio}
           </Text>
         ) : null}
 
         {card.owner ? (
-          <View className="mt-5 rounded-2xl border border-border bg-bg-secondary p-3">
+          <Pressable
+            onPress={onOwnerPress}
+            disabled={!onOwnerPress}
+            accessibilityRole={onOwnerPress ? "button" : undefined}
+            accessibilityLabel={
+              onOwnerPress
+                ? `${card.owner.displayName ?? "Pet sahibi"} profilini aç`
+                : undefined
+            }
+            className="mt-4 rounded-2xl border border-border bg-bg-secondary p-3"
+          >
             <View className="flex-row items-center">
               {card.owner.photoUrl ? (
                 <Image
@@ -146,11 +163,19 @@ export function DiscoveryCard({ card }: { card: DiscoveryDeckCard }) {
                 {card.owner.bio}
               </Text>
             ) : null}
-          </View>
+            {onOwnerPress ? (
+              <View className="mt-2.5 flex-row items-center">
+                <Text className="text-xs font-semibold text-brand-dark">
+                  Sahip profiline bak
+                </Text>
+                <Ionicons name="chevron-forward" color="#F97362" size={14} />
+              </View>
+            ) : null}
+          </Pressable>
         ) : null}
 
         {activity ? (
-          <View className="mt-4 flex-row items-center gap-1.5">
+          <View className="mt-3 flex-row items-center gap-1.5">
             <View className="h-2 w-2 rounded-full bg-accent" />
             <Text className="text-xs font-semibold text-accent-dark">{activity}</Text>
           </View>

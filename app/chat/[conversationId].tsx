@@ -8,11 +8,14 @@ import {
   NativeSyntheticEvent,
   Platform,
   Pressable,
-  SafeAreaView,
   Text,
   TextInput,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -41,7 +44,9 @@ import {
 } from "../../core/api/conversations";
 import { DateSeparator } from "../../components/chat/date-separator";
 import { MeetupFeedbackPrompt } from "../../components/chat/meetup-feedback-prompt";
+import { MeetupCard } from "../../components/chat/meetup-card";
 import { MeetupPlacePicker } from "../../components/chat/meetup-place-picker";
+import { MeetupScheduleSheet } from "../../components/chat/meetup-schedule-sheet";
 import { MessageBubble } from "../../components/chat/message-bubble";
 import {
   QuickReplyBar,
@@ -52,11 +57,21 @@ import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import {
   listMeetupPlaces,
-  meetupProposalText,
 } from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
 import { useTranslation } from "../../core/i18n";
+import { captureClientError } from "../../core/api/observability";
+import { OwnerSheet } from "../../components/owner-sheet";
+import {
+  cancelMeetup,
+  loadConversationMeetup,
+  proposeMeetup,
+  respondToMeetup,
+  subscribeToMeetup,
+} from "../../core/api/meetups";
+import type { MeetupPlace } from "../../core/api/meetup-places";
+import { errorMessage } from "../../core/domain/error-message";
 import { useAuthStore } from "../../stores/auth";
 
 const TYPING_IDLE_MS = 2_500;
@@ -75,6 +90,7 @@ export default function ChatScreen() {
   const nearBottomRef = useRef(true);
   const [body, setBody] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [ownerSheet, setOwnerSheet] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const [remoteOnline, setRemoteOnline] = useState(false);
   const [remoteTyping, setRemoteTyping] = useState(false);
@@ -83,6 +99,7 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [placePickerVisible, setPlacePickerVisible] = useState(false);
+  const [pendingPlace, setPendingPlace] = useState<MeetupPlace | null>(null);
 
   const conversation = useQuery({
     queryKey: ["conversation", conversationId],
@@ -113,6 +130,45 @@ export default function ChatScreen() {
     enabled: Boolean(conversationId && conversation.data?.isActive),
   });
 
+  const meetup = useQuery({
+    queryKey: ["conversation-meetup", conversationId],
+    queryFn: () => loadConversationMeetup(conversationId),
+    enabled: Boolean(conversationId),
+  });
+
+  const meetupAction = useMutation({
+    mutationFn: async (
+      action:
+        | { kind: "propose"; placeId: string; when: Date }
+        | { kind: "respond"; meetupId: string; accept: boolean }
+        | { kind: "cancel"; meetupId: string },
+    ) => {
+      if (action.kind === "propose") {
+        await proposeMeetup({
+          conversationId,
+          placeId: action.placeId,
+          scheduledAt: action.when,
+        });
+        return;
+      }
+      if (action.kind === "respond") {
+        await respondToMeetup(action.meetupId, action.accept);
+        return;
+      }
+      await cancelMeetup(action.meetupId);
+    },
+    onSuccess: () => {
+      setPendingPlace(null);
+      void meetup.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: (error) => {
+      setPendingPlace(null);
+      setSendError(errorMessage(error, "Buluşma işlemi tamamlanamadı."));
+      void captureClientError(error, "chat/meetup");
+    },
+  });
+
   // Sayfalar yeniden eskiye gelir, her sayfa kendi içinde eskiden yeniye.
   // Ekranda tek bir artan liste isteniyor.
   const messageItems = useMemo(() => {
@@ -129,6 +185,14 @@ export default function ChatScreen() {
     if (!conversationId) return;
     return subscribeToConversation(conversationId, () => {
       void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+  }, [conversationId, queryClient]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    return subscribeToMeetup(conversationId, () => {
+      void queryClient.invalidateQueries({ queryKey: ["conversation-meetup", conversationId] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     });
   }, [conversationId, queryClient]);
@@ -240,7 +304,11 @@ export default function ChatScreen() {
     onError: (error, text) => {
       setFailedMessage(text);
       setBody((current) => current || text);
-      setSendError(error instanceof Error ? error.message : "Mesaj gönderilemedi.");
+      // Supabase PostgrestError bir Error örneği DEĞİL; instanceof kontrolü
+      // her veritabanı hatasını yedek metne düşürüyordu ve gerçek sebep
+      // hiçbir yerde görünmüyordu.
+      setSendError(errorMessage(error, "Mesaj gönderilemedi."));
+      void captureClientError(error, "chat/send");
     },
   });
 
@@ -251,10 +319,20 @@ export default function ChatScreen() {
     latestMessageRef.current = latestMessage.id;
     const mine = latestMessage.senderId === user?.id;
     if (initial || mine || nearBottomRef.current) {
+      // Tek requestAnimationFrame'in içerik hâlâ ölçülürken (üstteki
+      // buluşma/sahip kartı, tarih ayracı) çağrılması yeterli olmuyordu —
+      // scrollToEnd o anki eksik yüksekliğe göre hesaplanıp son mesajı
+      // katlanmış görünüm dışında bırakıyordu. İkinci, biraz geciktirilmiş
+      // çağrı düzen kesinleştikten sonra pozisyonu düzeltiyor.
       requestAnimationFrame(() =>
         listRef.current?.scrollToEnd({ animated: !initial }),
       );
+      const settle = setTimeout(
+        () => listRef.current?.scrollToEnd({ animated: false }),
+        120,
+      );
       setNewMessageBelow(false);
+      return () => clearTimeout(settle);
     } else {
       setNewMessageBelow(true);
     }
@@ -314,7 +392,7 @@ export default function ChatScreen() {
       router.replace("/(app)/matches");
     } catch (actionError) {
       setSendError(
-        actionError instanceof Error ? actionError.message : "İşlem tamamlanamadı.",
+        errorMessage(actionError, "İşlem tamamlanamadı."),
       );
     } finally {
       setSafetyBusy(false);
@@ -396,7 +474,12 @@ export default function ChatScreen() {
         </View>
 
         {ownerProfile.data ? (
-          <View className="border-b border-border bg-bg-secondary px-4 py-3">
+          <Pressable
+            onPress={() => setOwnerSheet(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${ownerProfile.data.displayName ?? "Pet sahibi"} profilini aç`}
+            className="border-b border-border bg-bg-secondary px-4 py-3"
+          >
             <View className="flex-row items-center">
               {ownerProfile.data.photoUrl ? (
                 <Image
@@ -446,6 +529,31 @@ export default function ChatScreen() {
                 {ownerProfile.data.bio}
               </Text>
             ) : null}
+            <View className="mt-1.5 flex-row items-center">
+              <Text className="text-xs font-semibold text-brand-dark">
+                Sahip profiline bak
+              </Text>
+              <Ionicons name="chevron-forward" color="#F97362" size={14} />
+            </View>
+          </Pressable>
+        ) : null}
+
+        {meetup.data ? (
+          <View className="pt-3">
+            <MeetupCard
+              meetup={meetup.data}
+              busy={meetupAction.isPending}
+              onRespond={(accept) =>
+                meetupAction.mutate({
+                  kind: "respond",
+                  meetupId: meetup.data!.id,
+                  accept,
+                })
+              }
+              onCancel={() =>
+                meetupAction.mutate({ kind: "cancel", meetupId: meetup.data!.id })
+              }
+            />
           </View>
         ) : null}
 
@@ -478,7 +586,20 @@ export default function ChatScreen() {
         !messages.isLoading &&
         !conversation.isError &&
         !messages.isError ? (
-          <View className="flex-1">
+          <View
+            className="flex-1"
+            onLayout={() => {
+              // Buluşma istemi/hata şeridi gibi ALTTAKİ kardeşler farklı bir
+              // anda mount olup bu View'a kalan yüksekliği değiştirdiğinde de
+              // tetiklenir — mesajlar hiç değişmese bile son mesajın hâlâ
+              // dışarıda kalmadığını garantiliyor.
+              if (nearBottomRef.current) {
+                requestAnimationFrame(() =>
+                  listRef.current?.scrollToEnd({ animated: false }),
+                );
+              }
+            }}
+          >
             <FlatList
               ref={listRef}
               data={chatItems}
@@ -502,7 +623,7 @@ export default function ChatScreen() {
                 flexGrow: 1,
                 justifyContent: "flex-end",
                 paddingTop: 10,
-                paddingBottom: 10,
+                paddingBottom: 20,
               }}
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
@@ -580,6 +701,8 @@ export default function ChatScreen() {
         {conversation.data?.askMeetupFeedback ? (
           <MeetupFeedbackPrompt
             petName={conversation.data.petName}
+            meetupPlaceName={conversation.data.meetupPlaceName}
+            meetupScheduledAt={conversation.data.meetupScheduledAt}
             onAnswer={async (outcome) => {
               await recordMeetupFeedback(conversationId, outcome);
               await queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -594,7 +717,9 @@ export default function ChatScreen() {
           <View className="border-t border-border bg-surface pb-2 pt-2">
             {messageItems.length ? (
               <View className="flex-row items-center">
-                {(meetupPlaces.data?.length ?? 0) > 0 ? (
+                {/* Canlı buluşma varken ikinci öneri açılamıyor (0043'teki
+                    tek-canlı-buluşma kuralı); düğmeyi de göstermiyoruz. */}
+                {(meetupPlaces.data?.length ?? 0) > 0 && !meetup.data ? (
                   <Pressable
                     onPress={() => setPlacePickerVisible(true)}
                     accessibilityRole="button"
@@ -660,10 +785,30 @@ export default function ChatScreen() {
         onClose={() => setPlacePickerVisible(false)}
         onSelect={(place) => {
           setPlacePickerVisible(false);
-          // Metni doğrudan göndermek yerine yazma alanına koyuyoruz:
-          // kullanıcı gün/saat ekleyip kendi cümlesini kurabilsin.
-          setBody(meetupProposalText(place));
+          // Artık metin yazmıyoruz: buluşma bir KAYIT (0043). Yer seçildi,
+          // sırada zorunlu olan gün/saat adımı var.
+          setPendingPlace(place);
         }}
+      />
+
+      <MeetupScheduleSheet
+        place={pendingPlace}
+        busy={meetupAction.isPending}
+        onClose={() => setPendingPlace(null)}
+        onPropose={(when) =>
+          meetupAction.mutate({
+            kind: "propose",
+            placeId: pendingPlace!.id,
+            when,
+          })
+        }
+      />
+
+      <OwnerSheet
+        owner={ownerProfile.data ?? null}
+        petName={conversation.data?.petName ?? ""}
+        visible={ownerSheet && Boolean(ownerProfile.data)}
+        onClose={() => setOwnerSheet(false)}
       />
 
       <SafetyMenuModal

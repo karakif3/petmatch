@@ -144,4 +144,62 @@ select tests.assert(
 );
 
 reset role;
+
+-- --------------------------------------------------------------------------
+-- Onaylanmış ve zamanı geçmiş buluşma kaydı varsa soru kesin sorulur,
+-- eski mesaj sezgisi beklenmez.
+-- --------------------------------------------------------------------------
+
+select tests.seed_user('44444444-4444-4444-4444-444444444444');
+select tests.seed_pet('dddd4444-0000-0000-0000-000000000004', '44444444-4444-4444-4444-444444444444');
+select tests.seed_match(
+  'aaaa1111-0000-0000-0000-000000000001',
+  'dddd4444-0000-0000-0000-000000000004'
+) as recorded_conversation \gset
+
+insert into meetup_places (id, region_slug, name, is_verified, is_active, sort_order)
+values ('eeee0000-0000-0000-0000-000000000099', 'kadikoy', 'Kaydedilen Test Parkı', true, true, 999)
+on conflict do nothing;
+
+-- Tek mesaj bile yok — eski sezgi tek başına asla sormazdı.
+insert into meetups (conversation_id, proposed_by, place_id, scheduled_at, status, responded_at)
+values (
+  :'recorded_conversation',
+  '11111111-1111-1111-1111-111111111111',
+  'eeee0000-0000-0000-0000-000000000099',
+  now() - interval '1 day',
+  'accepted',
+  now() - interval '2 days'
+);
+
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+
+select tests.assert(
+  (select ask_meetup_feedback from list_my_conversations()
+   where conversation_id = :'recorded_conversation'),
+  'onaylanmış ve zamanı geçmiş buluşma kaydı varsa mesaj sayısına bakılmaksızın soru soruluyor'
+);
+
+select tests.assert(
+  (select meetup_place_name from list_my_conversations()
+   where conversation_id = :'recorded_conversation') = 'Kaydedilen Test Parkı',
+  'soru buluşma yerini adıyla anıyor'
+);
+
+select tests.assert(
+  (select meetup_scheduled_at from list_my_conversations()
+   where conversation_id = :'recorded_conversation') is not null,
+  'soru buluşma tarihini taşıyor'
+);
+
+select record_meetup_feedback(:'recorded_conversation', 'met');
+
+select tests.assert(
+  not (select ask_meetup_feedback from list_my_conversations()
+       where conversation_id = :'recorded_conversation'),
+  'kayıttan gelen soruya da cevap verince tekrar sorulmuyor'
+);
+
+reset role;
 rollback;

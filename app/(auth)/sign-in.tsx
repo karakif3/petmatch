@@ -89,8 +89,11 @@ export default function SignInScreen() {
           placeholder="E-posta"
           placeholderTextColor="#C4B7AE"
           autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
           keyboardType="email-address"
           autoComplete="email"
+          textContentType="emailAddress"
           className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
         />
         <TextInput
@@ -99,6 +102,10 @@ export default function SignInScreen() {
           placeholder="Şifre"
           placeholderTextColor="#C4B7AE"
           secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+          textContentType={mode === "sign-in" ? "password" : "newPassword"}
           className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-5"
         />
 

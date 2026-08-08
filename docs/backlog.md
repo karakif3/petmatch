@@ -3,7 +3,184 @@
 Bu dosya yayın öncesi işlerin tek ve numaralı referansıdır. Sıra değiştirilirse
 README yerine önce bu dosya güncellenir.
 
+---
+
+## Güncel durum ve sıra (2026-08-07)
+
+Bu bölüm en üstte duruyor çünkü aşağıdaki numaralı liste tarihsel; **sıradaki
+iş burada.**
+
+### Son turlarda kapananlar
+
+Keşfette sağa/sola kaydırma jesti · sahip profiline geçiş paneli (kart ve
+sohbet) · ilgi alanları · **Beğeniler sekmesi** (4 sekmeli yapı) ·
+**yapılandırılmış buluşma kaydı** (öneri → yanıt → iptal, `0043`) ·
+**süper beğeni** (`is_super` kolonu, Beğeniler sıralaması + rozeti, `0044`) ·
+auth redirect URL'leri · Supabase hata yutmasının 16 çağrı yerinde
+kapatılması · deprecated `SafeAreaView` yüzünden boş render edilen profil
+ekranları · telemetriden çıkan `profile-completion` çökmesi.
+
+**Bulgu (0044 sırasında):** `product_events.event_name` DB kısıtı 0027'den
+beri genişletilmemişti; `meetup_*`, `discovery_segment_changed`,
+`adoption_*` olayları aylardır sessizce reddediliyordu (`track_product_event`
+hatayı yutup `console.warn`'a düşürüyor). Kısıt güncel listeyle genişletildi.
+
+**Aynı gece devam eden kapanışlar:** Keşfet'te beğen düğmesi sabit alt
+şeride taşındı (kart + tamamlama kartı üst üste gelince kaydırmadan hiç
+görünmüyordu) · sohbette son mesajın kardeş öğe (buluşma istemi, hata
+şeridi) boy değiştirince görünüm dışında kalması düzeltildi — kök sebep
+RLS/sorgu değil, tek `requestAnimationFrame`'in eksik yüksekliğe göre
+`scrollToEnd` hesaplaması; çözüm `onLayout` tabanlı düzeltici kaydırma ·
+Eşleşmeler'deki 15sn polling kaldırıldı (Beğeniler'deki gibi odağa-girince-
+tazele) · eşleşme kutlamasında sahip fotoğrafı rozeti · bağlamsal mini
+onboarding ipucu (tur değil, tek satır, ilk karar anında kapanıyor).
+
+### ⛔ Yayın kapıcıları — sırayla
+
+1. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir
+   kullanıcı "yalnızca fotoğraflı sahipleri göster" diyebiliyor: açıklama
+   tüketiyor, vermiyor. Kod tabanının kendi kuralıyla çelişiyor —
+   `require_visible_owner` ve `require_owner_social` çift yönlü.
+   Ayrıntı: [`experience-roadmap.md`](experience-roadmap.md) §8.
+2. **Yasal alanlar.** Veri sorumlusu unvanı/adresi, destek e-postası,
+   herkese açık politika ve hesap silme URL'leri.
+   [`legal-release-checklist.md`](legal-release-checklist.md).
+3. **Fiziksel cihazda iki hesapla uçtan uca test.** Push bildirimleri
+   yalnızca gerçek cihazda doğrulanabiliyor; simülatörde keychain
+   entitlement hatası veriyor.
+
+### 🔒 Yayın anında yapılacak — şimdi DEĞİL, bilerek erteleniyor
+
+Bu ikisi yayın kapıcısı ama **şu an kapatılmamalı**: geliştirme ve test
+akışını doğrudan besliyorlar. Yayın gününde, aynı oturumda ve bu sırayla
+yapılacaklar.
+
+- **Test hesapları duruyor.** 10 hesap (`test1/2@petmatch.app`, altı
+  `@petmatch.test`) keşfet destesini, eşleşmeyi, sohbeti ve buluşma
+  akışını denemenin tek yolu. Silmek şu an test kapasitesini sıfırlar.
+  Silerken: `auth.users` satırı pets/pet_photos/profiles'ı cascade ile
+  götürür ama **storage nesneleri GİTMEZ** — `pet-photos/{userId}/…` ve
+  `owner-avatars/{userId}/avatar.jpg` ayrıca silinmeli.
+- **`Confirm email` kapalı** (`mailer_autoconfirm = true`). Yeni test
+  hesabı açabilmek buna bağlı. Açık kaldığı sürece herkes başkasının
+  e-postasıyla hesap açabilir ve şifre sıfırlama akışı gerçek sahibine
+  kaptırılabilir — **yayından önce mutlaka geri açılmalı.**
+  Geri alma: [`auth-release-checklist.md`](auth-release-checklist.md).
+
+> İkisi bağlantılı ama tek yönlü: mevcut test hesapları
+> `email_confirm: true` ile açıldığı için `Confirm email`'i sonradan açmak
+> onları bozmaz. Yani sıra şu — önce doğrulamayı aç, sonra hesapları sil.
+
+### Sıradaki ürün işleri
+
+9. **Beğeniler ödeme duvarı gerçek olsun.** Bugün istemci tarafı ücretsiz
+   görünümü bulanıklaştırarak simüle ediyor; ödeme altyapısı yok (Faz 0).
+   Süper beğeni sınırsız gönderiliyor — günlük limit de bu ödeme duvarıyla
+   birlikte gelecek doğal kapı. **Kararı bekleyenler**'e taşındı: hangi
+   ödeme sağlayıcısı (RevenueCat vb.) kullanılacağı bir ürün kararı.
+
+**2026-08-07 turunda kapananlar (6, 7, 8, 10, 11, 12):** buluşma yanıtı artık
+canlı (`meetups` realtime publication'a eklendi, `0045`) · geri bildirim
+sorusu buluşma kaydına bağlandı (onaylanmış ve zamanı geçmiş `meetups`
+kaydı varsa soru kesin soruluyor, yeri/tarihi adıyla anıyor, `0046`) ·
+takvime ekle (`expo-calendar`, yalnızca onaylanmış buluşmada) ·
+`owner_visible` → `owner_profile_shown` (`discover_playdate_pets` ve
+`pending_likes`, `0047` — istemcideki boş-alan telafisi artık ikincil bir
+savunma, birincil sinyal doğru) · profil ekranında satır içi hatalar +
+pet fotoğrafında kamera seçeneği · süper beğeni push bildirimi
+(`notification_deliveries`'e `super_like` event_type, `0048` —
+`send-notification` **2026-08-07'de deploy edildi**, v2 ACTIVE) · Keşfet kartı
+Tinder/Bumble referansıyla küçültüldü (foto en-boy oranı 1.05→1.3, panel
+boşlukları sıkılaştırıldı) ve düğme şeridi sert kenarlı araç çubuğundan
+deste'nin üstüne binen gradyanlı, gölgeli yüzen düğmelere geçti — canlı
+ekran görüntüsüyle doğrulanamadı (simülatörün klavye eşlemesi `@`/`.`
+karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
+
+### Kararı bekleyenler
+
+- **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Bugün
+  istemci tarafı ücretsiz görünümü bulanıklaştırarak simüle ediyor; ödeme
+  altyapısı yok (Faz 0). Süper beğeni sınırsız gönderiliyor — günlük limit
+  de bu ödeme duvarıyla birlikte gelecek doğal kapı. Hangi sağlayıcı
+  (RevenueCat vb.) kullanılacağı ürün kararı, kod kararı değil.
+- **Petsiz kullanıcılar** ayrı yüzey mi (sahiplendirme + etkinlik), deste
+  segmenti mi. Öneri: ayrı yüzey — destede eşleşecek şeyleri yok ve
+  "petsizlere görünme" seçeneği iki katmanlı bir deste yaratır.
+- **5. sekme** topluluklar mı olsun. Öneri: önce Keşfet'te etkinlik kartı,
+  veri gelirse sekmeye terfi. Pilot yoğunluğunda boş sekme ürünün ölü
+  olduğunu söyler.
+- **Sohbette fotoğraf** — moderasyon kapasitesi olmadan açılmamalı.
+- **Sesli görüşme** — güven özelliği, yoğunluk ve gelir oluştuktan sonra.
+
+### Borç
+
+- **İngilizce katalog.** Altyapı hazır, kataloglar boş; kodda ~250 sabit
+  Türkçe metin var. Artımlı yapılabilir — yeni yazılan her metin doğrudan
+  kataloğa gitsin ki borç büyümesin.
+- **Türkçe büyük/küçük harf tuzağı.** Bugün hata yok ama arama/eşleştirme
+  eklendiği an görünmez şekilde bozulur. Kurallar
+  [`i18n.md`](i18n.md) sonunda.
+- **`pause_stale_adoption_listings` zamanlanmadı** (`pg_cron` kurulu değil).
+  Sahiplendirme bayrakla gizli olduğu için acil değil, açmadan önce şart.
+
+---
+
+> Deneyim tarafının planı ayrı bir dosyada:
+> [`experience-roadmap.md`](experience-roadmap.md) — mikroanimasyonlar,
+> yapılandırılmış buluşma + takvim, sohbette fotoğraf, sesli görüşme, petsiz
+> kullanıcılar, ilgi alanları ve çok dilin **gerçek durumu**. Hiçbiri MVP
+> kapıcısı değil ama sırası ve gerekçesi orada.
+
 ## P0 — Yayın öncesi kritik
+
+0. **Profil ekranları boş render ediliyordu** — ✅ **çözüldü (2026-08-04)**
+
+   Belirti: hem **Profil sekmesi** hem **pet profili** boş açılıyordu.
+   Keşfet ve onboarding sorunsuzdu. Profil tamamlama kartı bu ekranlara
+   yönlendirdiği için kullanıcıyı doğrudan etkiliyordu.
+
+   **Kök neden:** `react-native`'in **deprecated `SafeAreaView`**'ı. iOS 26'da
+   `SafeAreaView > KeyboardAvoidingView > ScrollView` zincirinde içeriği sıfır
+   yüksekliğe düşürüyordu. Keşfet ekranının etkilenmemesinin sebebi zincirinin
+   `SafeAreaView > ScrollView` olması — arada `KeyboardAvoidingView` yok.
+   Metro zaten her açılışta bu bileşen için deprecation uyarısı basıyordu.
+
+   **Çözüm:** sekiz ekran `react-native-safe-area-context`'e geçirildi
+   (paket zaten kuruluydu) ve önkoşulu olan `SafeAreaProvider` root layout'a
+   eklendi.
+
+   **Nasıl bulundu:** tahmin tükendikten sonra ölçüldü — her render dalına
+   farklı renkte geçici bir işaretleyici konuldu ve ana dalın ASLINDA
+   çalıştığı, içeriğin var olduğu ama görünmediği görüldü. Aynı denemede
+   `SafeAreaView` düz bir `View` ile değiştirilince içerik anında ortaya çıktı.
+
+   Daha önce elenenler (hepsi ölçülerek): veri (`loadEditableProfile`'ın dört
+   sorgusu da HTTP 200), JS istisnası (`AppErrorBoundary` sessiz,
+   `client_errors` boş), yükleme/hata dalları, `KeyboardAvoidingView`'ın
+   `behavior` prop'u, Fast Refresh artığı ve "benim değişikliğim mi" şüphesi
+   (`git stash` ile geri alınıp tekrarlandı — hata duruyordu).
+
+
+0b. **Mesaj gönderiminde tekrarlanamayan hata** — *izleniyor*
+
+   Eşleşme kutlamasından sohbete geçip ilk mesaj gönderilirken bir kez
+   "Mesaj gönderilemedi." alındı. Aynı kullanıcı, aynı konuşma ve aynı metin
+   API'den **HTTP 201** dönüyordu, yani şema ve RLS sağlamdı. Uygulama
+   yeniden başlatıldıktan sonra gönderim sorunsuz çalıştı ve bir daha
+   tekrarlanmadı.
+
+   **Sebep bulunamadı** çünkü gerçek hata mesajı yutuluyordu:
+   `error instanceof Error ? error.message : "..."` kalıbı, Supabase'in
+   `PostgrestError`'ı bir `Error` örneği OLMADIĞI için her veritabanı
+   hatasını yedek metne düşürüyordu.
+
+   O yutma düzeltildi (`core/domain/error-message.ts`) ve sohbet ekranı artık
+   hatayı `client_errors`'a da yazıyor. Tekrarlarsa sebebi görünür olacak.
+
+   - [ ] `client_errors` tablosunu ara ara kontrol et; `route = 'chat/send'`
+   - [x] Aynı yutma kalıbı **15 çağrı yerinde** daha vardı; hepsi
+         `errorMessage()`'a geçirildi (onboarding, profil, keşfet,
+         sahiplendirme, sohbet, moderasyon, şikâyet, bildirimler)
 
 1. **Güvenlik ekranları** — tamamlandı
    - Sohbetten eşleşmeyi kaldırma
@@ -126,9 +303,45 @@ README yerine önce bu dosya güncellenir.
 > tamamlanmalıdır. 9'un veritabanı tabanlı hata takibi hazırdır; native süreç
 > crash'leri için harici bir sağlayıcı yayın sertleştirmesi olarak önerilir.
 
-## P2 — Ana MVP sonrasında
+11b. **Pet profili ekranının UX kusurları** — *kartla birlikte kritik yola girdi*
 
-12. **Sahiplendirme arayüzü**
+   Kayıt akışı sadeleşince ırk/boyut/enerji/kısırlaştırma bu ekrana taşındı ve
+   keşfetteki profil tamamlama kartı kullanıcıyı **doğrudan buraya yolluyor**.
+   Yani daha önce nadiren açılan bir ekran, artık yönlendirilmiş trafiğin
+   indiği yer. Onboarding incelemesinde tespit edilen ama "dar kapsam"
+   seçildiği için uygulanmayan maddeler burada duruyor:
+
+   - [x] **Pet yaşı kayıt akışıyla aynı kontrole çevrildi.** Onboarding yaşı
+         kovalarla soruyordu, bu ekran hâlâ ham `YYYY-AA-GG` metin alanıydı;
+         "3 yaş" seçen kullanıcı profilini açtığında `2023-08-04` görüyor,
+         kendi girdiğini tanıyamıyordu. Sadeleştirmenin yarattığı
+         tutarsızlıktı, kapatıldı.
+   - [ ] Hata mesajları formun altında tek kutuda; hatalı alanın altında
+         satır içi gösterilmeli
+   - [ ] Fotoğraf eklemede kamera seçeneği yok (galeri-only); doğrulama
+         akışında kamera zaten kullanılıyor
+
+   > **Not:** İlk incelemede "enerji çıplak rakam" ve "kısırlaştırma toggle
+   > etiketi değişiyor" diye iki madde daha yazılmıştı. Kod okunduğunda ikisi
+   > de bu ekran için **yanlış** çıktı: enerji satırının üstünde
+   > "1 çok sakin, 5 çok enerjik" açıklaması var ve kısırlaştırma sabit
+   > etiketli bir `Switch`. Bu iki kusur **onboarding**'deki versiyonlardaydı
+   > ve sadeleştirmeyle birlikte zaten kalktı.
+
+12. **Sahiplendirme arayüzü** — *kod hazır, bayrakla gizli*
+
+    Yüzey çalışır durumda (DB, RLS, RPC'ler, ekran, testler) ama
+    `core/features.ts` içindeki `FEATURES.adoption` **kapalı**: ürünün ana
+    döngüsü — pet profili, keşfet, eşleşme, sohbet — olgunlaşana kadar
+    kullanıcıya gösterilmiyor. `/adoption` rotası duruyor, doğrudan
+    gidilirse çalışıyor.
+
+    Açmadan önce:
+    - [ ] Ana döngünün gerçek kullanıcıyla çalıştığı doğrulanmış olmalı
+    - [ ] `pause_stale_adoption_listings()` zamanlanmalı — `pg_cron` kurulu
+          değil, yani şu an bayat ilanları kimse duraklatmıyor
+    - [ ] Doğrulama şartı (`0010`) ve 7332 sayılı kanun gereği satış
+          caydırıcılığı metinleri gözden geçirilmeli
 13. **Tam çok dil yayını** — altyapı ve Türkçe katalog düzeni hazır
     - [x] `expo-localization` + `i18n-js`, fallback ve Android foreground sync
     - [x] Type-safe Türkçe/İngilizce örnek katalog yapısı

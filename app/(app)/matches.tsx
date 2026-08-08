@@ -1,11 +1,15 @@
+import { useCallback } from "react";
 import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   Text,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 // Gelen kutusu zamanla uzayan tek liste; hücre geri dönüşümü burada gerçekten
 // işe yarıyor. Sohbet ekranı bilerek FlatList'te kaldı: orada
 // `contentContainerStyle.justifyContent` balonları aşağı yaslıyor ve FlashList
@@ -13,7 +17,7 @@ import {
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -127,11 +131,22 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
 }
 
 export default function MatchesScreen() {
+  // Zamanlayıcıyla YENİLENMİYOR — Beğeniler'deki aynı gerekçe: burada da
+  // sürekli polling hiçbir kullanıcı faydası olmayan bir maliyet. Yerine
+  // sekmeye her girişte tazeleme + aşağı çekerek yenileme. Sohbet içindeki
+  // gerçek zamanlı sinyaller (yazıyor, okundu) zaten Realtime kullanıyor;
+  // burası liste özeti, anlık olması gerekmiyor.
   const conversations = useQuery({
     queryKey: ["conversations"],
     queryFn: listConversations,
-    refetchInterval: 15_000,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      void conversations.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">

@@ -17,6 +17,7 @@ import {
   reportContent,
   type ReportReason,
 } from "../core/api/safety";
+import { errorMessage } from "../core/domain/error-message";
 
 export function ReportModal({
   visible,
@@ -52,7 +53,7 @@ export function ReportModal({
       onClose();
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "Şikâyet gönderilemedi.",
+        errorMessage(submitError, "Şikâyet gönderilemedi."),
       );
     } finally {
       setBusy(false);

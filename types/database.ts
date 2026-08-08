@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -346,18 +346,21 @@ export type Database = {
         Row: {
           conversation_id: string
           created_at: string
+          meetup_id: string | null
           outcome: Database["public"]["Enums"]["meetup_outcome"]
           user_id: string
         }
         Insert: {
           conversation_id: string
           created_at?: string
+          meetup_id?: string | null
           outcome: Database["public"]["Enums"]["meetup_outcome"]
           user_id: string
         }
         Update: {
           conversation_id?: string
           created_at?: string
+          meetup_id?: string | null
           outcome?: Database["public"]["Enums"]["meetup_outcome"]
           user_id?: string
         }
@@ -367,6 +370,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetup_feedback_meetup_id_fkey"
+            columns: ["meetup_id"]
+            isOneToOne: false
+            referencedRelation: "meetups"
             referencedColumns: ["id"]
           },
           {
@@ -426,6 +436,61 @@ export type Database = {
           {
             foreignKeyName: "meetup_places_verified_by_fkey"
             columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetups: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          place_id: string
+          proposed_by: string
+          responded_at: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["meetup_status"]
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          place_id: string
+          proposed_by: string
+          responded_at?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["meetup_status"]
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          place_id?: string
+          proposed_by?: string
+          responded_at?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["meetup_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetups_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetups_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "meetup_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetups_proposed_by_fkey"
+            columns: ["proposed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -622,6 +687,7 @@ export type Database = {
           breed: string | null
           city: string | null
           created_at: string
+          details_completed_at: string | null
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
@@ -647,6 +713,7 @@ export type Database = {
           breed?: string | null
           city?: string | null
           created_at?: string
+          details_completed_at?: string | null
           energy_level?: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals?: Database["public"]["Enums"]["match_goal"][]
@@ -672,6 +739,7 @@ export type Database = {
           breed?: string | null
           city?: string | null
           created_at?: string
+          details_completed_at?: string | null
           energy_level?: number
           gender?: Database["public"]["Enums"]["pet_gender"]
           goals?: Database["public"]["Enums"]["match_goal"][]
@@ -734,6 +802,7 @@ export type Database = {
           display_name: string | null
           gender: string | null
           id: string
+          interests: string[]
           last_active_at: string
           onboarded_at: string | null
           owner_social_open: boolean
@@ -755,6 +824,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id: string
+          interests?: string[]
           last_active_at?: string
           onboarded_at?: string | null
           owner_social_open?: boolean
@@ -776,6 +846,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          interests?: string[]
           last_active_at?: string
           onboarded_at?: string | null
           owner_social_open?: boolean
@@ -864,6 +935,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["swipe_direction"]
           from_pet_id: string
           id: string
+          is_super: boolean
           to_pet_id: string
         }
         Insert: {
@@ -872,6 +944,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["swipe_direction"]
           from_pet_id: string
           id?: string
+          is_super?: boolean
           to_pet_id: string
         }
         Update: {
@@ -880,6 +953,7 @@ export type Database = {
           direction?: Database["public"]["Enums"]["swipe_direction"]
           from_pet_id?: string
           id?: string
+          is_super?: boolean
           to_pet_id?: string
         }
         Relationships: [
@@ -918,6 +992,7 @@ export type Database = {
         Args: { p_topic: string }
         Returns: boolean
       }
+      cancel_meetup: { Args: { p_meetup_id: string }; Returns: undefined }
       capture_client_error: {
         Args: {
           p_app_version?: string
@@ -932,6 +1007,19 @@ export type Database = {
       confirm_adoption_listing: {
         Args: { p_pet_id: string }
         Returns: undefined
+      }
+      conversation_meetup: {
+        Args: { p_conversation_id: string }
+        Returns: {
+          id: string
+          mine: boolean
+          place_id: string
+          place_name: string
+          place_note: string
+          proposed_by: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["meetup_status"]
+        }[]
       }
       discover_pets: {
         Args: {
@@ -995,9 +1083,9 @@ export type Database = {
           owner_display_name: string
           owner_gender: string
           owner_id: string
+          owner_profile_shown: boolean
           owner_social_open: boolean
           owner_verified: boolean
-          owner_visible: boolean
           photo_paths: string[]
           size: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
@@ -1110,6 +1198,8 @@ export type Database = {
           is_active: boolean
           last_message: string
           last_message_at: string
+          meetup_place_name: string
+          meetup_scheduled_at: string
           pet_id: string
           pet_name: string
           pet_photo_path: string
@@ -1121,6 +1211,10 @@ export type Database = {
         Returns: number
       }
       mark_onboarding_complete: { Args: never; Returns: undefined }
+      mark_pet_details_completed: {
+        Args: { p_pet_id: string }
+        Returns: undefined
+      }
       matched_owner_ids: { Args: never; Returns: string[] }
       my_conversation_ids: { Args: never; Returns: string[] }
       my_match_ids: { Args: never; Returns: string[] }
@@ -1132,6 +1226,50 @@ export type Database = {
       pause_stale_adoption_listings: {
         Args: { p_days?: number }
         Returns: number
+      }
+      pending_likes: {
+        Args: { p_limit?: number }
+        Returns: {
+          activity_bucket: string
+          bio: string
+          birth_date: string
+          breed: string
+          city: string
+          distance_bucket: string
+          energy_level: number
+          gender: Database["public"]["Enums"]["pet_gender"]
+          goals: Database["public"]["Enums"]["match_goal"][]
+          good_with_cats: boolean
+          good_with_dogs: boolean
+          good_with_kids: boolean
+          id: string
+          is_neutered: boolean
+          is_super: boolean
+          liked_at: string
+          name: string
+          owner_age_bucket: string
+          owner_avatar_path: string
+          owner_bio: string
+          owner_display_name: string
+          owner_gender: string
+          owner_id: string
+          owner_profile_shown: boolean
+          owner_social_open: boolean
+          owner_verified: boolean
+          photo_paths: string[]
+          size: Database["public"]["Enums"]["pet_size"]
+          species: Database["public"]["Enums"]["species"]
+          temperaments: string[]
+        }[]
+      }
+      pending_likes_count: { Args: never; Returns: number }
+      propose_meetup: {
+        Args: {
+          p_conversation_id: string
+          p_place_id: string
+          p_scheduled_at: string
+        }
+        Returns: string
       }
       record_legal_acceptances: {
         Args: {
@@ -1189,6 +1327,10 @@ export type Database = {
         Args: { p_accept: boolean; p_interest_id: string }
         Returns: string
       }
+      respond_to_meetup: {
+        Args: { p_accept: boolean; p_meetup_id: string }
+        Returns: undefined
+      }
       review_moderation_item: {
         Args: {
           p_decision: Database["public"]["Enums"]["moderation_status"]
@@ -1222,9 +1364,13 @@ export type Database = {
         Args: {
           p_direction: Database["public"]["Enums"]["swipe_direction"]
           p_from_pet_id: string
+          p_is_super?: boolean
           p_to_pet_id: string
         }
-        Returns: string
+        Returns: {
+          match_id: string
+          swipe_id: string
+        }[]
       }
       touch_last_active: { Args: never; Returns: undefined }
       track_product_event: {
@@ -1259,6 +1405,7 @@ export type Database = {
           p_birth_date: string
           p_display_name: string
           p_gender: string
+          p_interests: string[]
           p_owner_social_open: boolean
           p_owner_visibility: Database["public"]["Enums"]["owner_visibility"]
         }
@@ -1315,6 +1462,7 @@ export type Database = {
       adoption_status: "pending" | "accepted" | "declined" | "withdrawn"
       match_goal: "playdate" | "adoption"
       meetup_outcome: "met" | "not_yet" | "declined"
+      meetup_status: "proposed" | "accepted" | "declined" | "cancelled"
       moderation_kind: "report" | "verification" | "photo"
       moderation_status: "pending" | "approved" | "rejected"
       owner_visibility: "hidden" | "after_match" | "public"
@@ -1459,6 +1607,7 @@ export const Constants = {
       adoption_status: ["pending", "accepted", "declined", "withdrawn"],
       match_goal: ["playdate", "adoption"],
       meetup_outcome: ["met", "not_yet", "declined"],
+      meetup_status: ["proposed", "accepted", "declined", "cancelled"],
       moderation_kind: ["report", "verification", "photo"],
       moderation_status: ["pending", "approved", "rejected"],
       owner_visibility: ["hidden", "after_match", "public"],

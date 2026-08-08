@@ -76,11 +76,14 @@ function FloatingPaw({
 
 function PetAvatar({
   photoUrl,
+  ownerPhotoUrl,
   name,
   from,
   animate,
 }: {
   photoUrl: string | null;
+  /** Sahip görünürlüğü zaten yukarıda çözülmüş geliyor — burada ekstra kural yok. */
+  ownerPhotoUrl: string | null;
   name: string;
   from: "left" | "right";
   animate: boolean;
@@ -103,20 +106,32 @@ function PetAvatar({
 
   return (
     <Animated.View style={style} className="items-center">
-      <View className="h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-bg-tertiary">
-        {photoUrl ? (
-          <Image
-            source={photoUrl}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            transition={200}
-            accessibilityIgnoresInvertColors
-          />
-        ) : (
-          <View className="h-full w-full items-center justify-center">
-            <Ionicons name="paw" size={34} color="#C4B7AE" />
+      <View className="relative">
+        <View className="h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-bg-tertiary">
+          {photoUrl ? (
+            <Image
+              source={photoUrl}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              transition={200}
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <View className="h-full w-full items-center justify-center">
+              <Ionicons name="paw" size={34} color="#C4B7AE" />
+            </View>
+          )}
+        </View>
+        {ownerPhotoUrl ? (
+          <View className="absolute bottom-0 right-0 h-9 w-9 overflow-hidden rounded-full border-2 border-white bg-bg-tertiary">
+            <Image
+              source={ownerPhotoUrl}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              accessibilityIgnoresInvertColors
+            />
           </View>
-        )}
+        ) : null}
       </View>
       <Text
         className="mt-2 max-w-28 text-center text-sm font-bold text-white"
@@ -132,8 +147,10 @@ export function MatchCelebration({
   visible,
   viewerPetName,
   viewerPhotoUrl,
+  viewerOwnerPhotoUrl,
   matchedPetName,
   matchedPhotoUrl,
+  matchedOwnerPhotoUrl,
   canOpenChat,
   showVerifyPrompt,
   onSendMessage,
@@ -143,8 +160,10 @@ export function MatchCelebration({
   visible: boolean;
   viewerPetName: string;
   viewerPhotoUrl: string | null;
+  viewerOwnerPhotoUrl: string | null;
   matchedPetName: string;
   matchedPhotoUrl: string | null;
+  matchedOwnerPhotoUrl: string | null;
   /** Konuşma henüz çözülmediyse birincil eylem beklemede gösterilir. */
   canOpenChat: boolean;
   /**
@@ -194,7 +213,15 @@ export function MatchCelebration({
           <FloatingPaw key={paw.left} {...paw} enabled={animate} />
         ))}
 
-        <Text className="text-center text-4xl">🎉</Text>
+        {/*
+          Emoji DEĞİL: uygulamanın global fontu Inter ve emoji glifi
+          içermiyor — 🎉 cihazda "?" kutusu olarak çıkıyordu. Eşleşme
+          kutlaması ürünün en yüksek duygulu anı; orada tofu göstermek
+          anın tamamını bozar. Ionicons zaten her yerde kullanılıyor.
+        */}
+        <View className="items-center">
+          <Ionicons name="sparkles" size={40} color="#FFFFFF" />
+        </View>
         <Text
           className="mt-3 text-center text-3xl font-bold text-white"
           accessibilityRole="header"
@@ -208,6 +235,7 @@ export function MatchCelebration({
         <View className="mt-8 flex-row items-start justify-center gap-4">
           <PetAvatar
             photoUrl={viewerPhotoUrl}
+            ownerPhotoUrl={viewerOwnerPhotoUrl}
             name={viewerPetName}
             from="left"
             animate={animate}
@@ -219,6 +247,7 @@ export function MatchCelebration({
           </View>
           <PetAvatar
             photoUrl={matchedPhotoUrl}
+            ownerPhotoUrl={matchedOwnerPhotoUrl}
             name={matchedPetName}
             from="right"
             animate={animate}

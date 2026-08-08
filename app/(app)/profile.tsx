@@ -6,13 +6,16 @@ import {
   Platform,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   Switch,
   Text,
   TextInput,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -32,6 +35,7 @@ import {
 import { coarsenCoordinates } from "../../core/domain/distance";
 import type { Coordinates, OwnerVisibility } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
+import { errorMessage } from "../../core/domain/error-message";
 
 const visibilityOptions: {
   value: OwnerVisibility;
@@ -111,6 +115,8 @@ export default function ProfileScreen() {
   const [saveBusy, setSaveBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -126,7 +132,7 @@ export default function ProfileScreen() {
 
   const refreshLocation = async () => {
     setLocationBusy(true);
-    setError(null);
+    setLocationError(null);
     setNotice(null);
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
@@ -142,8 +148,8 @@ export default function ProfileScreen() {
       );
       setNotice("Yeni yaklaşık konum alındı. Uygulamak için değişiklikleri kaydet.");
     } catch (locationError) {
-      setError(
-        locationError instanceof Error ? locationError.message : "Konum alınamadı.",
+      setLocationError(
+        errorMessage(locationError, "Konum alınamadı."),
       );
     } finally {
       setLocationBusy(false);
@@ -153,6 +159,8 @@ export default function ProfileScreen() {
   const save = async () => {
     setSaveBusy(true);
     setError(null);
+    setLocationError(null);
+    setNotificationError(null);
     setNotice(null);
     try {
       await Promise.all([
@@ -179,10 +187,8 @@ export default function ProfileScreen() {
           notificationMessage = " Bu cihaz için bildirimler kapatıldı.";
         }
       } catch (notificationError) {
-        setError(
-          notificationError instanceof Error
-            ? notificationError.message
-            : "Bildirim ayarı cihaza uygulanamadı.",
+        setNotificationError(
+          errorMessage(notificationError, "Bildirim ayarı cihaza uygulanamadı."),
         );
       }
 
@@ -193,7 +199,7 @@ export default function ProfileScreen() {
       ]);
       setNotice(`Profilin güncellendi.${notificationMessage}`);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Profil güncellenemedi.");
+      setError(errorMessage(saveError, "Profil güncellenemedi."));
     } finally {
       setSaveBusy(false);
     }
@@ -209,7 +215,7 @@ export default function ProfileScreen() {
       await signOut();
     } catch (deleteError) {
       setError(
-        deleteError instanceof Error ? deleteError.message : "Hesap silinemedi.",
+        errorMessage(deleteError, "Hesap silinemedi."),
       );
     } finally {
       setDeleteBusy(false);
@@ -257,9 +263,7 @@ export default function ProfileScreen() {
         <Ionicons name="cloud-offline-outline" color="#E5484D" size={46} />
         <Text className="mt-4 text-xl font-bold text-text-primary">Profil yüklenemedi</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-          {profile.error instanceof Error
-            ? profile.error.message
-            : "Bağlantını kontrol edip tekrar dene."}
+          {errorMessage(profile.error, "Bağlantını kontrol edip tekrar dene.")}
         </Text>
         <Pressable
           onPress={() => profile.refetch()}
@@ -430,6 +434,9 @@ export default function ProfileScreen() {
                 </Text>
               )}
             </Pressable>
+            {locationError ? (
+              <Text className="mt-3 text-xs font-semibold text-danger">{locationError}</Text>
+            ) : null}
           </View>
 
           <Text className="mb-3 text-lg font-bold text-text-primary">Bildirimler</Text>
@@ -452,6 +459,9 @@ export default function ProfileScreen() {
                 ? "Cihaz izni iOS veya Android uygulamasında verilir."
                 : "İlk etkinleştirmede cihazın bildirim izni istenir."}
             </Text>
+            {notificationError ? (
+              <Text className="pb-3 text-xs font-semibold text-danger">{notificationError}</Text>
+            ) : null}
           </View>
 
           {error ? (

@@ -65,4 +65,35 @@ select tests.assert(
   'moderasyon kuyruğu is_moderator() kontrolü içeriyor'
 );
 
+-- ---------------------------------------------------------------------------
+-- Politikadan çağrılan her fonksiyon authenticated'a açık olmalı
+--
+-- Bu iddia iki kez elle kaçırıldı ve ikisinde de canlıda 42501 çıktı:
+-- 0035 (`blocked_user_ids`, profiles politikası) ve 0039
+-- (`is_blocked_between`, storage.objects politikası).
+--
+-- RLS politikaları ÇAĞIRAN rolün bağlamında değerlendirilir; içeride
+-- çağrılan fonksiyon o role kapalıysa sorgu hata verir. Fonksiyonu
+-- "yalnızca SECURITY DEFINER içinden çağrılıyor" diye revoke etmek,
+-- politikalar taranmadan yapıldığında bu hatayı üretiyor.
+--
+-- 0039'un asıl dersi tarama sınırıydı: 0034 yalnızca `public` şemaya
+-- baktığı için `storage.objects` üzerindeki politikayı görmedi. Bu yüzden
+-- aşağıdaki tarama ŞEMA AYRIMI YAPMIYOR.
+select tests.assert(
+  (
+    select count(*)
+    from pg_policies pol
+    join pg_proc p on true
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and (
+        coalesce(pol.qual, '') like '%' || p.proname || '(%'
+        or coalesce(pol.with_check, '') like '%' || p.proname || '(%'
+      )
+      and not has_function_privilege('authenticated', p.oid, 'execute')
+  ) = 0,
+  'politikalardan çağrılan her fonksiyon authenticated''a açık'
+);
+
 rollback;

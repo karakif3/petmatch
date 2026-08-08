@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 
 import { requireSupabaseClient } from "./supabase.client";
+import { errorMessage } from "../../core/domain/error-message";
 
 const PUSH_TOKEN_STORAGE_KEY = "petmatch:expo-push-token";
 const NOTIFICATION_CHANNEL_ID = "petmatch";
@@ -22,7 +23,8 @@ export type PushRegistrationResult = {
 type NotificationEvent =
   | { type: "match"; matchId: string }
   | { type: "message"; messageId: string }
-  | { type: "new_candidate"; petId: string };
+  | { type: "new_candidate"; petId: string }
+  | { type: "super_like"; swipeId: string };
 
 function easProjectId(): string | null {
   const configured =
@@ -110,7 +112,7 @@ export async function registerForPushNotifications(
     return {
       status: "error",
       message:
-        error instanceof Error ? error.message : "Push bildirimi kaydedilemedi.",
+        errorMessage(error, "Push bildirimi kaydedilemedi."),
     };
   }
 }
