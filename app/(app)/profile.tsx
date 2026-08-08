@@ -4,7 +4,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   Switch,
@@ -22,6 +21,8 @@ import * as Location from "expo-location";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 
+import { ProfilePreviewModal } from "../../components/profile-preview-modal";
+import { AppPressable } from "../../components/ui/pressable";
 import {
   loadEditableProfile,
   updateEditableProfile,
@@ -36,6 +37,7 @@ import { coarsenCoordinates } from "../../core/domain/distance";
 import type { Coordinates, OwnerVisibility } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
+import { warningHaptic } from "../../core/ui/haptics";
 
 const visibilityOptions: {
   value: OwnerVisibility;
@@ -118,6 +120,21 @@ export default function ProfileScreen() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+
+  // Kaydet düğmesi önceden formun en altındaydı, her zaman aynı görünümde —
+  // kullanıcı bir şey değiştirip değiştirmediğini, kaydedip kaydetmediğini
+  // bilmiyordu. Kirli-durum karşılaştırması yalnızca yüklenmiş veriye göre
+  // anlamlı; veri gelmeden `false` kalır.
+  const dirty =
+    Boolean(profile.data) &&
+    (displayName !== (profile.data!.displayName ?? "") ||
+      petName !== profile.data!.pet.name ||
+      city !== profile.data!.city ||
+      ownerVisibility !== profile.data!.ownerVisibility ||
+      notifyOnMatch !== profile.data!.notifications.onMatch ||
+      notifyOnMessage !== profile.data!.notifications.onMessage ||
+      coordinates !== null);
 
   useEffect(() => {
     if (!profile.data) return;
@@ -223,6 +240,7 @@ export default function ProfileScreen() {
   };
 
   const confirmAccountDeletion = () => {
+    warningHaptic();
     Alert.alert(
       "Hesabını silmek istiyor musun?",
       "Profilin, petlerin, fotoğrafların, eşleşmelerin ve mesajların kalıcı olarak silinir.",
@@ -265,12 +283,12 @@ export default function ProfileScreen() {
         <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
           {errorMessage(profile.error, "Bağlantını kontrol edip tekrar dene.")}
         </Text>
-        <Pressable
+        <AppPressable
           onPress={() => profile.refetch()}
           className="mt-5 rounded-xl bg-brand px-5 py-3"
         >
           <Text className="font-semibold text-white">Tekrar dene</Text>
-        </Pressable>
+        </AppPressable>
       </SafeAreaView>
     );
   }
@@ -283,7 +301,7 @@ export default function ProfileScreen() {
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="px-5 pb-10 pt-4"
+          contentContainerClassName={dirty ? "px-5 pb-28 pt-4" : "px-5 pb-10 pt-4"}
           refreshControl={
             <RefreshControl
               refreshing={profile.isRefetching}
@@ -314,7 +332,7 @@ export default function ProfileScreen() {
               <Text className="mt-1 text-sm text-text-secondary">
                 {profile.data.pet.species === "dog" ? "Köpek" : "Kedi"} · Aktif profil
               </Text>
-              <Pressable
+              <AppPressable
                 onPress={() => router.push("/profile/pet")}
                 className="mt-3 self-start flex-row items-center rounded-lg bg-brand/10 px-3 py-2"
               >
@@ -322,12 +340,27 @@ export default function ProfileScreen() {
                 <Text className="ml-1.5 text-xs font-bold text-brand-dark">
                   Pet profilini düzenle
                 </Text>
-              </Pressable>
+              </AppPressable>
             </View>
           </View>
 
+          {/*
+            Kullanıcı kendi kartını daha önce hiçbir yerde göremiyordu —
+            form alan alan dolduruluyordu ama sonucun karşı tarafta nasıl
+            birleştiği görünmezdi. Aynı `DiscoveryCard`'ı kendi verisiyle
+            render ediyor, ek veri çekmiyor.
+          */}
+          <AppPressable
+            onPress={() => setPreviewVisible(true)}
+            accessibilityRole="button"
+            className="mb-6 flex-row items-center justify-center rounded-2xl border border-brand/30 bg-brand/5 py-3.5"
+          >
+            <Ionicons name="eye-outline" color="#E0523F" size={18} />
+            <Text className="ml-2 text-sm font-bold text-brand-dark">Profilimi önizle</Text>
+          </AppPressable>
+
           <Text className="mb-4 text-lg font-bold text-text-primary">Temel bilgiler</Text>
-          <Pressable
+          <AppPressable
             onPress={() => router.push("/profile/owner")}
             className="mb-5 flex-row items-center rounded-2xl border border-border bg-surface p-4"
           >
@@ -349,7 +382,7 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" color="#9A8B82" size={21} />
-          </Pressable>
+          </AppPressable>
           <Field
             label="Senin adın (opsiyonel)"
             hint="Boş bırakırsan sahip adı karşı tarafa gösterilmez."
@@ -379,7 +412,7 @@ export default function ProfileScreen() {
           <Text className="mb-3 text-lg font-bold text-text-primary">Sahip görünürlüğü</Text>
           <View className="mb-6 gap-2">
             {visibilityOptions.map((option) => (
-              <Pressable
+              <AppPressable
                 key={option.value}
                 onPress={() => setOwnerVisibility(option.value)}
                 className={`rounded-xl border px-4 py-3 ${
@@ -398,7 +431,7 @@ export default function ProfileScreen() {
                   {option.label}
                 </Text>
                 <Text className="mt-1 text-xs text-text-secondary">{option.detail}</Text>
-              </Pressable>
+              </AppPressable>
             ))}
           </View>
 
@@ -421,7 +454,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-            <Pressable
+            <AppPressable
               onPress={refreshLocation}
               disabled={locationBusy || saveBusy}
               className="mt-4 items-center rounded-xl border border-accent bg-accent/5 py-3 disabled:opacity-50"
@@ -433,7 +466,7 @@ export default function ProfileScreen() {
                   {profile.data.pet.hasLocation ? "Konumu yenile" : "Konumumu kullan"}
                 </Text>
               )}
-            </Pressable>
+            </AppPressable>
             {locationError ? (
               <Text className="mt-3 text-xs font-semibold text-danger">{locationError}</Text>
             ) : null}
@@ -475,32 +508,33 @@ export default function ProfileScreen() {
             </View>
           ) : null}
 
-          <Pressable
-            onPress={save}
-            disabled={saveBusy || locationBusy || !petName.trim() || !city.trim()}
-            className="items-center rounded-xl bg-brand py-4 disabled:opacity-50"
-          >
-            {saveBusy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text className="font-bold text-white">Değişiklikleri kaydet</Text>
-            )}
-          </Pressable>
+          {/*
+            Kaydet düğmesi buradan sabit alt şeride taşındı (aşağıda,
+            ScrollView dışında) — yalnızca `dirty` iken görünüyor. Boş bir
+            "her zaman aynı görünen" düğme, kullanıcının bir şey değiştirip
+            değiştirmediğini ya da kaydedip kaydetmediğini bilmemesine
+            yol açıyordu.
+          */}
 
-          <Pressable
+          <AppPressable
             onPress={signOut}
             disabled={saveBusy || deleteBusy}
             className="mt-8 items-center rounded-xl border border-border py-4"
           >
-            <Text className="font-semibold text-danger">Çıkış yap</Text>
-          </Pressable>
+            {/*
+              Kırmızı yalnızca YIKICI eylemler için (hesap silme aşağıda).
+              Çıkış yapmak geri alınabilir; kırmızı burada yanlış sinyal
+              veriyordu.
+            */}
+            <Text className="font-semibold text-text-primary">Çıkış yap</Text>
+          </AppPressable>
 
-          <Pressable
+          <AppPressable
             onPress={() => router.push("/(auth)/legal")}
             className="mt-4 items-center rounded-xl border border-border py-4"
           >
             <Text className="font-semibold text-text-primary">Yasal ve gizlilik merkezi</Text>
-          </Pressable>
+          </AppPressable>
 
           <View className="mt-8 rounded-2xl border border-danger/20 bg-danger/5 p-4">
             <Text className="font-bold text-danger">Hesabı sil</Text>
@@ -508,7 +542,7 @@ export default function ProfileScreen() {
               Hesabınla birlikte pet profilleri, fotoğraflar, eşleşmeler ve mesajlar
               kalıcı olarak kaldırılır.
             </Text>
-            <Pressable
+            <AppPressable
               onPress={confirmAccountDeletion}
               disabled={saveBusy || deleteBusy}
               className="mt-4 items-center rounded-xl border border-danger py-3 disabled:opacity-50"
@@ -518,10 +552,32 @@ export default function ProfileScreen() {
               ) : (
                 <Text className="font-bold text-danger">Hesabımı kalıcı olarak sil</Text>
               )}
-            </Pressable>
+            </AppPressable>
           </View>
         </ScrollView>
+
+        {dirty ? (
+          <View className="border-t border-border bg-surface px-5 pb-2 pt-3">
+            <AppPressable
+              onPress={save}
+              disabled={saveBusy || locationBusy || !petName.trim() || !city.trim()}
+              className="items-center rounded-xl bg-brand py-3.5 disabled:opacity-50"
+            >
+              {saveBusy ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text className="font-bold text-white">Değişiklikleri kaydet</Text>
+              )}
+            </AppPressable>
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
+
+      <ProfilePreviewModal
+        profile={profile.data}
+        visible={previewVisible}
+        onClose={() => setPreviewVisible(false)}
+      />
     </SafeAreaView>
   );
 }

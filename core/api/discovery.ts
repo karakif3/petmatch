@@ -1,9 +1,11 @@
 import type { Database } from "../../types/database";
 import { rankCandidates, type CompatibilityBreakdown } from "../domain/matching";
 import {
+  OWNER_INTERESTS,
   TEMPERAMENTS,
   type DiscoveryCandidate,
   type EnergyLevel,
+  type OwnerInterest,
   type Pet,
   type SwipeDirection,
   type Temperament,
@@ -26,6 +28,7 @@ export type DiscoveryDeckCard = DiscoveryCandidate & {
     ageBucket: string | null;
     socialOpen: boolean;
     verified: boolean;
+    interests: OwnerInterest[];
   } | null;
 };
 
@@ -71,6 +74,12 @@ function energyLevel(value: number): EnergyLevel {
 function temperaments(values: string[]): Temperament[] {
   return values.filter((value): value is Temperament =>
     TEMPERAMENTS.includes(value as Temperament),
+  );
+}
+
+function ownerInterests(values: string[]): OwnerInterest[] {
+  return values.filter((value): value is OwnerInterest =>
+    OWNER_INTERESTS.includes(value as OwnerInterest),
   );
 }
 
@@ -160,6 +169,7 @@ export async function ownerSummary(
     ageBucket: row.owner_age_bucket || null,
     socialOpen: row.owner_social_open,
     verified: row.owner_verified,
+    interests: ownerInterests(row.owner_interests ?? []),
   };
 }
 

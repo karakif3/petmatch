@@ -5,7 +5,7 @@ README yerine önce bu dosya güncellenir.
 
 ---
 
-## Güncel durum ve sıra (2026-08-07)
+## Güncel durum ve sıra (2026-08-08)
 
 Bu bölüm en üstte duruyor çünkü aşağıdaki numaralı liste tarihsel; **sıradaki
 iş burada.**
@@ -34,6 +34,70 @@ RLS/sorgu değil, tek `requestAnimationFrame`'in eksik yüksekliğe göre
 Eşleşmeler'deki 15sn polling kaldırıldı (Beğeniler'deki gibi odağa-girince-
 tazele) · eşleşme kutlamasında sahip fotoğrafı rozeti · bağlamsal mini
 onboarding ipucu (tur değil, tek satır, ilk karar anında kapanıyor).
+
+**2026-08-08 — UX kalite/premium turu.** Tüm sekmeler ve kritik ekranlar
+tek tek review edildi, gerekçesi [`experience-roadmap.md`](experience-roadmap.md)
+§10'da. Dört fazda kapandı:
+
+- **Temel (her ekranı etkiler):** yüklenen Inter yüzleri hiçbir metinde
+  kullanılmıyordu (`tailwind.config.js`'teki özel `fontFamily` anahtarları
+  Tailwind'in çekirdek `fontWeight` sınıflarıyla aynı adı üretip eziliyordu)
+  — `global.css`'e `@layer utilities` ile düzeltildi · ~150 `Pressable`'ın
+  hiçbirinde basılı durum yoktu — `components/ui/pressable.tsx` (`AppPressable`)
+  · haptik yalnızca 2 yerdeydi — `core/ui/haptics.ts` dört fonksiyonluk
+  sözlük, geri alınamaz kararlara bağlandı · gölge sistemi tutarsızdı —
+  `core/ui/shadow.ts` · Keşfet'in yüzen düğme şeridi dikey yığılıyordu
+  (`LinearGradient`'e hem `className` hem `style` verilince ikincisi
+  birincisini eziyordu) — düzeltildi ve **canlı simülatörde doğrulandı**
+  (geçen turda doğrulanamamıştı; bu kez `test1@petmatch.app` ile giriş
+  yapılıp Keşfet/Beğeniler/Mesajlar/Sohbet/Profil tek tek gezildi).
+  Doğrulama sırasında YENİ bir çakışma bulundu ve aynı oturumda kapatıldı:
+  uyum rozeti ile güvenlik düğmesi (`index.tsx`'in kart üstüne bindirdiği
+  `···`) aynı `right-3 top-3` köşesinde üst üste biniyordu — rozet bir
+  satır aşağı indirildi.
+- **Keşfet kartı yeniden tasarlandı:** tam kadraj foto (3:4) + karusel
+  (`components/photo-carousel.tsx`, kullanıcının 1-6 fotoğrafından
+  önceden yalnızca ilki görünüyordu) + tıklanabilir uyum rozeti (bileşen
+  skorları döküm halinde) + deste derinliği (arkada bekleyen kart) + kart
+  üstü krom sadeleştirildi (alt başlık kaldırıldı, segment/sahiplendirme
+  bandı öncelik sırasına göre gösteriliyor).
+- **Sekmeler:** Profil'e "Profilimi önizle" eklendi (kullanıcı kendi
+  kartını ilk kez karşı tarafın gördüğü haliyle görüyor,
+  `components/profile-preview-modal.tsx`) · kaydet düğmesi sabit alt
+  şeride taşındı, yalnızca form kirliyken görünüyor · Beğeniler/Mesajlar
+  sekme rozetleri eklendi · "Eşleşmeler" sekme adı "Mesajlar"a çekildi
+  (ekran başlığıyla tutarsızdı) · üç ekrana iskelet yükleyici eklendi
+  (`components/ui/skeleton.tsx`) · Beğeniler'deki kilitli karta dokunma
+  yanıtı eklendi · Mesajlar'daki boş durum ortalanmıyordu, düzeltildi.
+- **Sohbet/onboarding/auth cilası:** sohbette kalıcı sahip kartı header'ın
+  ikinci satırına çökertildi (~120pt kazanıldı) · buluşma yeri düğmesi
+  hızlı yanıt şeridine taşındı · son mesajda ikon+metin tekrarı kaldırıldı
+  · onboarding'de yasal onay gerçek `accessibilityRole="checkbox"` oldu
+  · fotoğraf seçimi artık EKLEME yapıyor (önceden mevcut seçimi tamamen
+  değiştiriyordu), kapak seçimi `PetPhotoEditor`'a devredildi · ilerleme
+  çubuğu animasyonlandı · sign-in'de şifre göster/gizle + köşe yarıçapları
+  sisteme çekildi.
+
+**Bilerek kapsam dışı bırakılan/ertelenen:** Beğeniler ızgarasının
+`w-[48%]` hesaplaması (kırık değil, gözden geçirilmedi) · süper beğeniyle
+gelen eşleşmede liste satırı rozeti — `list_my_conversations` RPC'si
+`is_super` döndürmüyor, **yeni migration gerektiriyor**, bu tur
+istemci-only kapsamdaydı · onboarding adım içeriğinin geçiş animasyonu
+(yalnızca ilerleme çubuğu animasyonlandı). Ayrıntı: `experience-roadmap.md`
+§10 "Bilerek ertelenen".
+
+**2026-08-08 — Keşfet kartı: sahip ilgi alanları + fotoğraf sayfası başına
+ilerici bilgi.** Kullanıcı isteği üzerine: kart artık tek bir "ayrıntılar"
+paneli yerine, fotoğrafın kendisine sığmayan bilgiyi SONRAKİ fotoğraf
+sayfasında gösteriyor (mizaç çipleri → bio → sahip teaser'ı, öncelik
+sırasıyla dağıtılıyor). Sahip `public` görünürlükteyse küçük bir
+avatar+ad+en-fazla-2-ilgi-alanı rozeti de kartta beliriyor, dokununca
+`OwnerSheet` açılıyor. `owner_interests` daha önce yalnızca profil
+formunda toplanıp hiçbir yerde gösterilmiyordu (§6) — bu **yeni bir
+migration'la** (`0049_owner_interests_in_discovery.sql`, canlıya
+uygulandı) `discover_playdate_pets` ve `pending_likes`'a eklendi, AYNI
+`owner_visibility = 'public'` kapısıyla. Ayrıntı ve karşılaşılan
+simülatör-özel görsel artefakt notu: `experience-roadmap.md` §11.
 
 ### ⛔ Yayın kapıcıları — sırayla
 

@@ -455,3 +455,156 @@ Kaldırıldı. Üç sebep:
 Yerine: sekmeye her girişte bir kez tazeleme (`useFocusEffect`) + aşağı
 çekerek yenileme. Rozet sayısı da ileride uygulama öne geldiğinde ve swipe
 sonrasında güncellenmeli, zamanlayıcıyla değil.
+
+**Güncelleme (2026-08-08):** Rozet artık var — `app/(app)/_layout.tsx`
+`["pending-likes","count"]` sorgusunu doğrudan okuyor, aynı anahtar
+`likes.tsx`'in kendisiyle paylaşılıyor (ekstra istek yok). Hâlâ
+zamanlayıcı YOK; yukarıdaki üç gerekçe geçerliliğini koruyor — rozet
+yalnızca ekran odağa girdiğinde/tazelendiğinde güncelleniyor.
+
+---
+
+## 10. Premium/kalite turu — Keşfet kartı tam kadraja geçti (2026-08-08)
+
+**Neden:** Ürün işlevsel olarak tamamdı ama üç katmanda "amatör" hissi
+veriyordu — bkz. bu turun review'ü. Üçü de tek seferde, tüm ekranları aynı
+anda etkileyecek şekilde kapatıldı, sonra Keşfet kartı yeniden tasarlandı:
+
+1. **Yüklenen Inter yüzleri hiçbir metinde kullanılmıyordu.**
+   `Inter_600SemiBold`/`Inter_700Bold` yükleniyor ama Tailwind'in
+   `font-semibold`/`font-bold` sınıfları yalnızca `font-weight` üretiyordu;
+   iOS tek ağırlıklı özel yüzü SENTETİK kalınlaştırıyordu. Kök sebep:
+   `tailwind.config.js`'teki özel `fontFamily.medium`/`fontFamily.bold`
+   anahtarları, Tailwind'in kendi `fontWeight` çekirdek eklentisiyle AYNI
+   sınıf adını (`font-medium`, `font-bold`) üretiyor ve çekirdek eklenti CSS
+   çıktısında sonra geldiği için onu eziyordu. `global.css`'e `@layer
+   utilities` ile aynı sınıf adlarına gerçek `fontFamily` bindirildi — 230+
+   çağrı yeri hiç değişmeden düzeldi.
+2. **~150 `Pressable`'ın hiçbirinde basılı durum yoktu.**
+   `components/ui/pressable.tsx` (`AppPressable`) eklendi: basılıyken opaklık
+   + hafif ölçek düşüşü, bilerek animasyonsuz (durum bildirimi, hareket
+   değil). Uygulama genelinde `Pressable` yerine kullanılıyor.
+3. **Haptik yalnızca iki yerdeydi.** `core/ui/haptics.ts` dört fonksiyonluk
+   bir sözlük veriyor (`decisionHaptic`/`successHaptic`/`lightHaptic`/
+   `warningHaptic`); beğen/geç/süper beğeni, buluşma yanıtı, engelleme gibi
+   geri alınamaz kararlara bağlandı.
+
+### Kart dili kararı: tam kadraj + karusel
+
+Önceki kart üstte 1.3 oranlı foto + altta beyaz bilgi paneli şeklindeydi.
+Yeni kart Tinder/Hinge diline geçti:
+
+- **Tam kadraj foto (3:4)**, alt gradyan üstüne ad/yaş/mesafe/uyum biniyor.
+  Irk/boyut/enerji/mizaç/bio ve sahip bloğu dokunmayla açılan bir panele
+  indi (`components/discovery-card.tsx` içindeki `DetailsSheet`).
+- **Fotoğraf karuseli** (`components/photo-carousel.tsx`) eklendi.
+  Kullanıcı 1-6 fotoğraf yüklüyor ama uygulamanın hiçbir yerinde
+  `photoUrls[0]` dışındaki hiçbiri görünmüyordu — en yüksek değer/maliyet
+  oranlı tek iş buydu. Sol/sağ yarıya dokunarak geçiş; `SwipeableCard`'ın
+  yatay pan jestiyle çakışmıyor çünkü jest yalnızca
+  `activeOffsetX([-12,12])` eşiğini aşan sürüklemelerde devreye giriyor.
+- **Uyum rozeti artık tıklanabilir.** Dokununca `core/domain/matching.ts`'in
+  zaten hesapladığı bileşen skorlarını (tür/enerji/yaş/mizaç) gösteren bir
+  döküm açılıyor — önceden ürünün en ayırt edici sinyali açıklamasız bir
+  sayıydı.
+- **Deste derinliği** eklendi: bir sonraki kart hafif küçültülmüş halde
+  arkada duruyor (`pointerEvents="none"`), swipe sonrası boş ekran anı
+  kayboldu.
+- **`variant="preview"`** ile aynı bileşen Profil sekmesindeki "Profilimi
+  önizle" modalında (`components/profile-preview-modal.tsx`) kendi verisiyle
+  yeniden kullanılıyor — kullanıcı kendi kartını ilk kez karşı tarafın
+  gördüğü haliyle görebiliyor. Uyum rozeti ve mesafe bu modda gizli (kendine
+  göre anlamsız).
+
+### Bilerek ertelenen
+
+- **Beğeniler ızgarasının `w-[48%]` hesaplaması** gözden geçirilmedi —
+  fonksiyonel olarak çalışıyor, tek dişli son satırda solda kalıyor
+  (masonry ızgaralarda yaygın, kırık değil). Kilitli karta dokunma yanıtı
+  (`Alert.alert` ile kısa açıklama) eklendi, gerçek ödeme duvarı hâlâ §9'daki
+  aynı "kararı bekleyenler" maddesine bağlı.
+- **Süper beğeniyle gelen eşleşmede liste satırı rozeti** kod tarafında
+  yapılamadı: `list_my_conversations` RPC'si `is_super` döndürmüyor. Yeni
+  migration gerektiriyor, bu tur istemci-only kapsamdaydı.
+- **Onboarding adım içeriğinin geçiş animasyonu** (yalnızca ilerleme çubuğu
+  animasyonlandı, adım içeriği hâlâ anlık değişiyor) — daha büyük bir
+  yeniden yapılanma (mount/unmount fade) gerektiriyor, ayrı bir iş olarak
+  bırakıldı.
+
+---
+
+## 11. Keşfet kartı: sahip ilgi alanları + fotoğraf sayfası başına ilerici bilgi (2026-08-08)
+
+**İstek:** pet'le ilgili çekici bilgiler kartın yüzünde görünsün; sahip de
+(rıza varsa) fotoğrafı ve ilgi alanlarıyla kartta belirsin; konuma kartta
+yer verilsin; birden fazla fotoğrafta sağa/sola geçiş çalışsın.
+
+### Karar: ayrı bir panel yerine, fotoğraf sayfaları arasına dağıt
+
+Kullanıcının kendi önerisi: "sonraki fotoya geçtikçe ilk fotoya
+sığdırılamayan bilgiler gözüksün, ayrıntılar diye ayrı bir şeye gerek yok."
+§10'daki `DetailsSheet` (dokunmayla açılan alt panel) tamamen kaldırıldı.
+Yerine:
+
+- **Sayfa 0 çekirdek bilgiye ayrılmış**: ad, cinsiyet ikonu, ırk·yaş·boyut,
+  mesafe — hep görünür, fotoğraf değişse de sabit kalır.
+- **Fazladan içerik** (öncelik sırasıyla: enerji/şehir/kısırlaştırma
+  çipleri → mizaç çipleri → bio → sahip teaser'ı) sonraki fotoğraf
+  sayfalarına dağıtılıyor. Kategori sayısı fotoğraf sayısından fazlaysa
+  kalanlar SON sayfada birikiyor — veri kaybı olmuyor. Tek fotoğrafta
+  gidecek başka sayfa olmadığı için hepsi çekirdek bilginin üstünde,
+  aynı sayfada toplanıyor.
+- `components/photo-carousel.tsx` bu yüzden KONTROLLÜ hale getirildi
+  (`index`/`onIndexChange` props) — önceden kendi iç state'ini tutuyordu,
+  artık `DiscoveryCard` hangi sayfada olunduğunu bilmek zorunda.
+- Uyum rozeti artık STATİK (dokunma/döküm yok) — döküm ekranı `DetailsSheet`
+  ile birlikte gitti. Geri istenirse ayrı bir iş.
+
+### Sahip teaser'ı: küçük rozet, avatar + en fazla 2 ilgi alanı
+
+`profiles.interests` `0041`'den beri toplanıyordu ama "uyum skoruna
+bağlama ve 5. sekme bilerek kapsam dışı" notuyla hiçbir yerde
+GÖSTERİLMİYORDU (§6). Bu tur onu Keşfet kartına taşıdı:
+
+- **Yeni migration** (`0049_owner_interests_in_discovery.sql`, canlı
+  Supabase'e uygulandı): `discover_playdate_pets` ve `pending_likes`'a
+  `owner_interests text[]` eklendi, AYNI `owner_visibility = 'public'`
+  kapısıyla (`owner_display_name`/`owner_bio` ile birebir aynı desen).
+  İstemci tarafında AYRI bir sorgu yok — 0021'deki karşılıklı açıklama
+  kuralı istemci tarafından delinmiyor, veri zaten satırda geliyor.
+- Kart yüzünde: avatar (32px) + ad + doğrulama rozeti + en fazla 2 ilgi
+  alanı çipi, tek satır, dokununca `OwnerSheet` açılıyor (aynı bileşen,
+  sohbet ve eski kart panelinde de kullanılıyordu).
+- `variant="preview"`'da (Profilimi önizle) sahip teaser'ı hiç render
+  edilmiyor — kendi ilgi alanlarını kendine göstermenin anlamı yok.
+- `core/domain/labels.ts`'e `ownerInterestLabels` eklendi (önceden yalnızca
+  `app/profile/owner.tsx` içindeydi, aynı taşıma gerekçesiyle —
+  `temperamentLabels`/`sizeLabels`'te olduğu gibi).
+
+### Doğrulama ve karşılaşılan bir simülatör artefaktı
+
+Migration canlıya `supabase db push --include-all` ile uygulandı (tek
+düz numaralı olmayan `20260729212719_...` migration dosyası CLI'ın
+sırayı "geçmişe ekleme" sanmasına yol açıyor — beklenen davranış, veri
+kaybı yok). `types/database.ts` `supabase gen types typescript` ile
+yeniden üretildi, diff yalnızca iki yeni `owner_interests` alanıydı.
+
+Simülatörde uzun bir doğrulama turunda kart içeriği (ad, mizaç/enerji
+çipleri, bio, sahip adı+ilgi alanı) her seferinde DOĞRU render edildi.
+Ama tekrar tekrar bir GÖRSEL ARTEFAKT gözlendi: kartın en alt satırı
+(ad/ırk/boyut) bazen daha büyük, soluk bir "hayalet" kopyasıyla üst üste
+biniyordu — yalnızca kartın ekrandaki konumu değiştiğinde (kaydırma YA DA
+üstteki "Profilini tamamla" kartının kapatılmasıyla içerik yeniden
+akışı). Kapsamlı izolasyon (deste derinliğindeki arka kartı kapatma,
+fazladan içerik bloklarını kapatma, `key` ile native view'ı zorla
+tazeleme, `collapsable={false}`, gradyanı güçlendirme) HİÇBİRİ düzeltmedi
+— bu da onun **yeni eklenen koddan kaynaklanmadığını** güçlü şekilde
+gösteriyor; bir "sürükleyerek kaydırma tetikliyor" varsayımı da düz
+dokunmayla (kartın üstündeki tamamlama kartını kapatarak, hiç sürükleme
+olmadan) aynı görüntünün oluşmasıyla çürüdü. Simülatör GPU/framebuffer
+tazeleme tuhaflığı olarak değerlendirildi, gerçek cihazda tekrar
+doğrulanması öneriliyor. Kod tarafında spekülatif "düzeltmeler"den
+doğrulanamamış gerekçe taşıyanlar (gradyan `key`'i, `collapsable={false}`)
+geri alındı; kendi başına savunulabilir olanlar (daha güçlü gradyan/daha
+opak çip arka planları — okunurluk için; foto yüklenemezse opak arka
+plan; sayfa değişince içerik bloğunu yeniden mount eden `key`) kaldı.

@@ -1,15 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router } from "expo-router";
@@ -18,6 +22,9 @@ import { useQuery } from "@tanstack/react-query";
 import { BirthDateField } from "../components/birth-date-field";
 import { BrandMark } from "../components/brand-mark";
 import { PetAgePicker } from "../components/pet-age-picker";
+import { PetPhotoEditor } from "../components/pet-photo-editor";
+import { Checkbox } from "../components/ui/checkbox";
+import { AppPressable } from "../components/ui/pressable";
 import { completeOnboarding, type OnboardingPhoto } from "../core/api/onboarding";
 import { listRegions, setMyRegion } from "../core/api/regions";
 import { isAdultDate } from "../core/domain/date-validation";
@@ -31,6 +38,13 @@ import { errorMessage } from "../core/domain/error-message";
 
 type Step = 0 | 1 | 2;
 
+// `PetPhotoEditor` (kapak seçimi + kaldırma + ekleme) `{id,uri}` şeklinde
+// çalışıyor; onboarding'in gönderdiği `OnboardingPhoto` bunun üstüne
+// `fileName`/`mimeType` ekliyor. `id` burada URI'nin kendisi — yerel bir
+// seçim oturumu için yeterince benzersiz, ekstra bir kimlik üretmeye gerek
+// yok.
+type LocalPhoto = OnboardingPhoto & { id: string };
+
 function Choice({
   active,
   label,
@@ -43,7 +57,7 @@ function Choice({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <AppPressable
       onPress={onPress}
       className={`rounded-xl border px-4 py-3 ${
         active ? "border-brand bg-brand/10" : "border-border bg-surface"
@@ -53,7 +67,7 @@ function Choice({
         {label}
       </Text>
       {detail ? <Text className="mt-1 text-xs text-text-secondary">{detail}</Text> : null}
-    </Pressable>
+    </AppPressable>
   );
 }
 
@@ -89,7 +103,7 @@ export default function OnboardingScreen() {
   const [gender, setGender] = useState<"male" | "female">("female");
   const [petAge, setPetAge] = useState<string>(PET_AGE_UNKNOWN);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
-  const [photos, setPhotos] = useState<OnboardingPhoto[]>([]);
+  const [photos, setPhotos] = useState<LocalPhoto[]>([]);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [locationConsent, setLocationConsent] = useState(false);
 
@@ -102,6 +116,28 @@ export default function OnboardingScreen() {
   const regions = useQuery({ queryKey: ["regions"], queryFn: listRegions });
 
   const progress = useMemo(() => `${step + 1} / 3`, [step]);
+
+  // Adım geçişi öncesinde anlıktı — çubuk bir kareden diğerine sıçrıyordu.
+  // `swipeable-card.tsx`'teki aynı kalıp: hareket azaltma açıkken animasyon
+  // yok, çubuk doğrudan son konumuna atlıyor.
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((value) => active && setReduceMotion(value))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+  const progressWidth = useSharedValue(((step + 1) / 3) * 100);
+  useEffect(() => {
+    const target = ((step + 1) / 3) * 100;
+    progressWidth.value = reduceMotion ? target : withTiming(target, { duration: 260 });
+  }, [step, reduceMotion, progressWidth]);
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`,
+  }));
 
   const selectedRegion = useMemo(
     () => (regions.data ?? []).find((region) => region.slug === regionSlug) ?? null,
@@ -132,8 +168,14 @@ export default function OnboardingScreen() {
     }
   };
 
+  // Öncesinde her seçim MEVCUT fotoğrafları tamamen değiştiriyordu (ekleme
+  // yoktu) ve sıralama/kapak seçimi hiç yoktu — oysa altındaki metin "ilk
+  // fotoğraf kapak olur" diyordu. Artık EKLENİYOR (limit kadar boş yuvaya),
+  // kapak/sıra/kaldırma `PetPhotoEditor`'a devrediliyor.
   const pickPhotos = async () => {
     setError(null);
+    const remaining = 6 - photos.length;
+    if (remaining <= 0) return;
     if (!(await ensureImageLibraryAccess())) {
       setError("Fotoğraf seçmek için galeri izni gerekiyor.");
       return;
@@ -142,17 +184,17 @@ export default function OnboardingScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsMultipleSelection: true,
-      selectionLimit: 6,
+      selectionLimit: remaining,
       quality: 0.85,
     });
     if (!result.canceled) {
-      setPhotos(
-        result.assets.slice(0, 6).map((asset) => ({
-          uri: asset.uri,
-          fileName: asset.fileName ?? null,
-          mimeType: asset.mimeType ?? null,
-        })),
-      );
+      const additions: LocalPhoto[] = result.assets.slice(0, remaining).map((asset) => ({
+        id: asset.uri,
+        uri: asset.uri,
+        fileName: asset.fileName ?? null,
+        mimeType: asset.mimeType ?? null,
+      }));
+      setPhotos((current) => [...current, ...additions].slice(0, 6));
     }
   };
 
@@ -256,10 +298,7 @@ export default function OnboardingScreen() {
         </View>
 
         <View className="mb-8 h-1.5 overflow-hidden rounded-full bg-bg-tertiary">
-          <View
-            className="h-full rounded-full bg-brand"
-            style={{ width: `${((step + 1) / 3) * 100}%` }}
-          />
+          <Animated.View className="h-full rounded-full bg-brand" style={progressBarStyle} />
         </View>
 
         {step === 0 ? (
@@ -298,7 +337,7 @@ export default function OnboardingScreen() {
               {(regions.data ?? []).map((region) => {
                 const active = regionSlug === region.slug;
                 return (
-                  <Pressable
+                  <AppPressable
                     key={region.slug}
                     onPress={() => setRegionSlug(region.slug)}
                     accessibilityRole="radio"
@@ -315,7 +354,7 @@ export default function OnboardingScreen() {
                     >
                       {region.name}
                     </Text>
-                  </Pressable>
+                  </AppPressable>
                 );
               })}
             </View>
@@ -352,7 +391,7 @@ export default function OnboardingScreen() {
               yakınlıklarına göre sıralıyor. Tam konumun saklanmaz, uygulama
               göndermeden önce yaklaşık 1 km&apos;lik alana yuvarlar.
             </Text>
-            <Pressable
+            <AppPressable
               onPress={useCurrentLocation}
               disabled={locationBusy}
               className={`min-h-12 items-center justify-center rounded-xl border px-4 ${
@@ -372,7 +411,7 @@ export default function OnboardingScreen() {
                   {coordinates ? "Konum hazır ✓" : "Konumumu kullan"}
                 </Text>
               )}
-            </Pressable>
+            </AppPressable>
           </>
         ) : null}
 
@@ -443,63 +482,40 @@ export default function OnboardingScreen() {
             <Text className="mb-4 text-sm leading-5 text-text-secondary">
               En az 1, en fazla 6 fotoğraf ekle. İlk fotoğraf profil kapağı olur.
             </Text>
-            {photos.length ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-                <View className="flex-row gap-3">
-                  {photos.map((photo, index) => (
-                    <View key={`${photo.uri}-${index}`} className="relative">
-                      <Image source={{ uri: photo.uri }} className="h-28 w-28 rounded-2xl" />
-                      <Pressable
-                        onPress={() =>
-                          setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))
-                        }
-                        className="absolute right-1 top-1 h-7 w-7 items-center justify-center rounded-full bg-black/60"
-                      >
-                        <Text className="text-white">×</Text>
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            ) : null}
-            <Pressable
-              onPress={pickPhotos}
-              className="mb-5 items-center rounded-xl border border-dashed border-brand bg-brand/5 px-4 py-5"
-            >
-              <Text className="font-semibold text-brand-dark">
-                {photos.length ? "Fotoğrafları değiştir" : "Fotoğraf seç"}
-              </Text>
-            </Pressable>
+            <PetPhotoEditor
+              photos={photos}
+              max={6}
+              onAdd={() => void pickPhotos()}
+              // `PetPhotoEditor` yalnızca verdiğimiz diziyi filtreler/yeniden
+              // sıralar, yeni nesne üretmez — bu yüzden döndürdüğü referanslar
+              // hâlâ `LocalPhoto`. Tip imzası genel `EditablePhoto[]` olduğu
+              // için burada güvenli bir daraltma gerekiyor.
+              onChange={(next) => setPhotos(next as LocalPhoto[])}
+            />
 
             {/* Konum artık adım 1'de, bölgenin yanında. Rızası burada
                 kalıyor çünkü diğer yasal onaylarla birlikte alınıyor. */}
 
-            <View className="mt-2 rounded-2xl border border-border bg-surface p-4">
-              <Pressable
-                onPress={() => setLegalAccepted((value) => !value)}
-                className="flex-row items-start"
-              >
-                <Text className="mr-3 text-xl">{legalAccepted ? "☑" : "☐"}</Text>
-                <Text className="flex-1 text-sm leading-5 text-text-secondary">
+            <View className="mt-5 rounded-2xl border border-border bg-surface p-4">
+              <Checkbox checked={legalAccepted} onChange={setLegalAccepted}>
+                <Text className="text-sm leading-5 text-text-secondary">
                   Kullanım koşullarını kabul ediyor; gizlilik politikası ve KVKK
                   aydınlatma metnini okuduğumu onaylıyorum.
                 </Text>
-              </Pressable>
-              <Pressable onPress={() => router.push("/(auth)/legal")} className="mt-3">
+              </Checkbox>
+              <AppPressable onPress={() => router.push("/(auth)/legal")} className="mt-3">
                 <Text className="text-sm font-semibold text-brand">Metinleri aç</Text>
-              </Pressable>
+              </AppPressable>
 
               {coordinates ? (
-                <Pressable
-                  onPress={() => setLocationConsent((value) => !value)}
-                  className="mt-4 flex-row items-start border-t border-border pt-4"
-                >
-                  <Text className="mr-3 text-xl">{locationConsent ? "☑" : "☐"}</Text>
-                  <Text className="flex-1 text-sm leading-5 text-text-secondary">
-                    Yaklaşık konumumun mesafe bazlı keşfet için işlenmesine açık rıza
-                    veriyorum. Bu özellik isteğe bağlıdır.
-                  </Text>
-                </Pressable>
+                <View className="mt-4 border-t border-border pt-4">
+                  <Checkbox checked={locationConsent} onChange={setLocationConsent}>
+                    <Text className="text-sm leading-5 text-text-secondary">
+                      Yaklaşık konumumun mesafe bazlı keşfet için işlenmesine açık rıza
+                      veriyorum. Bu özellik isteğe bağlıdır.
+                    </Text>
+                  </Checkbox>
+                </View>
               ) : null}
 
               {/*
@@ -521,15 +537,15 @@ export default function OnboardingScreen() {
 
         <View className="mt-8 flex-row gap-3">
           {step > 0 ? (
-            <Pressable
+            <AppPressable
               onPress={() => setStep((step - 1) as Step)}
               disabled={busy}
               className="flex-1 items-center rounded-xl border border-border bg-surface py-4"
             >
               <Text className="font-semibold text-text-primary">Geri</Text>
-            </Pressable>
+            </AppPressable>
           ) : null}
-          <Pressable
+          <AppPressable
             onPress={step === 2 ? submit : next}
             disabled={busy}
             className="flex-[2] items-center rounded-xl bg-brand py-4 disabled:opacity-50"
@@ -539,7 +555,7 @@ export default function OnboardingScreen() {
             ) : (
               <Text className="font-bold text-white">{step === 2 ? "Profili tamamla" : "Devam"}</Text>
             )}
-          </Pressable>
+          </AppPressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

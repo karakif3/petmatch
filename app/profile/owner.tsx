@@ -26,6 +26,7 @@ import {
   type LocalProfilePhoto,
 } from "../../core/api/profile";
 import { isAdultDate } from "../../core/domain/date-validation";
+import { ownerInterestLabels } from "../../core/domain/labels";
 import { OWNER_INTERESTS, type OwnerInterest, type OwnerVisibility } from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
@@ -56,25 +57,6 @@ const visibilityOptions: {
 ];
 
 const MAX_INTERESTS = 8;
-
-const interestLabels: Record<OwnerInterest, string> = {
-  walks: "Yürüyüş",
-  hiking: "Doğa yürüyüşü",
-  running: "Koşu",
-  agility: "Çeviklik",
-  training: "Eğitim",
-  beach_trips: "Sahil",
-  dog_park_regular: "Köpek parkı müptelası",
-  cat_behavior: "Kedi davranışı",
-  coffee: "Kahve",
-  photography: "Fotoğrafçılık",
-  board_games: "Kutu oyunları",
-  reading: "Kitap",
-  cooking: "Yemek yapmak",
-  travel: "Seyahat",
-  live_music: "Canlı müzik",
-  volunteering: "Gönüllülük",
-};
 
 const genderOptions: {
   value: "female" | "male" | "other" | null;
@@ -308,7 +290,7 @@ export default function OwnerProfileScreen() {
           <Pressable
             onPress={() => router.back()}
             accessibilityLabel="Geri"
-            className="h-10 w-10 items-center justify-center rounded-full"
+            className="h-11 w-11 items-center justify-center rounded-full"
           >
             <Ionicons name="chevron-back" color="#1F1A17" size={27} />
           </Pressable>
@@ -428,7 +410,7 @@ export default function OwnerProfileScreen() {
                   }`}
                 >
                   <Text className={`text-sm font-semibold ${active ? "text-brand-dark" : "text-text-secondary"}`}>
-                    {interestLabels[interest]}
+                    {ownerInterestLabels[interest]}
                   </Text>
                 </Pressable>
               );

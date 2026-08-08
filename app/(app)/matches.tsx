@@ -1,11 +1,5 @@
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  Text,
-  View,
-} from "react-native";
+import { RefreshControl, Text, View } from "react-native";
 // SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
@@ -20,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
+import { AppPressable } from "../../components/ui/pressable";
+import { ConversationRowSkeleton } from "../../components/ui/skeleton";
 import {
   listConversations,
   type ConversationSummary,
@@ -54,7 +50,7 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
       : "Eşleştiniz — ilk mesajı gönder");
 
   return (
-    <Pressable
+    <AppPressable
       onPress={() =>
         router.push({
           pathname: "/chat/[conversationId]",
@@ -126,7 +122,7 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
           </Text>
         ) : null}
       </View>
-    </Pressable>
+    </AppPressable>
   );
 }
 
@@ -158,8 +154,10 @@ export default function MatchesScreen() {
       </View>
 
       {conversations.isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#F97362" size="large" />
+        <View className="pt-1">
+          <ConversationRowSkeleton />
+          <ConversationRowSkeleton />
+          <ConversationRowSkeleton />
         </View>
       ) : null}
 
@@ -174,12 +172,12 @@ export default function MatchesScreen() {
               ? conversations.error.message
               : "Bağlantını kontrol edip tekrar dene."}
           </Text>
-          <Pressable
+          <AppPressable
             onPress={() => conversations.refetch()}
             className="mt-5 rounded-xl bg-brand px-5 py-3"
           >
             <Text className="font-semibold text-white">Tekrar dene</Text>
-          </Pressable>
+          </AppPressable>
         </View>
       ) : null}
 
@@ -188,9 +186,13 @@ export default function MatchesScreen() {
           data={conversations.data ?? []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ConversationRow conversation={item} />}
+          // `flexGrow: 1` yoksa boş durum FlashList'in doğal (kısa) yüksekliğine
+          // sıkışıp tepede kalıyordu — diğer ekranlardaki ortalanmış boş
+          // durumlarla tutarsızdı.
           contentContainerStyle={{
             paddingTop: 4,
             paddingBottom: 24,
+            flexGrow: 1,
           }}
           refreshControl={
             <RefreshControl

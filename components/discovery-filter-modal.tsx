@@ -193,7 +193,7 @@ export function DiscoveryFilterModal({
             <Pressable
               onPress={onClose}
               disabled={busy}
-              className="h-10 w-10 items-center justify-center rounded-full bg-bg-secondary"
+              className="h-11 w-11 items-center justify-center rounded-full bg-bg-secondary"
             >
               <Ionicons name="close" color="#1F1A17" size={22} />
             </Pressable>

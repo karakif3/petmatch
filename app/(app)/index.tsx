@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -31,6 +30,8 @@ import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import { OwnerSheet } from "../../components/owner-sheet";
 import { SwipeableCard } from "../../components/swipeable-card";
+import { AppPressable } from "../../components/ui/pressable";
+import { DiscoveryCardSkeleton } from "../../components/ui/skeleton";
 import { listAdoptablePets } from "../../core/api/adoption";
 import { loadConversationIdForMatch } from "../../core/api/conversations";
 import {
@@ -44,24 +45,14 @@ import { loadProfileCompletion } from "../../core/api/profile-completion";
 import { blockUser } from "../../core/api/safety";
 import { FEATURES } from "../../core/features";
 import type { SwipeDirection } from "../../core/domain/types";
-import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
-
-// NativeWind'in shadow-sm'i Android'de görünmüyor (elevation gerekiyor) ve
-// iOS'ta da Tinder/Bumble'daki "yüzen düğme" hissi için fazla hafif kalıyor.
-const floatingButtonShadow = {
-  shadowColor: "#1F1A17",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.16,
-  shadowRadius: 8,
-  elevation: 5,
-};
+import { decisionHaptic } from "../../core/ui/haptics";
+import { shadowLg } from "../../core/ui/shadow";
 
 export default function DiscoverScreen() {
-  const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
@@ -170,6 +161,7 @@ export default function DiscoverScreen() {
   );
   const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
   const currentCard = activeCards[0] ?? null;
+  const nextCard = activeCards[1] ?? null;
 
   // İpucu ekranda GERÇEKTEN görünmüyorsa (kart yoksa) sayaç işlemeye
   // başlamıyor — yoksa kullanıcı hiç görmeden "görüldü" işaretlenirdi.
@@ -272,12 +264,14 @@ export default function DiscoverScreen() {
   const handleSwipe = (direction: SwipeDirection) => {
     if (!currentCard || swipe.isPending) return;
     dismissSwipeHint();
+    decisionHaptic();
     swipe.mutate({ toPetId: currentCard.id, direction });
   };
 
   const handleSuperLike = () => {
     if (!currentCard || swipe.isPending) return;
     dismissSwipeHint();
+    decisionHaptic();
     swipe.mutate({ toPetId: currentCard.id, direction: "like", isSuper: true });
   };
 
@@ -394,19 +388,21 @@ export default function DiscoverScreen() {
           />
         }
       >
-        <View className="mb-5 flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-bold text-text-primary">Keşfet</Text>
-            <Text className="mt-1 text-sm text-text-secondary">
-              {t("discovery.subtitle")}
-            </Text>
-          </View>
+        {/*
+          Tek sıra: başlık + filtre + pet çipi. Önceden ayrı bir alt başlık
+          satırı da vardı — kart altta 4 modül birikince (bu satır, tamamlama
+          kartı, segment çubuğu, sahiplendirme bandı) hero olması gereken
+          kart ekranın dışına itiliyordu. Alt başlık en düşük bilgi
+          değerine sahipti, ilk giden o oldu.
+        */}
+        <View className="mb-4 flex-row items-center justify-between">
+          <Text className="text-2xl font-bold text-text-primary">Keşfet</Text>
           <View className="flex-row items-center gap-2">
-            <Pressable
+            <AppPressable
               onPress={() => setFilterVisible(true)}
               disabled={!deck.data}
               accessibilityLabel="Keşfet filtreleri"
-              className="relative h-10 w-10 items-center justify-center rounded-full border border-border bg-surface disabled:opacity-40"
+              className="relative h-11 w-11 items-center justify-center rounded-full border border-border bg-surface disabled:opacity-40"
             >
               <Ionicons name="options-outline" color="#6B5D55" size={20} />
               {activeFilterCount > 0 ? (
@@ -414,7 +410,7 @@ export default function DiscoverScreen() {
                   <Text className="text-[10px] font-bold text-white">{activeFilterCount}</Text>
                 </View>
               ) : null}
-            </Pressable>
+            </AppPressable>
             {deck.data?.viewer ? (
               <View className="flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
                 <Ionicons name="paw" color="#F97362" size={16} />
@@ -434,12 +430,7 @@ export default function DiscoverScreen() {
         */}
         <ProfileCompletionCard data={completion.data} />
 
-        {deck.isLoading ? (
-          <View className="flex-1 items-center justify-center py-24">
-            <ActivityIndicator color="#F97362" size="large" />
-            <Text className="mt-4 text-sm text-text-secondary">Uyumlu petler aranıyor…</Text>
-          </View>
-        ) : null}
+        {deck.isLoading ? <DiscoveryCardSkeleton /> : null}
 
         {deck.isError ? (
           <View className="flex-1 items-center justify-center rounded-3xl border border-danger/20 bg-danger/5 px-8 py-16">
@@ -450,9 +441,9 @@ export default function DiscoverScreen() {
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
               {errorMessage(deck.error, "Bağlantını kontrol edip tekrar dene.")}
             </Text>
-            <Pressable onPress={refresh} className="mt-5 rounded-xl bg-brand px-5 py-3">
+            <AppPressable onPress={refresh} className="mt-5 rounded-xl bg-brand px-5 py-3">
               <Text className="font-semibold text-white">Tekrar dene</Text>
-            </Pressable>
+            </AppPressable>
           </View>
         ) : null}
 
@@ -473,16 +464,16 @@ export default function DiscoverScreen() {
                 : "Keşfet için aktif bir pet gerekiyor."}
             </Text>
             {FEATURES.adoption ? (
-              <Pressable
+              <AppPressable
                 onPress={() => router.push("/adoption")}
                 accessibilityRole="button"
                 className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
               >
                 <Ionicons name="home" size={17} color="#FFFFFF" />
                 <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
-              </Pressable>
+              </AppPressable>
             ) : null}
-            <Pressable
+            <AppPressable
               onPress={() => router.push("/profile/pet")}
               accessibilityRole="button"
               className={
@@ -500,7 +491,7 @@ export default function DiscoverScreen() {
               >
                 Pet profili oluştur
               </Text>
-            </Pressable>
+            </AppPressable>
           </View>
         ) : null}
 
@@ -520,9 +511,17 @@ export default function DiscoverScreen() {
           İlan varsa giriş kartı, yoksa hiç. Boş bir tab uygulamanın ölü
           olduğunu söyler; giriş noktasını içeriğe bağlamak bu sorunu kural
           olarak değil yapısal olarak çözüyor (bkz. docs/goal-model.md).
+
+          Segment çubuğu görünüyorsa banner BİLEREK bastırılıyor: ikisi aynı
+          anda kartın üstünde iki ayrı yatay şerit olarak yığılınca hero
+          kart daha da aşağı itiliyordu. Segment, o an aktif bir tarama
+          kararını temsil ettiği için önceliği o alıyor.
         */}
-        {FEATURES.adoption && deck.data?.viewer && adoptableCount > 0 ? (
-          <Pressable
+        {FEATURES.adoption &&
+        deck.data?.viewer &&
+        adoptableCount > 0 &&
+        ownerVisibleCards.length < OWNER_SEGMENT_MIN_CARDS ? (
+          <AppPressable
             onPress={() => router.push("/adoption")}
             accessibilityRole="button"
             accessibilityLabel={`Yakınında yuva arayan ${adoptableCount} hayvan var`}
@@ -540,7 +539,7 @@ export default function DiscoverScreen() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#C4B7AE" />
-          </Pressable>
+          </AppPressable>
         ) : null}
 
         {!deck.isLoading && !deck.isError && deck.data?.viewer && !currentCard ? (
@@ -553,8 +552,14 @@ export default function DiscoverScreen() {
               Beğendiğin/geçtiğin petler desteden çıkar. Mesafeyi genişletebilir,
               filtreleri temizleyebilir veya yeni aday bildirimi isteyebilirsin.
             </Text>
+            {/*
+              Öncesinde burada 4 düğme üst üste duruyordu (yarıçap/temizle/
+              bildir/yenile) — hepsi aynı ağırlıkta, birincil eylem
+              seçilemiyordu. Tek birincil kalıyor, geri kalanı metin
+              bağlantısına iniyor.
+            */}
             {deck.data.filterSettings.maxDistanceKm < 100 ? (
-              <Pressable
+              <AppPressable
                 onPress={() => {
                   const settings = deck.data!.filterSettings;
                   const nextDistance =
@@ -568,50 +573,84 @@ export default function DiscoverScreen() {
                 className="mt-5 w-full items-center rounded-xl bg-brand px-5 py-3 disabled:opacity-50"
               >
                 <Text className="font-semibold text-white">Yarıçapı genişlet</Text>
-              </Pressable>
-            ) : null}
-            <Pressable
-              onPress={() =>
-                void applyFilters(
-                  {
-                    species: ["cat", "dog"],
-                    maxDistanceKm: 25,
-                    minPetAgeYears: null,
-                    maxPetAgeYears: null,
-                    requireVisibleOwner: false,
-                    requirePhoto: false,
-                    requireSocial: false,
-                    requireVerified: false,
-                    notifyOnNewCandidates: false,
-                  },
-                  { genders: [], minAge: null, maxAge: null },
-                )
-              }
-              disabled={filterBusy}
-              className="mt-3 w-full items-center rounded-xl border border-border bg-surface px-5 py-3 disabled:opacity-50"
-            >
-              <Text className="font-semibold text-text-primary">Filtreleri temizle</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => void toggleNewCandidateNotification()}
-              disabled={filterBusy}
-              className="mt-3 w-full items-center rounded-xl border border-accent bg-accent/5 px-5 py-3 disabled:opacity-50"
-            >
-              <Text className="font-semibold text-accent-dark">
-                {deck.data.filterSettings.notifyOnNewCandidates
-                  ? "Yeni pet bildirimi açık ✓"
-                  : "Yeni pet gelince bildir"}
-              </Text>
-            </Pressable>
-            <Pressable onPress={refresh} className="mt-3 px-5 py-3">
-              <Text className="font-semibold text-text-secondary">Desteyi yenile</Text>
-            </Pressable>
+              </AppPressable>
+            ) : (
+              <AppPressable
+                onPress={() => void toggleNewCandidateNotification()}
+                disabled={filterBusy}
+                className="mt-5 w-full items-center rounded-xl bg-brand px-5 py-3 disabled:opacity-50"
+              >
+                <Text className="font-semibold text-white">
+                  {deck.data.filterSettings.notifyOnNewCandidates
+                    ? "Yeni pet bildirimi açık ✓"
+                    : "Yeni pet gelince bildir"}
+                </Text>
+              </AppPressable>
+            )}
+            <View className="mt-4 flex-row flex-wrap items-center justify-center gap-x-4 gap-y-1">
+              <AppPressable
+                onPress={() =>
+                  void applyFilters(
+                    {
+                      species: ["cat", "dog"],
+                      maxDistanceKm: 25,
+                      minPetAgeYears: null,
+                      maxPetAgeYears: null,
+                      requireVisibleOwner: false,
+                      requirePhoto: false,
+                      requireSocial: false,
+                      requireVerified: false,
+                      notifyOnNewCandidates: false,
+                    },
+                    { genders: [], minAge: null, maxAge: null },
+                  )
+                }
+                disabled={filterBusy}
+                className="min-h-11 justify-center px-2"
+              >
+                <Text className="text-sm font-semibold text-text-secondary">
+                  Filtreleri temizle
+                </Text>
+              </AppPressable>
+              {deck.data.filterSettings.maxDistanceKm < 100 ? (
+                <AppPressable
+                  onPress={() => void toggleNewCandidateNotification()}
+                  disabled={filterBusy}
+                  className="min-h-11 justify-center px-2"
+                >
+                  <Text className="text-sm font-semibold text-text-secondary">
+                    {deck.data.filterSettings.notifyOnNewCandidates
+                      ? "Yeni pet bildirimi açık ✓"
+                      : "Yeni pet gelince bildir"}
+                  </Text>
+                </AppPressable>
+              ) : null}
+              <AppPressable onPress={refresh} className="min-h-11 justify-center px-2">
+                <Text className="text-sm font-semibold text-text-secondary">Desteyi yenile</Text>
+              </AppPressable>
+            </View>
           </View>
         ) : null}
 
         {currentCard ? (
           <>
-            <View>
+            <View className="relative">
+              {/*
+                Deste derinliği: bir sonraki kart hafif küçültülmüş ve
+                aşağı kaydırılmış halde arkada duruyor. Öncesinde swipe
+                sonrası bir an tamamen boş ekran görünüyordu — arkada
+                bekleyen kart, desteyi bitmeyen bir akış gibi hissettiriyor.
+                `pointerEvents="none"`: bu kopya salt görsel, dokunulamaz.
+              */}
+              {nextCard ? (
+                <View
+                  pointerEvents="none"
+                  className="absolute inset-0 top-2"
+                  style={{ transform: [{ scale: 0.96 }] }}
+                >
+                  <DiscoveryCard card={nextCard} />
+                </View>
+              ) : null}
               <SwipeableCard
                 resetKey={currentCard.id}
                 disabled={swipe.isPending}
@@ -622,14 +661,14 @@ export default function DiscoverScreen() {
                   onOwnerPress={currentCard.owner ? () => setOwnerSheet(true) : undefined}
                 />
               </SwipeableCard>
-              <Pressable
+              <AppPressable
                 onPress={() => setSafetyVisible(true)}
                 disabled={safetyBusy}
                 accessibilityLabel="Profil güvenliği"
                 className="absolute right-3 top-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
               >
                 <Ionicons name="ellipsis-horizontal" color="#FFFFFF" size={23} />
-              </Pressable>
+              </AppPressable>
             </View>
 
             {error ? (
@@ -647,9 +686,9 @@ export default function DiscoverScreen() {
           <Text className="flex-1 text-xs text-text-secondary">
             Kartı sağa/sola sürükle ya da alttaki düğmelere dokun
           </Text>
-          <Pressable onPress={dismissSwipeHint} accessibilityLabel="İpucunu kapat" hitSlop={8}>
+          <AppPressable onPress={dismissSwipeHint} accessibilityLabel="İpucunu kapat" hitSlop={8}>
             <Ionicons name="close" color="#9A8B82" size={16} />
-          </Pressable>
+          </AppPressable>
         </View>
       ) : null}
 
@@ -664,6 +703,13 @@ export default function DiscoverScreen() {
         yüzüyor (Tinder/Bumble referansı).
       */}
       {currentCard ? (
+        // NativeWind'in ürettiği stil ile elle verilen `style` prop'u AYNI
+        // View'da çakışınca (burada `flex-row` gibi layout sınıfları)
+        // explicit `style` kazanıyor ve className'in ürettiği layout
+        // tamamen düşüyor — düğmelerin dikey yığılıp yarısının ekran dışında
+        // kalmasının kök sebebi buydu. Düzeltme: gradyan yalnızca ZEMİN
+        // (`style` ile, className yok); düğme şeridi kendi `className`'i
+        // olan AYRI bir View'da.
         <LinearGradient
           colors={["rgba(255,251,247,0)", "#FFFBF7", "#FFFBF7"]}
           locations={[0, 0.55, 1]}
@@ -674,39 +720,40 @@ export default function DiscoverScreen() {
               ? { paddingTop: 20 }
               : { marginTop: -36, paddingTop: 36 }
           }
-          className="flex-row items-center justify-center gap-6 px-5 pb-4"
         >
-          <Pressable
-            onPress={() => handleSwipe("pass")}
-            disabled={swipe.isPending}
-            accessibilityLabel="Geç"
-            style={floatingButtonShadow}
-            className="h-16 w-16 items-center justify-center rounded-full bg-surface disabled:opacity-50"
-          >
-            <Ionicons name="close" color="#9A8B82" size={30} />
-          </Pressable>
-          <Pressable
-            onPress={handleSuperLike}
-            disabled={swipe.isPending}
-            accessibilityLabel="Süper beğen"
-            style={floatingButtonShadow}
-            className="h-12 w-12 items-center justify-center rounded-full bg-warning disabled:opacity-50"
-          >
-            <Ionicons name="star" color="#FFFFFF" size={20} />
-          </Pressable>
-          <Pressable
-            onPress={() => handleSwipe("like")}
-            disabled={swipe.isPending}
-            accessibilityLabel="Beğen"
-            style={floatingButtonShadow}
-            className="h-[70px] w-[70px] items-center justify-center rounded-full bg-brand disabled:opacity-50"
-          >
-            {swipe.isPending ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Ionicons name="heart" color="#FFFFFF" size={32} />
-            )}
-          </Pressable>
+          <View className="flex-row items-center justify-center gap-6 px-5 pb-4">
+            <AppPressable
+              onPress={() => handleSwipe("pass")}
+              disabled={swipe.isPending}
+              accessibilityLabel="Geç"
+              style={shadowLg}
+              className="h-16 w-16 items-center justify-center rounded-full bg-surface disabled:opacity-50"
+            >
+              <Ionicons name="close" color="#9A8B82" size={30} />
+            </AppPressable>
+            <AppPressable
+              onPress={handleSuperLike}
+              disabled={swipe.isPending}
+              accessibilityLabel="Süper beğen"
+              style={shadowLg}
+              className="h-12 w-12 items-center justify-center rounded-full bg-warning disabled:opacity-50"
+            >
+              <Ionicons name="star" color="#FFFFFF" size={20} />
+            </AppPressable>
+            <AppPressable
+              onPress={() => handleSwipe("like")}
+              disabled={swipe.isPending}
+              accessibilityLabel="Beğen"
+              style={shadowLg}
+              className="h-[70px] w-[70px] items-center justify-center rounded-full bg-brand disabled:opacity-50"
+            >
+              {swipe.isPending ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Ionicons name="heart" color="#FFFFFF" size={32} />
+              )}
+            </AppPressable>
+          </View>
         </LinearGradient>
       ) : null}
       <OwnerSheet

@@ -1,8 +1,10 @@
+import { Alert, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { Text, View } from "react-native";
 
 import type { PendingLikeCard as PendingLikeCardData } from "../core/api/likes";
+import { lightHaptic } from "../core/ui/haptics";
+import { AppPressable } from "./ui/pressable";
 
 /**
  * "Kim beğendi" tuzeri — monetization.md: ücretsiz katman yalnızca SAYI
@@ -73,7 +75,22 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
   }
 
   return (
-    <View className="aspect-[3/4] w-[48%] overflow-hidden rounded-2xl bg-bg-tertiary">
+    // Öncesinde kilitli kart tamamen ölüydü: bulanık duruyordu, dokunmak
+    // hiçbir şey yapmıyordu. Gerçek ödeme duvarı henüz yok (bkz.
+    // docs/backlog.md "kararı bekleyenler") — ama en azından dokunuşa bir
+    // yanıt vermek, "kilit neden burada" sorusunu cevaplıyor.
+    <AppPressable
+      accessibilityRole="button"
+      accessibilityLabel="Kilitli beğeni, ne zaman açılacağını görmek için dokun"
+      onPress={() => {
+        lightHaptic();
+        Alert.alert(
+          "Kimlik kilitli",
+          "Bu profilin adı ve fotoğrafı ödeme duvarı geldiğinde açılacak. Şimdilik yalnızca kaç kişinin petini beğendiğini görebiliyorsun.",
+        );
+      }}
+      className="aspect-[3/4] w-[48%] overflow-hidden rounded-2xl bg-bg-tertiary"
+    >
       {photoUrl ? (
         <Image
           source={photoUrl}
@@ -101,6 +118,6 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
         </View>
       ) : null}
       {card.isSuper ? <SuperBadge /> : null}
-    </View>
+    </AppPressable>
   );
 }

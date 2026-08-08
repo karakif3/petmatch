@@ -7,7 +7,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
-  Pressable,
   Text,
   TextInput,
   View,
@@ -60,7 +59,6 @@ import {
 } from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
-import { useTranslation } from "../../core/i18n";
 import { captureClientError } from "../../core/api/observability";
 import { OwnerSheet } from "../../components/owner-sheet";
 import {
@@ -71,14 +69,16 @@ import {
   subscribeToMeetup,
 } from "../../core/api/meetups";
 import type { MeetupPlace } from "../../core/api/meetup-places";
+import { AppPressable } from "../../components/ui/pressable";
 import { errorMessage } from "../../core/domain/error-message";
+import { decisionHaptic, warningHaptic } from "../../core/ui/haptics";
+import { shadowSm } from "../../core/ui/shadow";
 import { useAuthStore } from "../../stores/auth";
 
 const TYPING_IDLE_MS = 2_500;
 const REMOTE_TYPING_STALE_MS = 4_000;
 
 export default function ChatScreen() {
-  const t = useTranslation();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
@@ -401,6 +401,7 @@ export default function ChatScreen() {
 
   const confirmSafetyAction = (action: "block" | "unmatch") => {
     setSafetyVisible(false);
+    warningHaptic();
     const blocking = action === "block";
     Alert.alert(
       blocking ? "Kullanıcı engellensin mi?" : "Eşleşme kaldırılsın mı?",
@@ -424,132 +425,113 @@ export default function ChatScreen() {
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="flex-row items-center border-b border-border bg-surface px-3 py-2.5">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityLabel="Geri"
-            className="h-11 w-11 items-center justify-center rounded-full"
-          >
-            <Ionicons name="chevron-back" color="#1F1A17" size={27} />
-          </Pressable>
-          {conversation.data?.petPhotoUrl ? (
-            <Image
-              source={conversation.data.petPhotoUrl}
-              accessibilityLabel={`${title} profil fotoğrafı`}
-              contentFit="cover"
-              style={{ width: 42, height: 42, borderRadius: 14 }}
-            />
-          ) : (
-            <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
-              <Ionicons name="paw" color="#C4B7AE" size={20} />
-            </View>
-          )}
-          <View className="ml-3 flex-1">
-            <Text className="text-base font-bold text-text-primary" numberOfLines={1}>
-              {title}
-            </Text>
-            <View className="mt-0.5 flex-row items-center gap-1.5">
-              {remoteOnline && conversation.data?.isActive ? (
-                <View className="h-2 w-2 rounded-full bg-accent" />
-              ) : null}
-              <Text
-                className={`text-xs ${
-                  remoteTyping ? "font-semibold text-accent-dark" : "text-text-secondary"
-                }`}
-                accessibilityLiveRegion="polite"
-              >
-                {activityText}
+        {/*
+          Sahip bloğu önceden ayrı, tam genişlikte bir kart olarak her
+          açılışta yer kaplıyordu (avatar + isim/rozetler + bio + "profile
+          bak" satırı, ~120pt). O bilginin TAMAMI zaten `OwnerSheet`'te var
+          — burada tekrar etmenin tek gerekçesi keşfedilebilirlikti. Şimdi
+          header'ın ikinci satırına çökertildi: küçük bir rozet, dokununca
+          aynı sheet açılıyor. Mesaj listesi kazandığı alanı doğrudan alıyor.
+        */}
+        <View className="border-b border-border bg-surface px-3 py-2.5">
+          <View className="flex-row items-center">
+            <AppPressable
+              onPress={() => router.back()}
+              accessibilityLabel="Geri"
+              className="h-11 w-11 items-center justify-center rounded-full"
+            >
+              <Ionicons name="chevron-back" color="#1F1A17" size={27} />
+            </AppPressable>
+            {conversation.data?.petPhotoUrl ? (
+              <Image
+                source={conversation.data.petPhotoUrl}
+                accessibilityLabel={`${title} profil fotoğrafı`}
+                contentFit="cover"
+                style={{ width: 42, height: 42, borderRadius: 14 }}
+              />
+            ) : (
+              <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
+                <Ionicons name="paw" color="#C4B7AE" size={20} />
+              </View>
+            )}
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-bold text-text-primary" numberOfLines={1}>
+                {title}
               </Text>
+              <View className="mt-0.5 flex-row items-center gap-1.5">
+                {remoteOnline && conversation.data?.isActive ? (
+                  <View className="h-2 w-2 rounded-full bg-accent" />
+                ) : null}
+                <Text
+                  className={`text-xs ${
+                    remoteTyping ? "font-semibold text-accent-dark" : "text-text-secondary"
+                  }`}
+                  accessibilityLiveRegion="polite"
+                >
+                  {activityText}
+                </Text>
+              </View>
             </View>
+            <AppPressable
+              onPress={() => setSafetyVisible(true)}
+              disabled={safetyBusy || !conversation.data}
+              accessibilityLabel="Konuşma güvenliği"
+              accessibilityHint="Engelleme, şikâyet ve eşleşmeyi kaldırma seçeneklerini açar"
+              className="h-11 w-11 items-center justify-center rounded-full disabled:opacity-40"
+            >
+              <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
+            </AppPressable>
           </View>
-          <Pressable
-            onPress={() => setSafetyVisible(true)}
-            disabled={safetyBusy || !conversation.data}
-            accessibilityLabel="Konuşma güvenliği"
-            accessibilityHint="Engelleme, şikâyet ve eşleşmeyi kaldırma seçeneklerini açar"
-            className="h-11 w-11 items-center justify-center rounded-full disabled:opacity-40"
-          >
-            <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
-          </Pressable>
-        </View>
 
-        {ownerProfile.data ? (
-          <Pressable
-            onPress={() => setOwnerSheet(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`${ownerProfile.data.displayName ?? "Pet sahibi"} profilini aç`}
-            className="border-b border-border bg-bg-secondary px-4 py-3"
-          >
-            <View className="flex-row items-center">
+          {ownerProfile.data ? (
+            <AppPressable
+              onPress={() => setOwnerSheet(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`${ownerProfile.data.displayName ?? "Pet sahibi"} profilini aç`}
+              className="ml-11 mt-1.5 flex-row items-center self-start rounded-full bg-bg-secondary py-1 pl-1 pr-2.5"
+            >
               {ownerProfile.data.photoUrl ? (
                 <Image
                   source={ownerProfile.data.photoUrl}
                   accessibilityLabel="Pet sahibinin profil fotoğrafı"
                   contentFit="cover"
-                  style={{ width: 44, height: 44, borderRadius: 22 }}
+                  style={{ width: 22, height: 22, borderRadius: 11 }}
                 />
               ) : (
-                <View className="h-11 w-11 items-center justify-center rounded-full bg-bg-tertiary">
-                  <Ionicons name="person-outline" color="#9A8B82" size={20} />
+                <View className="h-[22px] w-[22px] items-center justify-center rounded-full bg-bg-tertiary">
+                  <Ionicons name="person-outline" color="#9A8B82" size={12} />
                 </View>
               )}
-              <View className="ml-3 flex-1">
-                <View className="flex-row items-center gap-1.5">
-                  <Text className="font-bold text-text-primary">
-                    {ownerProfile.data.displayName ?? "Pet sahibi"}
-                  </Text>
-                  {ownerProfile.data.verified ? (
-                    <Ionicons
-                      name="shield-checkmark"
-                      accessibilityLabel="Doğrulanmış sahip"
-                      color="#2FB8A6"
-                      size={16}
-                    />
-                  ) : null}
-                </View>
-                <Text className="mt-0.5 text-xs text-text-secondary">
-                  {[
-                    ownerProfile.data.gender === "female"
-                      ? "Kadın"
-                      : ownerProfile.data.gender === "male"
-                        ? "Erkek"
-                        : ownerProfile.data.gender === "other"
-                          ? "Diğer"
-                          : null,
-                    ownerProfile.data.ageBucket,
-                    ownerProfile.data.socialOpen ? t("ownerConnection.badge") : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "Sahip profili eşleşmeyle açıldı"}
-                </Text>
-              </View>
-            </View>
-            {ownerProfile.data.bio ? (
-              <Text className="mt-2 text-xs leading-4 text-text-secondary" numberOfLines={2}>
-                {ownerProfile.data.bio}
+              <Text className="ml-1.5 text-xs font-semibold text-text-primary" numberOfLines={1}>
+                {ownerProfile.data.displayName ?? "Pet sahibi"}
               </Text>
-            ) : null}
-            <View className="mt-1.5 flex-row items-center">
-              <Text className="text-xs font-semibold text-brand-dark">
-                Sahip profiline bak
-              </Text>
-              <Ionicons name="chevron-forward" color="#F97362" size={14} />
-            </View>
-          </Pressable>
-        ) : null}
+              {ownerProfile.data.verified ? (
+                <Ionicons
+                  name="shield-checkmark"
+                  accessibilityLabel="Doğrulanmış sahip"
+                  color="#2FB8A6"
+                  size={13}
+                  style={{ marginLeft: 4 }}
+                />
+              ) : null}
+              <Ionicons name="chevron-forward" color="#9A8B82" size={12} style={{ marginLeft: 2 }} />
+            </AppPressable>
+          ) : null}
+        </View>
 
         {meetup.data ? (
           <View className="pt-3">
             <MeetupCard
               meetup={meetup.data}
               busy={meetupAction.isPending}
-              onRespond={(accept) =>
+              onRespond={(accept) => {
+                decisionHaptic();
                 meetupAction.mutate({
                   kind: "respond",
                   meetupId: meetup.data!.id,
                   accept,
-                })
-              }
+                });
+              }}
               onCancel={() =>
                 meetupAction.mutate({ kind: "cancel", meetupId: meetup.data!.id })
               }
@@ -569,7 +551,7 @@ export default function ChatScreen() {
             <Text className="mt-4 text-center text-lg font-bold text-text-primary">
               Konuşma yüklenemedi
             </Text>
-            <Pressable
+            <AppPressable
               onPress={() => {
                 void conversation.refetch();
                 void messages.refetch();
@@ -578,7 +560,7 @@ export default function ChatScreen() {
               className="mt-5 min-h-11 justify-center rounded-xl bg-brand px-5 py-3"
             >
               <Text className="font-semibold text-white">Tekrar dene</Text>
-            </Pressable>
+            </AppPressable>
           </View>
         ) : null}
 
@@ -629,7 +611,7 @@ export default function ChatScreen() {
               ListHeaderComponent={
                 messages.hasNextPage ? (
                   <View className="items-center pb-2 pt-1">
-                    <Pressable
+                    <AppPressable
                       onPress={() => void messages.fetchNextPage()}
                       disabled={messages.isFetchingNextPage}
                       accessibilityLabel="Daha eski mesajları yükle"
@@ -643,7 +625,7 @@ export default function ChatScreen() {
                           ? " Yükleniyor…"
                           : "Daha eski mesajları göster"}
                       </Text>
-                    </Pressable>
+                    </AppPressable>
                   </View>
                 ) : null
               }
@@ -664,17 +646,18 @@ export default function ChatScreen() {
               }
             />
             {newMessageBelow ? (
-              <Pressable
+              <AppPressable
                 onPress={() => {
                   listRef.current?.scrollToEnd({ animated: true });
                   nearBottomRef.current = true;
                   setNewMessageBelow(false);
                 }}
                 accessibilityLabel="Yeni mesaja git"
-                className="absolute bottom-3 self-center rounded-full bg-text-primary px-4 py-2.5 shadow-sm"
+                style={shadowSm}
+                className="absolute bottom-3 self-center rounded-full bg-text-primary px-4 py-2.5"
               >
                 <Text className="text-xs font-bold text-white">Yeni mesaj ↓</Text>
-              </Pressable>
+              </AppPressable>
             ) : null}
           </View>
         ) : null}
@@ -687,13 +670,13 @@ export default function ChatScreen() {
             <Ionicons name="alert-circle-outline" color="#E5484D" size={18} />
             <Text className="ml-2 flex-1 text-xs text-danger">{sendError}</Text>
             {failedMessage ? (
-              <Pressable
+              <AppPressable
                 onPress={() => submitMessage(failedMessage)}
                 disabled={send.isPending}
                 className="min-h-11 justify-center px-2"
               >
                 <Text className="text-xs font-bold text-danger">Tekrar dene</Text>
-              </Pressable>
+              </AppPressable>
             ) : null}
           </View>
         ) : null}
@@ -716,26 +699,27 @@ export default function ChatScreen() {
         {conversation.data?.isActive ? (
           <View className="border-t border-border bg-surface pb-2 pt-2">
             {messageItems.length ? (
-              <View className="flex-row items-center">
-                {/* Canlı buluşma varken ikinci öneri açılamıyor (0043'teki
-                    tek-canlı-buluşma kuralı); düğmeyi de göstermiyoruz. */}
-                {(meetupPlaces.data?.length ?? 0) > 0 && !meetup.data ? (
-                  <Pressable
-                    onPress={() => setPlacePickerVisible(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Buluşma yeri öner"
-                    className="ml-3 min-h-11 flex-row items-center justify-center rounded-full border border-brand/40 bg-brand/10 px-3"
-                  >
-                    <Ionicons name="location-outline" color="#E0523F" size={16} />
-                    <Text className="ml-1.5 text-xs font-bold text-brand-dark">
-                      Buluşma yeri
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <View className="flex-1">
-                  <QuickReplyBar replies={quickReplies.slice(1)} onSelect={setBody} />
-                </View>
-              </View>
+              <QuickReplyBar
+                replies={quickReplies.slice(1)}
+                onSelect={setBody}
+                leading={
+                  // Canlı buluşma varken ikinci öneri açılamıyor (0043'teki
+                  // tek-canlı-buluşma kuralı); düğmeyi de göstermiyoruz.
+                  (meetupPlaces.data?.length ?? 0) > 0 && !meetup.data ? (
+                    <AppPressable
+                      onPress={() => setPlacePickerVisible(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Buluşma yeri öner"
+                      className="min-h-11 flex-row items-center justify-center rounded-full border border-brand/40 bg-brand/10 px-3"
+                    >
+                      <Ionicons name="location-outline" color="#E0523F" size={16} />
+                      <Text className="ml-1.5 text-xs font-bold text-brand-dark">
+                        Buluşma yeri
+                      </Text>
+                    </AppPressable>
+                  ) : null
+                }
+              />
             ) : null}
             <View className="flex-row items-end gap-2 px-3">
               <View className="flex-1">
@@ -756,7 +740,7 @@ export default function ChatScreen() {
                   </Text>
                 ) : null}
               </View>
-              <Pressable
+              <AppPressable
                 onPress={() => submitMessage()}
                 disabled={!body.trim() || send.isPending}
                 accessibilityLabel="Mesaj gönder"
@@ -768,7 +752,7 @@ export default function ChatScreen() {
                 ) : (
                   <Ionicons name="send" color="#FFFFFF" size={20} />
                 )}
-              </Pressable>
+              </AppPressable>
             </View>
           </View>
         ) : (

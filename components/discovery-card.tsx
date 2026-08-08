@@ -1,10 +1,18 @@
+import { useEffect, useState, type ReactNode } from "react";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import type { DiscoveryDeckCard } from "../core/api/discovery";
 import { formatAge } from "../core/domain/age";
-import { useTranslation } from "../core/i18n";
+import { ownerInterestLabels, sizeLabels, temperamentLabels } from "../core/domain/labels";
+import { shadowSm } from "../core/ui/shadow";
+import { PhotoCarousel } from "./photo-carousel";
+import { AppPressable } from "./ui/pressable";
+
+const CARD_ASPECT = 3 / 4;
+const MAX_OWNER_INTEREST_CHIPS = 2;
 
 function distanceLabel(bucket: string | null): string {
   if (!bucket) return "Mesafe bilinmiyor";
@@ -20,166 +28,236 @@ function activityLabel(bucket: string | null): string | null {
   return null;
 }
 
+/** Foto üstünde okunabilirlik için tutarlı koyu-cam çip stili. */
+function OverlayChip({ children }: { children: ReactNode }) {
+  return (
+    <View className="rounded-full bg-black/65 px-2.5 py-1.5">
+      <Text className="text-[11px] font-bold text-white">{children}</Text>
+    </View>
+  );
+}
+
 export function DiscoveryCard({
   card,
   onOwnerPress,
+  variant = "discovery",
 }: {
   card: DiscoveryDeckCard;
-  /** Sahip bloğuna dokunulduğunda; verilmezse blok tıklanamaz kalır. */
+  /** Sahip teaser'ına dokunulduğunda; verilmezse blok tıklanamaz kalır. */
   onOwnerPress?: () => void;
+  /**
+   * "preview": kullanıcı KENDİ kartına bakıyor (Profil → Profilimi önizle).
+   * Uyum rozeti, mesafe ve sahip teaser'ı kendine göre anlamsız — bu yüzden
+   * gizleniyor. Geri kalan (foto, mizaç/bilgi çipleri) karşı tarafın
+   * gördüğüyle birebir aynı.
+   */
+  variant?: "discovery" | "preview";
 }) {
-  const t = useTranslation();
+  const [photoIndex, setPhotoIndex] = useState(0);
+  // Kart değişince (yeni aday) önceki kartın fotoğraf sayfasında kalınmasın.
+  useEffect(() => {
+    setPhotoIndex(0);
+  }, [card.id]);
+
   const age = formatAge(card.birthDate);
   const activity = activityLabel(card.activityBucket);
   const compatibility = Math.round(card.compatibility.total * 100);
-  const details = [card.breed, age, card.size === "small" ? "Küçük" : card.size === "large" ? "Büyük" : "Orta"]
-    .filter(Boolean)
-    .join(" · ");
+  const details = [card.breed, age, sizeLabels[card.size]].filter(Boolean).join(" · ");
+  const showCompatibility = variant === "discovery";
+  const showDistance = variant === "discovery";
+
+  /*
+   * Kartın YÜZÜNE (fotoğrafın üstüne) taşınan "ilgi çekici bilgiler" —
+   * önceden ayrı bir "Ayrıntılar için dokun" panelinin arkasındaydı. Artık
+   * ayrı bir panel YOK: ilk fotoğrafa sığmayan bilgiler bir SONRAKİ
+   * fotoğrafta beliriyor. Sıra öncelik sırası: enerji/şehir/kısırlaştırma →
+   * mizaç → bio → sahip teaser'ı (sahip görünürse).
+   */
+  const extraBlocks: ReactNode[] = [];
+
+  const factChips: string[] = [];
+  if (card.city) factChips.push(card.city);
+  factChips.push(`Enerji ${card.energyLevel}/5`);
+  if (card.isNeutered) factChips.push("Kısırlaştırılmış");
+  extraBlocks.push(
+    <View key="facts" className="flex-row flex-wrap gap-1.5">
+      {factChips.map((chip) => (
+        <OverlayChip key={chip}>{chip}</OverlayChip>
+      ))}
+    </View>,
+  );
+
+  if (card.temperaments.length > 0) {
+    extraBlocks.push(
+      <View key="temperament" className="flex-row flex-wrap gap-1.5">
+        {card.temperaments.map((temperament) => (
+          <OverlayChip key={temperament}>{temperamentLabels[temperament]}</OverlayChip>
+        ))}
+      </View>,
+    );
+  }
+
+  if (card.bio) {
+    extraBlocks.push(
+      <View key="bio" className="rounded-xl bg-black/70 px-3 py-2.5">
+        <Text className="text-xs leading-5 text-white" numberOfLines={3}>
+          {card.bio}
+        </Text>
+      </View>,
+    );
+  }
+
+  // Sahip teaser'ı yalnızca `discovery` modunda: kendi kartını önizlerken
+  // kendi ilgi alanlarını kendine göstermenin anlamı yok. Sahip verisi zaten
+  // yalnızca `owner_visibility = 'public'` iken doluyor (RPC tarafında
+  // gated) — istemci burada ek bir görünürlük kontrolü YAPMIYOR, 0021'deki
+  // kuralı ikinci kez uygulamak yerine sunucuya güveniyor.
+  if (variant === "discovery" && card.owner) {
+    const owner = card.owner;
+    const interestChips = owner.interests.slice(0, MAX_OWNER_INTEREST_CHIPS);
+    extraBlocks.push(
+      <AppPressable
+        key="owner"
+        onPress={onOwnerPress}
+        disabled={!onOwnerPress}
+        accessibilityRole={onOwnerPress ? "button" : undefined}
+        accessibilityLabel={
+          onOwnerPress ? `${owner.displayName ?? "Pet sahibi"} profilini aç` : undefined
+        }
+        className="flex-row items-center gap-2 rounded-2xl bg-black/70 px-2.5 py-2"
+      >
+        {owner.photoUrl ? (
+          <Image
+            source={owner.photoUrl}
+            contentFit="cover"
+            style={{ width: 32, height: 32, borderRadius: 16 }}
+          />
+        ) : (
+          <View className="h-8 w-8 items-center justify-center rounded-full bg-white/20">
+            <Ionicons name="person-outline" color="#FFFFFF" size={16} />
+          </View>
+        )}
+        <Text className="text-xs font-bold text-white" numberOfLines={1}>
+          {owner.displayName ?? "Pet sahibi"}
+        </Text>
+        {owner.verified ? (
+          <Ionicons name="shield-checkmark" color="#5ED3C3" size={14} />
+        ) : null}
+        {interestChips.map((interest) => (
+          <View key={interest} className="rounded-full bg-white/20 px-2 py-1">
+            <Text className="text-[10px] font-bold text-white">
+              {ownerInterestLabels[interest]}
+            </Text>
+          </View>
+        ))}
+      </AppPressable>,
+    );
+  }
+
+  const photoCount = Math.max(1, card.photoUrls.length);
+  // Sayfa 0 çekirdek bilgiye (ad/yaş/mesafe) ayrılmış; fazladan içerik
+  // sonraki sayfalara dağılıyor. Tek fotoğrafta gidecek başka sayfa
+  // olmadığı için hepsi aynı sayfada, çekirdek bilginin ÜSTÜNDE toplanıyor
+  // — veri kaybı olmasın diye.
+  const extraPageCount = Math.max(1, photoCount - 1);
+  const buckets: ReactNode[][] = Array.from({ length: extraPageCount }, () => []);
+  extraBlocks.forEach((block, i) => {
+    buckets[Math.min(i, extraPageCount - 1)].push(block);
+  });
+  const currentExtra =
+    photoCount === 1 ? buckets[0] : photoIndex === 0 ? [] : buckets[photoIndex - 1];
 
   return (
-    <View className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-      {card.photoUrls[0] ? (
-        <Image
-          source={card.photoUrls[0]}
-          contentFit="cover"
-          transition={180}
-          style={{ width: "100%", aspectRatio: 1.3 }}
-        />
-      ) : (
-        <View
-          className="items-center justify-center bg-bg-tertiary"
-          style={{ width: "100%", aspectRatio: 1.3 }}
-        >
-          <Ionicons name="paw" color="#C4B7AE" size={72} />
-        </View>
-      )}
+    <View
+      className="relative w-full overflow-hidden rounded-3xl border border-border bg-surface"
+      style={shadowSm}
+    >
+      <PhotoCarousel
+        photoUrls={card.photoUrls}
+        aspectRatio={CARD_ASPECT}
+        index={photoIndex}
+        onIndexChange={setPhotoIndex}
+      />
 
-      <View className="p-4">
-        <View className="flex-row items-start justify-between gap-4">
+      {/*
+        Alt okunabilirlik gradyanı — foto tam kadraj, metin üstüne biniyor.
+        Sayfa başına birden fazla bilgi bloğu eklenince (mizaç/bio/sahip
+        teaser'ı) üst sıradaki bloklar önceden yalnızca tek satırlık içerik
+        için ayarlanmış gradyanın zayıf kaldığı bölgeye düşüyordu. Üç durak +
+        daha yüksek tepe opaklık, kartta kaç blok olursa olsun okunurluğu
+        koruyor.
+      */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.88)"]}
+        locations={[0.1, 0.5, 1]}
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" }}
+      />
+
+      {activity ? (
+        <View className="absolute left-3 top-3 flex-row items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5">
+          <View className="h-2 w-2 rounded-full bg-accent" />
+          <Text className="text-[11px] font-bold text-white">{activity}</Text>
+        </View>
+      ) : null}
+
+      {showCompatibility ? (
+        <View
+          style={shadowSm}
+          // top-16: `app/(app)/index.tsx` bu kartın ÜSTÜNE, aynı `right-3
+          // top-3` köşesine güvenlik düğmesini biniyor (ayrı bir sorumluluk,
+          // kart bunu bilmiyor) — ikisi çakışmasın diye rozet bir satır
+          // aşağıda duruyor.
+          className="absolute right-3 top-16 flex-row items-center gap-1 rounded-full bg-white/95 px-3 py-1.5"
+        >
+          <Ionicons name="sparkles" size={13} color="#1E9384" />
+          <Text className="text-xs font-bold text-accent-dark">%{compatibility} uyum</Text>
+        </View>
+      ) : null}
+
+      {/*
+        `key`: fotoğraf sayfası değişince bu bloğun içeriği (hangi çipler/
+        bio/sahip teaser'ı gösterileceği) tamamen değişiyor — `key` React'a
+        eskiyi güncellemek yerine yeniden mount etmesini söylüyor.
+      */}
+      <View
+        key={`bottom-${card.id}-${photoIndex}`}
+        className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-10"
+      >
+        {currentExtra.length > 0 ? (
+          <View className="mb-2.5 gap-1.5">
+            {currentExtra.map((node, i) => (
+              <View key={i}>{node}</View>
+            ))}
+          </View>
+        ) : null}
+        <View className="flex-row items-end justify-between gap-3">
           <View className="flex-1">
             <View className="flex-row items-center gap-2">
-              <Text className="text-3xl font-bold text-text-primary">{card.name}</Text>
+              <Text className="text-[26px] font-bold text-white" numberOfLines={1}>
+                {card.name}
+              </Text>
               <Ionicons
                 name={card.gender === "female" ? "female" : "male"}
-                color={card.gender === "female" ? "#E0527D" : "#4D83D1"}
-                size={21}
+                color={card.gender === "female" ? "#FFB6D0" : "#AFC9F2"}
+                size={19}
               />
             </View>
-            {details ? <Text className="mt-1 text-sm text-text-secondary">{details}</Text> : null}
-          </View>
-          <View className="rounded-full bg-accent/10 px-3 py-2">
-            <Text className="text-sm font-bold text-accent-dark">%{compatibility} uyum</Text>
-          </View>
-        </View>
-
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          <View className="flex-row items-center gap-1 rounded-full bg-bg-secondary px-3 py-2">
-            <Ionicons name="location-outline" color="#6B5D55" size={15} />
-            <Text className="text-xs font-semibold text-text-secondary">
-              {distanceLabel(card.distanceBucket)}
-            </Text>
-          </View>
-          {card.city ? (
-            <View className="rounded-full bg-bg-secondary px-3 py-2">
-              <Text className="text-xs font-semibold text-text-secondary">{card.city}</Text>
-            </View>
-          ) : null}
-          <View className="rounded-full bg-bg-secondary px-3 py-2">
-            <Text className="text-xs font-semibold text-text-secondary">
-              Enerji {card.energyLevel}/5
-            </Text>
-          </View>
-          {card.isNeutered ? (
-            <View className="rounded-full bg-bg-secondary px-3 py-2">
-              <Text className="text-xs font-semibold text-text-secondary">Kısırlaştırılmış</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {card.bio ? (
-          <Text className="mt-3 text-sm leading-5 text-text-secondary" numberOfLines={3}>
-            {card.bio}
-          </Text>
-        ) : null}
-
-        {card.owner ? (
-          <Pressable
-            onPress={onOwnerPress}
-            disabled={!onOwnerPress}
-            accessibilityRole={onOwnerPress ? "button" : undefined}
-            accessibilityLabel={
-              onOwnerPress
-                ? `${card.owner.displayName ?? "Pet sahibi"} profilini aç`
-                : undefined
-            }
-            className="mt-4 rounded-2xl border border-border bg-bg-secondary p-3"
-          >
-            <View className="flex-row items-center">
-              {card.owner.photoUrl ? (
-                <Image
-                  source={card.owner.photoUrl}
-                  contentFit="cover"
-                  style={{ width: 52, height: 52, borderRadius: 26 }}
-                />
-              ) : (
-                <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-bg-tertiary">
-                  <Ionicons name="person-outline" color="#9A8B82" size={23} />
-                </View>
-              )}
-              <View className="ml-3 flex-1">
-                <View className="flex-row flex-wrap items-center gap-1.5">
-                  <Text className="font-bold text-text-primary">
-                    {card.owner.displayName ?? "Pet sahibi"}
-                  </Text>
-                  {card.owner.verified ? (
-                    <Ionicons name="shield-checkmark" color="#2FB8A6" size={17} />
-                  ) : null}
-                </View>
-                <Text className="mt-1 text-xs text-text-secondary">
-                  {[
-                    card.owner.gender === "female"
-                      ? "Kadın"
-                      : card.owner.gender === "male"
-                        ? "Erkek"
-                        : card.owner.gender === "other"
-                          ? "Diğer"
-                          : null,
-                    card.owner.ageBucket,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "Sahip profili görünür"}
-                </Text>
-              </View>
-              {card.owner.socialOpen ? (
-                <View className="rounded-full bg-brand/10 px-2.5 py-1.5">
-                  <Text className="text-[10px] font-bold text-brand-dark">
-                    {t("ownerConnection.badge")}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-            {card.owner.bio ? (
-              <Text className="mt-3 text-xs leading-5 text-text-secondary" numberOfLines={3}>
-                {card.owner.bio}
+            {details ? (
+              <Text className="mt-0.5 text-sm font-semibold text-white/90" numberOfLines={1}>
+                {details}
               </Text>
             ) : null}
-            {onOwnerPress ? (
-              <View className="mt-2.5 flex-row items-center">
-                <Text className="text-xs font-semibold text-brand-dark">
-                  Sahip profiline bak
-                </Text>
-                <Ionicons name="chevron-forward" color="#F97362" size={14} />
-              </View>
-            ) : null}
-          </Pressable>
-        ) : null}
-
-        {activity ? (
-          <View className="mt-3 flex-row items-center gap-1.5">
-            <View className="h-2 w-2 rounded-full bg-accent" />
-            <Text className="text-xs font-semibold text-accent-dark">{activity}</Text>
           </View>
-        ) : null}
+          {showDistance ? (
+            <View className="flex-row items-center gap-1 rounded-full bg-white/20 px-2.5 py-1.5">
+              <Ionicons name="location-outline" color="#FFFFFF" size={13} />
+              <Text className="text-[11px] font-bold text-white">
+                {distanceLabel(card.distanceBucket)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </View>
   );

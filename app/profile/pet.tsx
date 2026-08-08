@@ -34,6 +34,7 @@ import {
   type Size,
   type Temperament,
 } from "../../core/domain/types";
+import { sizeLabels, temperamentLabels } from "../../core/domain/labels";
 import {
   PET_AGE_UNKNOWN,
   birthDateToPetAge,
@@ -48,20 +49,10 @@ type PhotoItem =
   | ({ id: string; kind: "local" } & LocalProfilePhoto);
 
 const sizeOptions: { value: Size; label: string }[] = [
-  { value: "small", label: "Küçük" },
-  { value: "medium", label: "Orta" },
-  { value: "large", label: "Büyük" },
+  { value: "small", label: sizeLabels.small },
+  { value: "medium", label: sizeLabels.medium },
+  { value: "large", label: sizeLabels.large },
 ];
-
-const temperamentLabels: Record<Temperament, string> = {
-  playful: "Oyuncu",
-  calm: "Sakin",
-  shy: "Çekingen",
-  curious: "Meraklı",
-  protective: "Korumacı",
-  affectionate: "Sevecen",
-  independent: "Bağımsız",
-};
 
 function Field({
   label,
@@ -321,7 +312,7 @@ export default function PetProfileScreen() {
           <Pressable
             onPress={() => router.back()}
             accessibilityLabel="Geri"
-            className="h-10 w-10 items-center justify-center rounded-full"
+            className="h-11 w-11 items-center justify-center rounded-full"
           >
             <Ionicons name="chevron-back" color="#1F1A17" size={27} />
           </Pressable>

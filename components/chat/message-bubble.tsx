@@ -105,17 +105,18 @@ export function MessageBubble({
           <Text className={`text-[11px] ${mine ? "text-white/75" : "text-text-tertiary"}`}>
             {messageTime(message.createdAt)}
           </Text>
+          {/*
+            Öncesinde ikon + "Okundu"/"Gönderildi" metni birlikte
+            gösteriliyordu — aynı bilgi iki kez. Metin `accessibilityLabel`'a
+            taşındı (üstteki `View`'da zaten okunuyor), görsel olarak yalnızca
+            ikon kalıyor — WhatsApp/iMessage'daki gibi tek çift tik.
+          */}
           {latestMine ? (
-            <>
-              <Ionicons
-                name={message.readAt ? "checkmark-done" : "checkmark"}
-                color={mine ? "rgba(255,255,255,0.8)" : "#9A8B82"}
-                size={14}
-              />
-              <Text className={`text-[11px] ${mine ? "text-white/80" : "text-text-tertiary"}`}>
-                {status}
-              </Text>
-            </>
+            <Ionicons
+              name={message.readAt ? "checkmark-done" : "checkmark"}
+              color={mine ? "rgba(255,255,255,0.8)" : "#9A8B82"}
+              size={14}
+            />
           ) : null}
         </View>
       </Animated.View>

@@ -1,11 +1,5 @@
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 // SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
@@ -15,6 +9,7 @@ import { useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { PendingLikeCard } from "../../components/pending-like-card";
+import { LikeCardSkeleton } from "../../components/ui/skeleton";
 import { loadPendingLikes, loadPendingLikesCount } from "../../core/api/likes";
 
 export default function LikesScreen() {
@@ -71,8 +66,11 @@ export default function LikesScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#F97362" size="large" />
+        <View className="flex-row flex-wrap justify-between gap-y-3 px-5">
+          <LikeCardSkeleton />
+          <LikeCardSkeleton />
+          <LikeCardSkeleton />
+          <LikeCardSkeleton />
         </View>
       ) : null}
 
