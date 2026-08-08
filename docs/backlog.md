@@ -37,24 +37,39 @@ onboarding ipucu (tur değil, tek satır, ilk karar anında kapanıyor).
 
 ### ⛔ Yayın kapıcıları — sırayla
 
-1. **`Confirm email` kapalı.** Test için `mailer_autoconfirm = true`
-   yapıldı. Açık kalırsa herkes başkasının e-postasıyla hesap açabilir ve
-   şifre sıfırlama akışı gerçek sahibine kaptırılabilir.
-   Geri alma: [`auth-release-checklist.md`](auth-release-checklist.md).
-2. **Test hesapları silinecek.** 10 hesap (`test1/2@petmatch.app`, altı
-   `@petmatch.test`) + **storage nesneleri cascade OLMUYOR**;
-   `pet-photos/` ve `owner-avatars/` altı ayrıca silinmeli.
-3. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir
+1. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir
    kullanıcı "yalnızca fotoğraflı sahipleri göster" diyebiliyor: açıklama
    tüketiyor, vermiyor. Kod tabanının kendi kuralıyla çelişiyor —
    `require_visible_owner` ve `require_owner_social` çift yönlü.
    Ayrıntı: [`experience-roadmap.md`](experience-roadmap.md) §8.
-4. **Yasal alanlar.** Veri sorumlusu unvanı/adresi, destek e-postası,
+2. **Yasal alanlar.** Veri sorumlusu unvanı/adresi, destek e-postası,
    herkese açık politika ve hesap silme URL'leri.
    [`legal-release-checklist.md`](legal-release-checklist.md).
-5. **Fiziksel cihazda iki hesapla uçtan uca test.** Push bildirimleri
+3. **Fiziksel cihazda iki hesapla uçtan uca test.** Push bildirimleri
    yalnızca gerçek cihazda doğrulanabiliyor; simülatörde keychain
    entitlement hatası veriyor.
+
+### 🔒 Yayın anında yapılacak — şimdi DEĞİL, bilerek erteleniyor
+
+Bu ikisi yayın kapıcısı ama **şu an kapatılmamalı**: geliştirme ve test
+akışını doğrudan besliyorlar. Yayın gününde, aynı oturumda ve bu sırayla
+yapılacaklar.
+
+- **Test hesapları duruyor.** 10 hesap (`test1/2@petmatch.app`, altı
+  `@petmatch.test`) keşfet destesini, eşleşmeyi, sohbeti ve buluşma
+  akışını denemenin tek yolu. Silmek şu an test kapasitesini sıfırlar.
+  Silerken: `auth.users` satırı pets/pet_photos/profiles'ı cascade ile
+  götürür ama **storage nesneleri GİTMEZ** — `pet-photos/{userId}/…` ve
+  `owner-avatars/{userId}/avatar.jpg` ayrıca silinmeli.
+- **`Confirm email` kapalı** (`mailer_autoconfirm = true`). Yeni test
+  hesabı açabilmek buna bağlı. Açık kaldığı sürece herkes başkasının
+  e-postasıyla hesap açabilir ve şifre sıfırlama akışı gerçek sahibine
+  kaptırılabilir — **yayından önce mutlaka geri açılmalı.**
+  Geri alma: [`auth-release-checklist.md`](auth-release-checklist.md).
+
+> İkisi bağlantılı ama tek yönlü: mevcut test hesapları
+> `email_confirm: true` ile açıldığı için `Confirm email`'i sonradan açmak
+> onları bozmaz. Yani sıra şu — önce doğrulamayı aç, sonra hesapları sil.
 
 ### Sıradaki ürün işleri
 
