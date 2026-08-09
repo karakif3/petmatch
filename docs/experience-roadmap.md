@@ -839,10 +839,40 @@ ihtiyaçlarına göre:
 | **Remix Icon** | line / fill | ~2.8k | topluluk | Apache-2.0 | Kapsam iyi, ağırlık ikilisi var; dil biraz jenerik/Material'a yakın, markaya kimlik katmıyor |
 | **Lucide** (bugünkü) | yalnızca stroke | ~1.6k | `lucide-react-native` (resmî) | ISC | Tutarlılığı en yüksek; **fill varyantı yok** — dolu görünüm ancak `fill` prop'uyla taklit ediliyor, kalp/yıldızda çalışıyor ama her ikonda değil |
 
+### Simülatörde yapılan A/B (2026-08-09)
+
+Karşılaştırma kağıt üzerinde bırakılmadı: `phosphor-react-native` kuruldu
+(native rebuild GEREKMEDİ, `react-native-svg` zaten vardı), karar şeridi
+ve sekme ikonları geçici olarak Phosphor'a çevrildi, ekran görüntüsü
+alındı, sonra geri alınıp paket kaldırıldı. Bulgular:
+
+- **Phosphor** (X `bold`, yıldız/kalp `fill`): düz uçlu çizgiler, keskin
+  köşeler; yıldızın uçları sivri, kalbin alt ucu dar ve köşeli.
+- **Lucide** (`strokeWidth 2.5`, kalp/yıldızda `fill` taklidi): yuvarlak
+  uçlu çizgiler; yıldız daha büyük ve köşeleri yumuşak, kalp daha dolgun.
+
+**Bu, ilk tahminin TERSİ çıktı.** "Phosphor daha yuvarlak/sıcak, pet
+ürününe daha uygun" beklenirken, bu üç glifte marka diline daha yakın
+duran Lucide oldu — sebebi ailenin genel karakteri değil, Lucide'ın
+yuvarlak `stroke-linecap` tercihi. Phosphor'un yuvarlak karakteri
+`regular`/`light` ağırlıklarında belirgin; `bold`/`fill`'de kayboluyor.
+Yani Phosphor'un avantajı estetik değil **yapısal**: ağırlık ekseni.
+
+**Kapsam ölçüldü:** Lucide 1.765 ikon; ihtiyaç listesindeki her şey var
+(`paw-print`, `shield-check`, `cat`, `dog`, `map-pin`, `sliders-horizontal`,
+`eye`/`eye-off`, `calendar`, `chevron-right`…). Phosphor 1.512 ikon × 6
+ağırlık. Yani kapsam ikisinde de sorun değil.
+
+**Göç büyüklüğü:** kod tabanında **104 `<Ionicons>` çağrı yeri / 30 dosya**
+(önceki turda "~40" diye tahmin edilmişti, gerçek sayı bu).
+
 **Öneri: Phosphor.** Tek ayırt edici ölçüt ağırlık ekseni: sekme
 çubuğundaki aktif/pasif ayrımı ve karar düğmelerinin "kütlesi" aynı
-ailede çözülüyor, taklide gerek kalmıyor. İkinci tercih: Lucide'da kalıp
-dolu görünümü `fill` ile taklit etmek (maliyeti sıfır, bugün çalışıyor).
+ailede çözülüyor, taklide gerek kalmıyor. İkinci tercih — ve A/B'den sonra
+farkın kapandığı yer: Lucide'da kalıp dolu görünümü `fill` ile taklit
+etmek. Maliyeti sıfır, bugün çalışıyor ve kalp/yıldız/pati gibi kapalı
+şekillerde sorunsuz; risk yalnızca açık şekilli ikonlarda (ör. çan,
+konuşma balonu) dolu varyantın bozuk görünmesi.
 Heroicons kapsam yüzünden eleniyor; Hugeicons lisans/olgunluk yüzünden
 bekletiliyor; Remix nötr.
 
