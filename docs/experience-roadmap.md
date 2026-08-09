@@ -608,3 +608,142 @@ doğrulanamamış gerekçe taşıyanlar (gradyan `key`'i, `collapsable={false}`)
 geri alındı; kendi başına savunulabilir olanlar (daha güçlü gradyan/daha
 opak çip arka planları — okunurluk için; foto yüklenemezse opak arka
 plan; sayfa değişince içerik bloğunu yeniden mount eden `key`) kaldı.
+
+---
+
+## 12. Profil tamamlama şeridi + Keşfet'te görünürlük anahtarı (2026-08-09)
+
+Üç küçük iş, tek gerekçe: **kararın alındığı yer ile sonucunun görüldüğü
+yer aynı ekran olsun.**
+
+### Tamamlama kartı: tek CTA → pet/sahip iki grubu
+
+`core/domain/profile-completion.ts` eksikleri zaten `route: "/profile/pet"
+| "/profile/owner"` ile işaretliyordu, yani model ikisini de biliyordu.
+Sorun yalnızca sunumdaydı: kart `missing[0]`'ın route'una giden TEK bir
+düğme gösteriyordu ve eksikler `improvesMatching`'e göre sıralandığı için
+pet maddeleri hep öne geçiyordu — sahip profili eksik olan kullanıcı, pet
+eksikleri bitene kadar `/profile/owner` bağlantısını **hiç görmüyordu**.
+
+Şimdi eksikler route'a göre iki gruba ayrılıyor ve her grup kendi sayısını
+taşıyan ayrı bir çipe dönüşüyor ("Pet profili 3" / "Sahip profili 2").
+Grubu boş olan çip render edilmiyor; ikisi de boşsa kart zaten hiç
+çıkmıyor (eski davranış korundu).
+
+### Kart küçültüldü — hero kart değil
+
+Şerit artık tek satır başlık + yüzde + ince (1pt) ilerleme çubuğu + yan
+yana iki çip. Giden: uzun açıklama cümlesi ("Boyut ve enerji seviyesi
+eklersen eşleşme önerilerin daha isabetli olur"), kalın ilerleme çubuğu,
+tam genişlikte büyük düğme, "N madde eksik" satırı — sayı artık çiplerin
+üstündeki rozette duruyor. Gerekçe §10'daki K4 ile aynı: Keşfet'te hero
+DESTEDİR, kartın üstüne yığılan her modül onu ekranın dışına itiyor.
+Kapatma (X) davranışı değişmedi.
+
+### Keşfet başlığında sahip görünürlük anahtarı
+
+Görünürlük ayarı profilde de duruyor ama karşılığını burada veriyor:
+`public` olan sahip, kendi kartında avatar + ad + ilgi alanı teaser'ı
+olarak görünüyor (§11, `0049`). Anahtar filtre düğmesinin yanında, göz
+ikonuyla; açıkken marka rengine dönüyor.
+
+- **Yeni bir RPC yazılmadı.** `update_my_profile` / `update_my_owner_details`
+  formun tamamını ister (ad, şehir, pet adı, doğum tarihi…); tek alan
+  çevirmek için istemcide o yükü yeniden kurgulamak gerekirdi. Tek alanlık
+  yazma doğrudan tabloya gidiyor (`core/api/profile.ts` →
+  `updateOwnerVisibility`) — `profiles_update_self` RLS politikası (`0003`)
+  yazmayı zaten kullanıcının kendi satırıyla sınırlıyor. Rıza kaydı
+  (`public_profile_consent`) burada da alınıyor: onay durumu hangi
+  yüzeyden değiştirildiğine bağlı olmamalı.
+- **Otomatik açılmıyor.** Varsayılan `after_match`/`hidden` kalıyor.
+  Kapatınca `public` ÖNCESİNDEKİ değere dönüyor (`after_match`'e
+  sabitlemiyor) — `hidden` seçmiş kullanıcıyı sessizce yukarı çekmek
+  gizlilik varsayılanını bozardı.
+- **Fotoğrafsız `public` engelleniyor.** Avatar yoksa teaser boş kalırdı;
+  anahtar sessizce başarısız olmak yerine sahip profiline yönlendiriyor.
+- Yazma sonrası `discovery` ve `profile` sorguları invalidate ediliyor
+  (mevcut `applyFilters` deseni).
+
+Telemetri **bilerek eklenmedi**: `product_events.event_name` DB kısıtı
+sabit bir listeyle sınırlı (bkz. `0044`), yeni bir olay adı migration
+gerektiriyor. Anahtarın benimsenmesini ölçmek istenirse ayrı ve küçük bir iş.
+
+### Yol üstünde çıkan gerçek bir hata: şerit tazelenmiyordu
+
+Canlı doğrulama sırasında bulundu: `["profile-completion"]` sorgusunu
+HİÇBİR yazma invalidate etmiyordu. Kullanıcı sahip fotoğrafını ekleyip
+Keşfet'e dönünce şerit hâlâ eski sayıyı gösteriyordu — sekme ekranı mount
+kalıyor, `staleTime` dolsa bile kendiliğinden tazelenmiyor. İki kaydetme
+yerine (`app/profile/owner.tsx`, `app/profile/pet.tsx`) invalidate eklendi;
+simülatörde doğrulandı: avatar + bio kaydedildikten sonra şerit %14 → %43
+ve "Sahip profili" çipi kayboldu (grubu boşalan çip render edilmiyor).
+
+Bu turda **kart artefaktı (§11) hâlâ görünüyor** — aynı soluk "hayalet"
+metin, aynı koşullarda. Yeni koddan bağımsız olduğu bir kez daha teyit
+edilmiş oldu; gerçek cihaz doğrulaması bekliyor.
+
+---
+
+## 13. "Hayalet metin" gizemi çözüldü + kart artık ekrana sığıyor (2026-08-09)
+
+### Hayalet, kod değil — seed fotoğrafının kendisi
+
+§11'de "simülatöre özgü GPU tuhaflığı" diye kayda geçen artefakt **bir
+render hatası değilmiş.** İzolasyon şöyle yapıldı: `DiscoveryCard`'daki ad
+metni geçici olarak `{card.name}~DBG` yapıldı. Ekranda **net metin
+"Kömür~DBG", hayalet metin hâlâ "Kömür"** olarak kaldı — yani hayaleti
+çizen şey mevcut bileşen DEĞİL. Ardından simülatörün `expo-image` disk
+önbelleği (`Library/Caches/com.hackemist.SDImageCache`) açıldı: test
+verisindeki fotoğraflar somon renkli bir blok + ALT KENARDA siyah bir
+şeritte adın yazılı olduğu üretilmiş yer tutucu görseller. Yani:
+
+- Kartın "arkasındaki" büyük soluk "Kömür / Kedi · Kadıköy" → pet
+  fotoğrafının İÇİNE gömülü başlık; okunabilirlik gradyanı onu
+  koyulaştırınca hayalet gibi görünüyor.
+- "Sahibin yuvarlak fotoğrafı yarım" → sahip avatarı da aynı şablon;
+  32×32 daireye kırpılınca üst yarı somon, alt yarı siyah şerit
+  (siyah zeminde görünmüyor) + minik "Mert" yazısı.
+
+Kanıt: Profil → "Profilimi önizle" ekranında GERÇEK bir fotoğrafla aynı
+kart render edildiğinde hayalet yok. **Kodda düzeltilecek bir şey yok**;
+§11'deki "gerçek cihazda tekrar bak" maddesi kapandı. Not: yayın öncesi
+test verisinin bu yer tutucularla kalması, her ekran görüntüsü
+değerlendirmesini zorlaştırıyor — gerçek fotoğraflarla seed etmek ayrı
+bir iş olarak duruyor.
+
+### Gerçek hata: kart ekranı aşıyordu
+
+Kartın yüksekliği fotoğrafın sabit 3:4 oranından geliyordu. Üstünde
+başlık + tamamlama şeridi + segment çubuğu varken toplam içerik ekranı
+aşıyor, sayfa kaydırılabilir hale geliyor ve kartın **alt satırı
+(ad · ırk/boyut · mesafe) yüzen düğme şeridinin altında kalıyordu** —
+kullanıcı bilgiyi görmeden karar veriyordu. Şu anki hâl:
+
+- `PhotoCarousel` ve `DiscoveryCard` bir `fill` bayrağı aldı: açıkken
+  en-boy oranı yok sayılıyor, foto `flex: 1` ile kabına yayılıyor.
+  `SwipeableCard` de aynı bayrağı taşıyor (sarmalayıcı `flex-1` olmazsa
+  içteki `flex-1` bağlanacak yükseklik bulamıyor).
+- Keşfet'te kart kabı `flex-1` + `minHeight: 320`; kart, üstündeki krom
+  ne kadar yer kaplarsa kalanı dolduruyor. Çok dar ekranda `minHeight`
+  devreye girip sayfayı yeniden kaydırılabilir yapıyor — ezilmiş kart
+  yerine kaydırma.
+- Kaydırma kabının alt boşluğu 32 → 44 pt: yüzen şerit gradyanı son 36
+  pt'nin üstüne biniyor (`marginTop: -36`), boşluk bundan büyük olmalı.
+- Önizleme modalı 3:4 oranını koruyor (`fill` verilmiyor) — orada kart
+  bir liste öğesi gibi okunuyor, ekranı doldurması gerekmiyor.
+
+### Sekme çubuğu: ağırlık + renk
+
+Dört sekme ikonu da her zaman DOLU'ydu; aktiflik yalnızca renkle
+anlatılıyordu. Dolu ikon görsel olarak ağır olduğundan dördü aynı anda
+bağırıyor, hiyerarşi kalmıyor ve renk körlüğünde aktif sekme hiç
+okunmuyordu. Artık iOS'un kendi kalıbı: **seçili dolu + marka renginde
+hap arka plan, seçili olmayan outline.** Ayrıca üst kenarlık 1pt'den saç
+teli kalınlığına indi, etiket tipografisi ve rozet boyutu sisteme çekildi.
+
+Sıradaki (yapılmadı): sekme çubuğu için `expo-blur` ile yarı saydam zemin
+— yeni bir native bağımlılık, dev-client'ın yeniden derlenmesini
+gerektiriyor. Kalan ikon borcu: uygulama genelinde outline/dolu seçimi
+hâlâ ekran ekran kararlaştırılmış durumda; tek bir kural (aktif/seçili
+dolu, geri kalan outline) ve tek bir boyut skalası (16/20/24) ayrı bir
+tur işi.

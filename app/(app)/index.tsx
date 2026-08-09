@@ -42,9 +42,10 @@ import {
   type OwnerDiscoveryFilterInput,
 } from "../../core/api/discovery";
 import { loadProfileCompletion } from "../../core/api/profile-completion";
+import { updateOwnerVisibility } from "../../core/api/profile";
 import { blockUser } from "../../core/api/safety";
 import { FEATURES } from "../../core/features";
-import type { SwipeDirection } from "../../core/domain/types";
+import type { OwnerVisibility, SwipeDirection } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
@@ -70,6 +71,7 @@ export default function DiscoverScreen() {
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterBusy, setFilterBusy] = useState(false);
+  const [visibilityBusy, setVisibilityBusy] = useState(false);
   const [filterReady, setFilterReady] = useState(false);
   const [ownerFilters, setOwnerFilters] = useState<OwnerDiscoveryFilterInput>({
     genders: [],
@@ -342,6 +344,67 @@ export default function DiscoverScreen() {
     }
   };
 
+  /**
+   * Sahip görünürlüğü hızlı anahtarı.
+   *
+   * Görünürlük ayarı profilde de duruyor ama asıl karşılığını BURADA
+   * veriyor: `public` olan sahip, kendi kartında avatar + ad + ilgi alanı
+   * teaser'ı olarak karşı tarafa görünüyor (0049). Kararın alındığı yer ile
+   * sonucunun görüldüğü yer aynı ekran olunca anahtarın ne yaptığı
+   * açıklama gerektirmiyor.
+   *
+   * İki kural:
+   * - **Otomatik açılmaz.** Varsayılan `after_match`/`hidden` kalıyor;
+   *   kapatınca da `public` öncesindeki değere dönüyor, `after_match`'e
+   *   sabitlemiyor — `hidden` seçmiş kullanıcıyı sessizce yukarı çekmek
+   *   gizlilik varsayılanını bozardı.
+   * - **Fotoğrafsız `public` anlamsız.** Avatar yoksa kart teaser'ı boş
+   *   kalırdı; sessizce başarısız olmak yerine sahip profiline yönlendiriyor.
+   */
+  const ownerVisibility: OwnerVisibility =
+    deck.data?.ownerSettings.visibility ?? "after_match";
+  const ownerPublic = ownerVisibility === "public";
+  const lastPrivateVisibility = useRef<OwnerVisibility>("after_match");
+  useEffect(() => {
+    if (ownerVisibility !== "public") lastPrivateVisibility.current = ownerVisibility;
+  }, [ownerVisibility]);
+
+  const toggleOwnerVisibility = async () => {
+    if (!user || !deck.data || visibilityBusy) return;
+    const next: OwnerVisibility = ownerPublic
+      ? lastPrivateVisibility.current
+      : "public";
+
+    if (next === "public" && !deck.data.ownerSettings.avatarUrl) {
+      Alert.alert(
+        "Önce kendi fotoğrafını ekle",
+        "Herkese açık profilde kartında adın ve fotoğrafın görünür. Fotoğrafın olmadan bu anahtarın bir karşılığı olmaz.",
+        [
+          { text: "Vazgeç", style: "cancel" },
+          {
+            text: "Sahip profiline git",
+            onPress: () => router.push("/profile/owner"),
+          },
+        ],
+      );
+      return;
+    }
+
+    setVisibilityBusy(true);
+    setError(null);
+    try {
+      await updateOwnerVisibility({ userId: user.id, visibility: next });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["discovery", user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["profile", user.id] }),
+      ]);
+    } catch (visibilityError) {
+      setError(errorMessage(visibilityError, "Görünürlük değiştirilemedi."));
+    } finally {
+      setVisibilityBusy(false);
+    }
+  };
+
   const toggleNewCandidateNotification = async () => {
     if (!deck.data) return;
     const enabling = !deck.data.filterSettings.notifyOnNewCandidates;
@@ -379,7 +442,11 @@ export default function DiscoverScreen() {
     <SafeAreaView className="flex-1 bg-bg-primary">
       <ScrollView
         ref={scrollRef}
-        contentContainerClassName="flex-grow px-5 pb-8 pt-4"
+        contentContainerClassName="flex-grow px-5 pt-4"
+        // Yüzen düğme şeridi, gradyanın şeffaf ucuyla son 36 pt'nin ÜSTÜNE
+        // biniyor (`marginTop: -36`). Kart varken alt boşluk o örtüşmeden
+        // büyük olmalı, yoksa gradyan kartın alt satırını yiyor.
+        contentContainerStyle={{ paddingBottom: currentCard ? 44 : 32 }}
         refreshControl={
           <RefreshControl
             refreshing={deck.isRefetching}
@@ -398,6 +465,33 @@ export default function DiscoverScreen() {
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-text-primary">Keşfet</Text>
           <View className="flex-row items-center gap-2">
+            {deck.data ? (
+              <AppPressable
+                onPress={() => void toggleOwnerVisibility()}
+                disabled={visibilityBusy}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: ownerPublic, disabled: visibilityBusy }}
+                accessibilityLabel="Sahip profilim keşfette görünsün"
+                accessibilityHint={
+                  ownerPublic
+                    ? "Kapatırsan adın ve fotoğrafın yalnızca eşleştiğin kişilere görünür."
+                    : "Açarsan adın ve fotoğrafın kartında herkese görünür."
+                }
+                className={`h-11 w-11 items-center justify-center rounded-full border disabled:opacity-40 ${
+                  ownerPublic ? "border-brand bg-brand/10" : "border-border bg-surface"
+                }`}
+              >
+                {visibilityBusy ? (
+                  <ActivityIndicator size="small" color="#6B5D55" />
+                ) : (
+                  <Ionicons
+                    name={ownerPublic ? "eye" : "eye-off-outline"}
+                    color={ownerPublic ? "#F97362" : "#6B5D55"}
+                    size={20}
+                  />
+                )}
+              </AppPressable>
+            ) : null}
             <AppPressable
               onPress={() => setFilterVisible(true)}
               disabled={!deck.data}
@@ -412,9 +506,14 @@ export default function DiscoverScreen() {
               ) : null}
             </AppPressable>
             {deck.data?.viewer ? (
-              <View className="flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
+              // Üçüncü öğe eklendi (görünürlük anahtarı); uzun pet adı
+              // artık satırı taşırabilir, bu yüzden çip kısalıyor.
+              <View className="max-w-[120px] shrink flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
                 <Ionicons name="paw" color="#F97362" size={16} />
-                <Text className="text-xs font-semibold text-text-primary">
+                <Text
+                  numberOfLines={1}
+                  className="shrink text-xs font-semibold text-text-primary"
+                >
                   {deck.data.viewer.name}
                 </Text>
               </View>
@@ -634,7 +733,17 @@ export default function DiscoverScreen() {
 
         {currentCard ? (
           <>
-            <View className="relative">
+            {/*
+              `flex-1`: kart, üstündeki krom (başlık, tamamlama şeridi,
+              segment çubuğu) ne kadar yer kaplarsa kalanı DOLDURUYOR.
+              Öncesinde kartın yüksekliği fotoğrafın 3:4 oranından geliyordu;
+              tamamlama şeridi açıkken toplam içerik ekranı aşıyor, sayfa
+              kaydırılabilir hale geliyor ve kartın alt satırı (ad · boyut ·
+              mesafe) yüzen düğme şeridinin ALTINDA kalıyordu. `minHeight`:
+              çok dar ekranlarda kart okunamayacak kadar ezilmesin — o
+              durumda sayfa yeniden kaydırılabilir oluyor.
+            */}
+            <View className="relative flex-1" style={{ minHeight: 320 }}>
               {/*
                 Deste derinliği: bir sonraki kart hafif küçültülmüş ve
                 aşağı kaydırılmış halde arkada duruyor. Öncesinde swipe
@@ -648,16 +757,18 @@ export default function DiscoverScreen() {
                   className="absolute inset-0 top-2"
                   style={{ transform: [{ scale: 0.96 }] }}
                 >
-                  <DiscoveryCard card={nextCard} />
+                  <DiscoveryCard card={nextCard} fill />
                 </View>
               ) : null}
               <SwipeableCard
                 resetKey={currentCard.id}
                 disabled={swipe.isPending}
                 onSwipe={handleSwipe}
+                fill
               >
                 <DiscoveryCard
                   card={currentCard}
+                  fill
                   onOwnerPress={currentCard.owner ? () => setOwnerSheet(true) : undefined}
                 />
               </SwipeableCard>

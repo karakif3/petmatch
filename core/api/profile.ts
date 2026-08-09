@@ -485,6 +485,34 @@ export async function updateEditableProfile(input: ProfileUpdate): Promise<strin
   return data;
 }
 
+/**
+ * Yalnızca sahip görünürlüğünü değiştirir (Keşfet başlığındaki hızlı toggle).
+ *
+ * `update_my_profile` / `update_my_owner_details` RPC'leri formun TAMAMINI
+ * ister (ad, şehir, pet adı, doğum tarihi…); tek alanı çevirmek için o
+ * yükü taşımak, formda olmayan alanları istemci tarafında yeniden
+ * kurgulamak demekti. Tek alanlık yazma doğrudan tabloya gidiyor —
+ * `profiles_update_self` RLS politikası (0003) bunu zaten kendi satırıyla
+ * sınırlıyor.
+ *
+ * Rıza kaydı burada da alınıyor: "herkese açık" bir onay durumudur, hangi
+ * yüzeyden açıldığından bağımsız olarak kaydedilmeli.
+ */
+export async function updateOwnerVisibility(input: {
+  userId: string;
+  visibility: OwnerVisibility;
+}): Promise<void> {
+  await recordOptionalConsent(
+    "public_profile_consent",
+    input.visibility === "public",
+  );
+  const { error } = await requireSupabaseClient()
+    .from("profiles")
+    .update({ owner_visibility: input.visibility })
+    .eq("id", input.userId);
+  if (error) throw error;
+}
+
 export async function updateNotificationPreferences(input: {
   onMatch: boolean;
   onMessage: boolean;

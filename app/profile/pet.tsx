@@ -271,6 +271,9 @@ export default function PetProfileScreen() {
         queryClient.invalidateQueries({ queryKey: ["profile", user.id] }),
         queryClient.invalidateQueries({ queryKey: ["discovery"] }),
         queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+        // Keşfet'teki "Profilini tamamla" şeridi bu sorgudan besleniyor
+        // (bkz. aynı düzeltme `app/profile/owner.tsx`'te).
+        queryClient.invalidateQueries({ queryKey: ["profile-completion", user.id] }),
       ]);
       await profile.refetch();
       setNotice("Pet profili ve fotoğraf sırası güncellendi.");

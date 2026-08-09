@@ -218,6 +218,11 @@ export default function OwnerProfileScreen() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["profile", user.id] }),
         queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+        // Keşfet'teki "Profilini tamamla" şeridi bu sorgudan besleniyor;
+        // invalidate edilmezse kullanıcı eksiği DOLDURDUKTAN sonra bile
+        // aynı sayıyı görüyordu (sekme ekranı mount kalıyor, `staleTime`
+        // dolsa bile kendiliğinden tazelenmiyor).
+        queryClient.invalidateQueries({ queryKey: ["profile-completion", user.id] }),
       ]);
       await profile.refetch();
       setNotice("Sahip profilin güncellendi.");

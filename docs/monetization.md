@@ -55,6 +55,30 @@ Bunu hikâyeyle çelişmeden taşımanın yolu:
 | **3b** | Hayvan kabul eden mekân sponsorluğu (kafe, veteriner) | `meetup_places` altyapısı hazır; mekân öder, kullanıcı ödemez |
 | **4** | Marka sponsorluğu / CSR | Pet markaları için değerli kitle; sahiplendirme misyonu CSR bütçesinin finanse ettiği şey |
 
+### Faz 2 nereye oturuyor — tasarım notu (2026-08-09, kod yok)
+
+Faz 2 tablosu "ne satılacağını" söylüyordu, "nereye konacağını" değil. Bu
+tur yalnızca onu netleştirdi; **hiçbir kod yazılmadı.**
+
+- **Tetikleyici an:** sahiplendirme başvurusu kabul edilip sohbet açıldığı
+  an (`app/adoption/index.tsx`'teki başvuru akışının devamı). Doğal
+  "yeni pet sahibi" anı ve ticari niyetin en yüksek olduğu yer.
+- **Yüzey:** o sohbetin İÇİNE gömülü, kaldırılabilir bir "yeni pet sahibi
+  kontrol listesi" kartı (mama, taşıma kabı, ilk veteriner kontrolü,
+  kısırlaştırma); her madde ortaklı bir ürün/hizmet bağlantısı.
+  `MeetupCard`/`MeetupFeedbackPrompt` ile **aynı desen** (konuşma akışına
+  gömülü, kalıcı değil, ilgili anda beliriyor) — yeni bir mimari kalıp
+  gerekmiyor.
+- **Model:** ortaklık komisyonu, reklam değil. `backlog.md`'deki
+  "sponsorlu mekân ayırt edilebilir olmalı" şeffaflık kuralı burada da
+  geçerli: ortaklık bağlantısı açıkça işaretlenir.
+- **Bilerek kapsam dışı:** playdate/eşleşme tarafına mama önerisi koymak.
+  Bu dosyanın ana ilkesi "para yalnızca insan katmanından alınır, misyon
+  tarafı ücretsizdir" — mama ortaklığı MİSYON tarafında (sahiplendirme)
+  kalır, dating tarafına sızmaz.
+- **Kararı bekleyen:** hangi ortaklık programı/sağlayıcı. Ürün kararı,
+  `backlog.md` → "Kararı bekleyenler".
+
 Teknik bir not faz 2-3'ü cazip tutuyor: **dijital abonelik Apple'a %15-30
 komisyon ödetir; fiziksel ürün ve gerçek dünya hizmeti ödetmez.** Aynı ciroda
 net gelir belirgin şekilde farklı.

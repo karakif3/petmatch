@@ -9,6 +9,13 @@ type Props = {
   aspectRatio: number;
   index: number;
   onIndexChange: (index: number) => void;
+  /**
+   * Açıkken en-boy oranı YOK SAYILIR ve foto kabına yayılır (`flex: 1`).
+   * Keşfet'te kart artık ekrandaki boşluğu dolduruyor: sabit 3:4 oranı,
+   * kartın alt satırının (ad/mesafe) yüzen düğme şeridinin ALTINA
+   * kaymasına yol açıyordu.
+   */
+  fill?: boolean;
 };
 
 /**
@@ -25,13 +32,20 @@ type Props = {
  * (`components/swipeable-card.tsx`), buradaki dokunma bölgeleri düz
  * `Pressable`'lar — kısa bir dokunuş jestin eşiğine hiç ulaşmıyor.
  */
-export function PhotoCarousel({ photoUrls, aspectRatio, index, onIndexChange }: Props) {
+export function PhotoCarousel({
+  photoUrls,
+  aspectRatio,
+  index,
+  onIndexChange,
+  fill = false,
+}: Props) {
   const count = photoUrls.length;
   const current = Math.min(index, Math.max(0, count - 1));
+  const frameStyle = fill ? { flex: 1 } : { aspectRatio };
 
   if (count === 0) {
     return (
-      <View className="w-full items-center justify-center bg-bg-tertiary" style={{ aspectRatio }}>
+      <View className="w-full items-center justify-center bg-bg-tertiary" style={frameStyle}>
         <Ionicons name="paw" color="#C4B7AE" size={72} />
       </View>
     );
@@ -45,7 +59,7 @@ export function PhotoCarousel({ photoUrls, aspectRatio, index, onIndexChange }: 
   return (
     // `bg-bg-tertiary`: fotoğraf yüklenemezse (kötü URL, ağ hatası) expo-image
     // hiçbir şey boyamıyor; arka plan olmadan o alan şeffaf kalırdı.
-    <View style={{ aspectRatio }} className="w-full bg-bg-tertiary">
+    <View style={frameStyle} className="w-full bg-bg-tertiary">
       <Image
         source={photoUrls[current]}
         contentFit="cover"

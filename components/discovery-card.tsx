@@ -41,6 +41,7 @@ export function DiscoveryCard({
   card,
   onOwnerPress,
   variant = "discovery",
+  fill = false,
 }: {
   card: DiscoveryDeckCard;
   /** Sahip teaser'ına dokunulduğunda; verilmezse blok tıklanamaz kalır. */
@@ -52,6 +53,14 @@ export function DiscoveryCard({
    * gördüğüyle birebir aynı.
    */
   variant?: "discovery" | "preview";
+  /**
+   * Keşfet'te kart, başlık ile yüzen düğme şeridi arasındaki BOŞLUĞU
+   * dolduruyor (sabit 3:4 değil). Sebep: 3:4'te kartın toplam yüksekliği
+   * ekranı aşıyor, sayfa kaydırılabilir hale geliyor ve kartın alt satırı
+   * (ad · ırk/boyut · mesafe) düğme şeridinin altında kalıyordu — kullanıcı
+   * bilgiyi göremeden karar veriyordu. Önizleme modalında oran korunuyor.
+   */
+  fill?: boolean;
 }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   // Kart değişince (yeni aday) önceki kartın fotoğraf sayfasında kalınmasın.
@@ -169,12 +178,15 @@ export function DiscoveryCard({
 
   return (
     <View
-      className="relative w-full overflow-hidden rounded-3xl border border-border bg-surface"
+      className={`relative w-full overflow-hidden rounded-3xl border border-border bg-surface ${
+        fill ? "flex-1" : ""
+      }`}
       style={shadowSm}
     >
       <PhotoCarousel
         photoUrls={card.photoUrls}
         aspectRatio={CARD_ASPECT}
+        fill={fill}
         index={photoIndex}
         onIndexChange={setPhotoIndex}
       />

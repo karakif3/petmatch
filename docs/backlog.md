@@ -99,6 +99,37 @@ uygulandı) `discover_playdate_pets` ve `pending_likes`'a eklendi, AYNI
 `owner_visibility = 'public'` kapısıyla. Ayrıntı ve karşılaşılan
 simülatör-özel görsel artefakt notu: `experience-roadmap.md` §11.
 
+**2026-08-09 — Tamamlama şeridi + görünürlük anahtarı.** "Profilini
+tamamla" kartı artık pet ve sahip eksiklerini **iki ayrı CTA** olarak
+gösteriyor (önceden yalnızca ilk eksiğin route'una giden tek düğme vardı;
+sahip profili eksik olan kullanıcı `/profile/owner` bağlantısını hiç
+görmüyordu) ve tek satırlık bir şeride küçültüldü — Keşfet'te hero
+destedir. Keşfet başlığına, filtre düğmesinin yanına **sahip görünürlük
+anahtarı** eklendi (`hidden`/`after_match` ↔ `public`): tek alanlık yazma
+doğrudan tabloya gidiyor (`updateOwnerVisibility`, RLS `profiles_update_self`),
+avatar yoksa `public`'e geçmiyor sahip profiline yönlendiriyor, kapatınca
+`public` öncesindeki değere dönüyor. Migration gerekmedi. **Yol üstünde
+bulunan gerçek hata:** `["profile-completion"]` sorgusunu hiçbir yazma
+invalidate etmiyordu — kullanıcı eksiği doldurduktan sonra bile Keşfet'te
+aynı sayıyı görüyordu; iki kaydetme yerine invalidate eklendi. Hepsi
+simülatörde canlı doğrulandı (toggle iki yönde, avatarsız `public`
+engeli, şerit %14 → %43). Ayrıntı: `experience-roadmap.md` §12.
+
+**2026-08-09 — Hayalet metin gizemi kapandı + kart ekrana sığdırıldı.**
+§11'de "simülatör GPU tuhaflığı" diye kaydedilen artefakt **render hatası
+değilmiş**: test verisindeki fotoğraflar, alt kenarında adın yazılı olduğu
+üretilmiş yer tutucu görseller (sahip avatarı da aynı şablon — "yuvarlak
+fotoğraf yarım" görüntüsünün sebebi bu). İzolasyon ve kanıt:
+`experience-roadmap.md` §13. **Gerçek hata ayrıydı ve düzeltildi:** kart
+sabit 3:4 oranıyla boyutlandığı için ekranı aşıyor, alt satırı (ad ·
+boyut · mesafe) yüzen düğme şeridinin altında kalıyordu; kart artık kalan
+yüksekliği dolduruyor (`fill` bayrağı: `PhotoCarousel`, `DiscoveryCard`,
+`SwipeableCard`). Sekme çubuğu iOS kalıbına çekildi (seçili dolu + hap,
+diğerleri outline; saç teli kenarlık). Açık kalanlar: sekme çubuğuna
+`expo-blur` (native rebuild gerektiriyor), uygulama geneli ikon
+kuralı/boyut skalası, **test verisini gerçek fotoğraflarla seed etmek**
+(yer tutucular her görsel değerlendirmeyi zorlaştırıyor).
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir
@@ -167,6 +198,12 @@ karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
   altyapısı yok (Faz 0). Süper beğeni sınırsız gönderiliyor — günlük limit
   de bu ödeme duvarıyla birlikte gelecek doğal kapı. Hangi sağlayıcı
   (RevenueCat vb.) kullanılacağı ürün kararı, kod kararı değil.
+- **Mama/ekipman ortaklığı: hangi sağlayıcı.** Yeri ve deseni artık belli
+  (sahiplendirme sohbetine gömülü "yeni pet sahibi kontrol listesi" kartı,
+  `MeetupCard` deseniyle; gerekçe ve kapsam dışı bırakılanlar
+  [`monetization.md`](monetization.md) Faz 2 tasarım notunda). Açık olan
+  tek şey ortaklık programı: yerel pet shop zinciri mi, uygulama-içi
+  bağlantı + affiliate mi. Ürün kararı; verilmeden kod yazılmayacak.
 - **Petsiz kullanıcılar** ayrı yüzey mi (sahiplendirme + etkinlik), deste
   segmenti mi. Öneri: ayrı yüzey — destede eşleşecek şeyleri yok ve
   "petsizlere görünme" seçeneği iki katmanlı bir deste yaratır.

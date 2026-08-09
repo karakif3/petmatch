@@ -28,6 +28,13 @@ type Props = {
   onSwipe: (direction: SwipeDirection) => void;
   /** Kart değişince konumu sıfırlamak için; genelde kartın id'si. */
   resetKey: string;
+  /**
+   * Sarmalayıcı, kabındaki boşluğu doldursun (Keşfet'te kart artık sabit
+   * en-boy oranıyla değil, kalan yükseklikle boyutlanıyor). Sarmalayıcı
+   * `flex-1` olmazsa içteki kartın `flex-1`'i bağlanacağı bir yükseklik
+   * bulamıyor.
+   */
+  fill?: boolean;
 };
 
 /**
@@ -52,7 +59,7 @@ type Props = {
  * Eşiğe yaklaşırken "BEĞEN"/"GEÇ" damgası beliriyor: kullanıcı bırakmadan
  * önce ne olacağını görüyor. Karar geri alınamaz olduğu için bu önemli.
  */
-export function SwipeableCard({ children, disabled, onSwipe, resetKey }: Props) {
+export function SwipeableCard({ children, disabled, onSwipe, resetKey, fill }: Props) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -135,7 +142,7 @@ export function SwipeableCard({ children, disabled, onSwipe, resetKey }: Props) 
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={cardStyle}>
+      <Animated.View style={cardStyle} className={fill ? "flex-1" : undefined}>
         {children}
 
         {/*
