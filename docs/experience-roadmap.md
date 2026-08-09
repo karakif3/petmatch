@@ -813,3 +813,40 @@ burada değil. Yani **soru kalmalı.** Üç uygulama sorunu vardı:
 3. **İkili olması doğru.** Üçüncü bir "romantik" seçeneği dating modunu
    ve `connection_mode` göçünü gerektirir (goal-model.md §2); köprü
    boolean'ı MVP için yeterli.
+
+---
+
+## 15. İkon ailesi karşılaştırması (2026-08-09, karar bekliyor)
+
+Bugün karışık bir durum var: karar şeridi + uyum rozeti **Lucide**, geri
+kalan her şey **Ionicons**. Kalıcı hedef tek aile. Adaylar, bu ürünün
+ihtiyaçlarına göre:
+
+**İhtiyaç listesi** (aday seçerken ölçüt bunlar):
+1. **Ağırlık ekseni** — sekme çubuğunda "seçili dolu / seçili olmayan
+   çizgi" kalıbı için aynı ailede fill + regular şart (§13).
+2. **Kapsam** — pati, kalkan/doğrulama, takvim, mesaj, konum, filtre,
+   yıldız, ev/sahiplendirme... Eksik ikon = ikinci bir aile = başa dönüş.
+3. **RN desteği** — hepsi `react-native-svg` istiyor (artık kurulu);
+   fark, paketin resmî mi topluluk mu olduğu.
+4. **Lisans** — ücretsiz ve ticari kullanıma açık olmalı.
+
+| Aile | Ağırlık ekseni | Kapsam | RN paketi | Lisans | Not |
+|---|---|---|---|---|---|
+| **Phosphor** | ★ thin/light/regular/bold/**fill**/duotone | ~1.5k × 6 ağırlık | `phosphor-react-native` (resmî) | MIT | Tek ailede fill+regular veren tek gerçek aday; yuvarlak, sıcak dil bir pet ürününe oturuyor |
+| **Hugeicons** | stroke/duotone/twotone/bulk/solid | çok geniş (4k+) | resmî RN paketi var | **kısmen ücretli** (pro setler) | Kapsam etkileyici ama lisans katmanları ve genç ekosistem risk |
+| **Heroicons** | outline / solid (+20px mini) | ~300 | topluluk (`react-native-heroicons`) | MIT | Çok temiz ama kapsam DAR: pati/pet ikonu yok, kaçınmak istediğimiz "ikinci aile" sorununu doğrudan yaratır |
+| **Remix Icon** | line / fill | ~2.8k | topluluk | Apache-2.0 | Kapsam iyi, ağırlık ikilisi var; dil biraz jenerik/Material'a yakın, markaya kimlik katmıyor |
+| **Lucide** (bugünkü) | yalnızca stroke | ~1.6k | `lucide-react-native` (resmî) | ISC | Tutarlılığı en yüksek; **fill varyantı yok** — dolu görünüm ancak `fill` prop'uyla taklit ediliyor, kalp/yıldızda çalışıyor ama her ikonda değil |
+
+**Öneri: Phosphor.** Tek ayırt edici ölçüt ağırlık ekseni: sekme
+çubuğundaki aktif/pasif ayrımı ve karar düğmelerinin "kütlesi" aynı
+ailede çözülüyor, taklide gerek kalmıyor. İkinci tercih: Lucide'da kalıp
+dolu görünümü `fill` ile taklit etmek (maliyeti sıfır, bugün çalışıyor).
+Heroicons kapsam yüzünden eleniyor; Hugeicons lisans/olgunluk yüzünden
+bekletiliyor; Remix nötr.
+
+Geçiş maliyeti şu an en düşük seviyede: yalnızca 4 ikon çevrildi ve
+`react-native-svg` zaten kurulu. Karar verilince geçiş yüzey yüzey
+yapılacak (önce sekme çubuğu + karar şeridi, sonra ekranlar), kural:
+**aktif/seçili dolu, geri kalan çizgi; boyut skalası 16/20/24.**

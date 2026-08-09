@@ -220,6 +220,19 @@ karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
   altyapısı yok (Faz 0). Süper beğeni sınırsız gönderiliyor — günlük limit
   de bu ödeme duvarıyla birlikte gelecek doğal kapı. Hangi sağlayıcı
   (RevenueCat vb.) kullanılacağı ürün kararı, kod kararı değil.
+- **"Tanışma amacı" sorusu — yeniden ele alınacak (2026-08-09'da ertelendi).**
+  Bu turda yalnızca başarısızlık anı düzeltildi (ön koşullar seçim anında
+  listeleniyor). Asıl sorular açık: soru nerede sorulmalı (bugün sahip
+  profili formunun içinde gömük; sonucu Keşfet'te görünüyor), nasıl
+  çerçevelenmeli (kendini tanımlama mı, sonucu söyleme mi), ikili kalmalı
+  mı yoksa `connection_mode`'a mı geçilmeli. Değerlendirmenin tamamı
+  [`experience-roadmap.md`](experience-roadmap.md) §14'te; karar
+  verilmeden yeni kod yazılmayacak.
+- **İkon ailesi: tek aileye karar ver.** Bugün karışık — karar şeridi +
+  uyum rozeti Lucide, geri kalan Ionicons. Değerlendirilen adaylar ve
+  gerekçeleri `experience-roadmap.md` §15'te (Phosphor · Hugeicons ·
+  Heroicons · Remix · Lucide). Şu an geçiş maliyeti en düşük an: yalnızca
+  4 ikon çevrildi ve `react-native-svg` zaten kurulu.
 - **Mama/ekipman ortaklığı: hangi sağlayıcı.** Yeri ve deseni artık belli
   (sahiplendirme sohbetine gömülü "yeni pet sahibi kontrol listesi" kartı,
   `MeetupCard` deseniyle; gerekçe ve kapsam dışı bırakılanlar
