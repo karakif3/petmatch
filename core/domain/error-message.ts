@@ -21,12 +21,41 @@ type MaybePostgrestError = {
   code?: unknown;
 };
 
+/**
+ * Ağ hatası, mobilde en sık karşılaşılan hata ve ham hâliyle kullanıcıya
+ * `TypeError: Network request failed` olarak görünüyordu — İngilizce,
+ * teknik ve **ne yapılacağını söylemiyor.** React Native'in `fetch`'i
+ * bağlantı kopukluğunda bu `TypeError`'ı, tarayıcı ortamı ise
+ * "Failed to fetch" atıyor; ikisi de aynı şeyi anlatıyor.
+ *
+ * Burada çevrilmesinin sebebi: bu bir SEBEP değil DURUM. Diğer hatalarda
+ * (RLS reddi, kısıt ihlali) sunucunun mesajını göstermek geliştiriciye de
+ * kullanıcıya da bilgi veriyor; ağ hatasında gösterilecek bir sebep yok.
+ */
+const NETWORK_FAILURE_PATTERNS = [
+  "network request failed",
+  "failed to fetch",
+  "the internet connection appears to be offline",
+];
+
+const NETWORK_FAILURE_MESSAGE =
+  "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.";
+
+function isNetworkFailure(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return NETWORK_FAILURE_PATTERNS.some((pattern) => normalized.includes(pattern));
+}
+
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 export function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) return text(error.message) ?? fallback;
+  if (error instanceof Error) {
+    const message = text(error.message);
+    if (!message) return fallback;
+    return isNetworkFailure(message) ? NETWORK_FAILURE_MESSAGE : message;
+  }
 
   if (error && typeof error === "object") {
     const candidate = error as MaybePostgrestError;
@@ -35,6 +64,7 @@ export function errorMessage(error: unknown, fallback: string): string {
     const code = text(candidate.code);
 
     if (message) {
+      if (isNetworkFailure(message)) return NETWORK_FAILURE_MESSAGE;
       // Kod, aynı mesajı veren farklı sebepleri ayırt etmeye yarıyor
       // (örn. 42501 yetki, 23505 tekrar eden kayıt).
       return code ? `${message} (${code})` : message;

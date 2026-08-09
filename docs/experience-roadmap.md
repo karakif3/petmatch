@@ -880,3 +880,51 @@ Geçiş maliyeti şu an en düşük seviyede: yalnızca 4 ikon çevrildi ve
 `react-native-svg` zaten kurulu. Karar verilince geçiş yüzey yüzey
 yapılacak (önce sekme çubuğu + karar şeridi, sonra ekranlar), kural:
 **aktif/seçili dolu, geri kalan çizgi; boyut skalası 16/20/24.**
+
+---
+
+## 16. Profil ekranı: gruplu liste diline geçiş (2026-08-09)
+
+Ekranın asıl sorunu tek tek bileşenler değil, **her bölümün ayrı bir
+görsel dil kullanmasıydı**: kimi bölüm kart, kimi çerçevesiz input
+listesi, kimi radyo düğmeleri, kimi tam genişlikte çerçeveli düğme.
+Hiçbiri tek başına yanlış değil ama yan yana gelince ekran "form" gibi
+değil "farklı zamanlarda eklenmiş parçalar" gibi okunuyordu.
+
+Yeni kural: **her şey bölüm başlığı + kart içinde satır**
+(`components/ui/section.tsx`: `SectionTitle`, `SectionCard`, `Row`,
+`RowSeparator`). Bölümler: kimlik → Profiller → Temel bilgiler →
+Yaklaşık konum → Bildirimler → Hesap → Tehlikeli bölge.
+
+### Yapısal düzeltmeler (görsel değil)
+
+- **Görünürlüğün üç düzenleyicisi vardı** — bu ekrandaki radyo listesi,
+  sahip profili ekranı ve Keşfet'teki hızlı anahtar; üçü de aynı kolonu
+  (`profiles.owner_visibility`) yazıyordu. Burası artık yalnızca DEĞERİ
+  gösteriyor ve sahip profiline götürüyor. Düzenleme tek yerde (sahip
+  profili), hızlı anahtar sonucun göründüğü yerde (Keşfet).
+- **Kimlik kartı**: pet + sahip avatarı üst üste binen tek blok. Öncesinde
+  pet kartı, sahip satırı ve e-posta ekranın üç ayrı yerine dağılmıştı.
+- **"Vazgeç"**: kirli bir formdan çıkmanın tek yolu alanları tek tek eski
+  hâline getirmekti; kaydet şeridine ikinci düğme olarak girdi.
+- **Sonuç mesajları kaydet şeridinin yanına taşındı.** Öncesinde form
+  ortasında beliriyordu: kullanıcı en alttaki şeritten kaydediyor,
+  "Profilin güncellendi" ekranın yukarısında kalıyordu. Başarı mesajı 5
+  saniyede kendiliğinden kayboluyor, hata kalıyor (biri bildirim, diğeri
+  görev).
+- **Erişilebilirlik:** bildirim satırlarında yalnızca `Switch` (≈50×30 pt)
+  dokunulabilirdi, satırın geri kalanı ölüydü — artık tüm satır anahtarı
+  çeviriyor. Input'lara `accessibilityLabel` eklendi: React Native
+  etiketi otomatik BAĞLAMIYOR, ekran okuyucu bu alanları adsız okuyordu.
+- **Çıkış yap** satırında ok yok (ok "alt ekran var" demektir, bu yerinde
+  bir eylem); yıkıcı bölge kendi başlığı ve rengiyle ayrıldı.
+
+### Yol üstünde bulunan gerçek hata: ağ hatası ham görünüyordu
+
+Canlı testte kaydetme bir kez ağ hatasıyla düştü ve kullanıcıya
+`TypeError: Network request failed` gösterildi — mobilde EN SIK hata ve
+kod tabanında İngilizce kalan tek mesaj. `errorMessage` artık ağ
+hatalarını ("network request failed", "failed to fetch", "internet
+connection appears to be offline") tek bir Türkçe ve eyleme dönük cümleye
+çeviriyor; diğer hatalarda sunucunun mesajı korunuyor (orada gösterilecek
+bir sebep VAR, ağ hatasında yok). İki test eklendi.

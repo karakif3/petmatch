@@ -43,4 +43,28 @@ describe("errorMessage", () => {
   it("düz metin hatayı olduğu gibi geçirir", () => {
     expect(errorMessage("bozuk şey", FALLBACK)).toBe("bozuk şey");
   });
+
+  /*
+   * Ağ hatası simülatörde canlı olarak görüldü: profil kaydederken
+   * kullanıcıya ham "TypeError: Network request failed" gösterildi.
+   * En sık karşılaşılan hata ve tek İngilizce kalanı buydu.
+   */
+  it("ağ hatasını Türkçe ve eyleme dönük bir cümleye çevirir", () => {
+    const expected = "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.";
+    expect(errorMessage(new TypeError("Network request failed"), FALLBACK)).toBe(expected);
+    expect(errorMessage(new Error("Failed to fetch"), FALLBACK)).toBe(expected);
+    expect(errorMessage({ message: "network request failed" }, FALLBACK)).toBe(expected);
+    expect(
+      errorMessage(
+        new Error("The Internet connection appears to be offline."),
+        FALLBACK,
+      ),
+    ).toBe(expected);
+  });
+
+  it("ağ dışı hataları çevirmez", () => {
+    expect(errorMessage(new Error("Aktif pet bulunamadı."), FALLBACK)).toBe(
+      "Aktif pet bulunamadı.",
+    );
+  });
 });
