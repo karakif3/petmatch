@@ -928,3 +928,62 @@ hatalarını ("network request failed", "failed to fetch", "internet
 connection appears to be offline") tek bir Türkçe ve eyleme dönük cümleye
 çeviriyor; diğer hatalarda sunucunun mesajı korunuyor (orada gösterilecek
 bir sebep VAR, ağ hatasında yok). İki test eklendi.
+
+---
+
+## 17. Sahip profili ekranı denetimi (2026-08-09)
+
+Profil ekranındaki (§16) turdan sonra bu ekran denetlendi. Bulunanların
+çoğu görsel değil **davranışsaldı** ve bir kısmı veri kaybettiriyordu.
+
+### Kaydedilmemiş değişiklikle geri gitmek sessizce veri kaybettiriyordu
+
+En ciddi bulgu. Profil sekmesinde bu risk yoktu (sekme ekranı mount
+kalıyor, state duruyor); burası bir yığın ekranı — geri basınca unmount
+oluyor ve 8 alanlık formda yazılan her şey uyarısız gidiyordu. Artık
+kirliyken geri tuşu onay soruyor ("Düzenlemeye dön" / "Çık ve vazgeç").
+
+### Kaydet düğmesi sayfanın en altındaydı ve hep aynı görünüyordu
+
+§16'da profil ekranı için düzeltilen sorunun aynısı burada duruyordu.
+Artık kirli-durum şeridi: yalnızca gerçekten bir şey değiştiğinde beliren
+"Vazgeç" + "Kaydet". Kirlilik karşılaştırması ilgi alanı dizisini ve
+avatarın yerel/uzak olma durumunu da hesaba katıyor.
+
+### Doğum tarihi elle biçimlendiriliyordu
+
+Kullanıcı "YYYY-AA-GG" biçimini kendi kurmak zorundaydı ve yanlış
+yazdığını **ancak formun en altındaki Kaydet'e bastığında** öğreniyordu.
+Artık yalnızca rakam yazılıyor, tireleri alan koyuyor; 18 yaş kontrolü
+alan dolduğu anda alanın altında görünüyor ve kaydet düğmesi kilitleniyor.
+(Gerçek tarih seçici `@react-native-community/datetimepicker` demek —
+yeni native bağımlılık; ayrı iş.)
+
+### Dokunma geri bildirimi hiç yoktu
+
+Faz A'da eklenen `AppPressable` bu ekrana hiç uygulanmamıştı: 27 ham
+`Pressable`. Hepsi çevrildi.
+
+### Erişilebilirlik
+
+- Görünürlük seçenekleri sıradan düğmeydi ve seçili durum **yalnızca
+  renkle** anlatılıyordu — renk körlüğünde marka rengi ile kenarlık
+  rengi ayırt edilemiyor. Artık `accessibilityRole="radio"` + görünür
+  radyo işareti.
+- Cinsiyet çipleri rol/durum taşımıyordu (ilgi alanlarında vardı,
+  burada yoktu — aynı ekranda iki farklı standart). Eklendi; çiplerin
+  dokunma yüksekliği 44 pt'ye çıkarıldı.
+- Input'lara `accessibilityLabel` (RN etiketi otomatik bağlamıyor).
+
+### Görsel dil
+
+Bölüm başlıkları profil ekranıyla aynı `SectionTitle` diline çekildi;
+sonuç mesajları kaydet şeridinin yanına taşındı (başarı 5 sn sonra
+kayboluyor, hata kalıyor); bio sayacındaki `-mt-4` hack'i azaltıldı.
+
+### Bilerek yapılmayan
+
+Ekranın tamamını gruplu listeye çevirmek: burası bir **düzenleme formu**,
+ayar listesi değil — çipler, radyolar ve fotoğraf alanı satır kalıbına
+zorlanınca kullanılabilirlik düşerdi. Ortak olan yalnızca bölüm başlığı
+dili ve kaydet şeridi.

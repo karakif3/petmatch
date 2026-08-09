@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -32,6 +32,8 @@ import { useTranslation } from "../../core/i18n";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
+import { AppPressable } from "../../components/ui/pressable";
+import { SectionTitle } from "../../components/ui/section";
 
 type AvatarState =
   | { kind: "remote"; storagePath: string; uri: string }
@@ -68,20 +70,41 @@ const genderOptions: {
   { value: "other", label: "Diğer" },
 ];
 
+/**
+ * `error`: doğrulama geri bildirimi ARTIK ALANIN YANINDA.
+ * Öncesinde tek doğrulama (doğum tarihi) yalnızca kaydetme anında,
+ * formun en altındaki ortak hata kutusunda görünüyordu — kullanıcı
+ * hangi alanın sorunlu olduğunu metinden çıkarmak zorundaydı.
+ *
+ * `accessibilityLabel` şart: React Native etiketi otomatik olarak input'a
+ * BAĞLAMIYOR; ekran okuyucu bu alanları adsız okuyordu.
+ */
 function Field({
   label,
   hint,
+  error,
   ...props
-}: { label: string; hint?: string } & React.ComponentProps<typeof TextInput>) {
+}: {
+  label: string;
+  hint?: string;
+  error?: string | null;
+} & React.ComponentProps<typeof TextInput>) {
   return (
     <View className="mb-5">
       <Text className="mb-2 text-sm font-semibold text-text-primary">{label}</Text>
       <TextInput
-        placeholderTextColor="#9A8B82"
-        className="rounded-xl border border-border bg-surface px-4 py-3.5 text-text-primary"
+        placeholderTextColor="#B9A99F"
+        accessibilityLabel={label}
+        className={`rounded-xl border bg-surface px-4 py-3.5 text-text-primary ${
+          error ? "border-danger" : "border-border"
+        }`}
         {...props}
       />
-      {hint ? <Text className="mt-2 text-xs leading-4 text-text-tertiary">{hint}</Text> : null}
+      {error ? (
+        <Text className="mt-2 text-xs font-semibold leading-4 text-danger">{error}</Text>
+      ) : hint ? (
+        <Text className="mt-2 text-xs leading-4 text-text-tertiary">{hint}</Text>
+      ) : null}
     </View>
   );
 }
@@ -131,6 +154,13 @@ export default function OwnerProfileScreen() {
         : null,
     );
   }, [profile.data]);
+
+  /* Başarı mesajı kendiliğinden kaybolur, hata kalır (bkz. profil ekranı). */
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timeout);
+  }, [notice]);
 
   const pickAvatar = async () => {
     setError(null);
@@ -196,6 +226,98 @@ export default function OwnerProfileScreen() {
     avatar ? null : "Sahip fotoğrafın",
     visibility === "public" ? null : "Görünürlük: herkese açık",
   ].filter((item): item is string => item !== null);
+
+  /**
+   * Kirli durum: kaydet düğmesi artık sayfanın en altında sabit değil,
+   * yalnızca gerçekten bir şey değiştiğinde beliren bir alt şeritte.
+   *
+   * Öncesinde 8 alanlık formun en altına inip "Kaydet"e basmak gerekiyordu
+   * ve düğme her zaman aynı görünüyordu — kullanıcı bir şey değiştirip
+   * değiştirmediğini de, kaydedip kaydetmediğini de bilmiyordu. Aynı
+   * sorunu profil ekranında da düzeltmiştik (bkz. experience-roadmap §16).
+   */
+  const sameInterests =
+    profile.data !== undefined &&
+    interests.length === profile.data.ownerInterests.length &&
+    interests.every((item) => profile.data!.ownerInterests.includes(item));
+
+  const dirty =
+    Boolean(profile.data) &&
+    (displayName !== (profile.data!.displayName ?? "") ||
+      bio !== (profile.data!.ownerBio ?? "") ||
+      birthDate !== profile.data!.ownerBirthDate ||
+      gender !== profile.data!.ownerGender ||
+      visibility !== profile.data!.ownerVisibility ||
+      socialOpen !== profile.data!.ownerSocialOpen ||
+      !sameInterests ||
+      avatar?.kind === "local" ||
+      Boolean(profile.data!.ownerAvatar) !== Boolean(avatar));
+
+  const resetForm = () => {
+    if (!profile.data) return;
+    setDisplayName(profile.data.displayName ?? "");
+    setBio(profile.data.ownerBio ?? "");
+    setBirthDate(profile.data.ownerBirthDate);
+    setGender(profile.data.ownerGender);
+    setVisibility(profile.data.ownerVisibility);
+    setSocialOpen(profile.data.ownerSocialOpen);
+    setInterests(profile.data.ownerInterests);
+    setAvatar(
+      profile.data.ownerAvatar
+        ? {
+            kind: "remote",
+            storagePath: profile.data.ownerAvatar.storagePath,
+            uri: profile.data.ownerAvatar.url,
+          }
+        : null,
+    );
+    setError(null);
+    setNotice(null);
+  };
+
+  /**
+   * Kaydedilmemiş değişiklikle geri gitmek SESSİZCE veri kaybettiriyordu.
+   * Profil sekmesinde bu risk yoktu (sekme ekranı mount kalıyor, state
+   * duruyor); burası bir yığın ekranı, geri basınca unmount oluyor.
+   */
+  const goBack = () => {
+    if (!dirty) {
+      router.back();
+      return;
+    }
+    Alert.alert(
+      "Kaydedilmemiş değişiklikler var",
+      "Çıkarsan bu turdaki değişiklikler kaybolur.",
+      [
+        { text: "Düzenlemeye dön", style: "cancel" },
+        { text: "Çık ve vazgeç", style: "destructive", onPress: () => router.back() },
+      ],
+    );
+  };
+
+  /**
+   * Tarih maskesi: kullanıcı yalnızca rakam yazıyor, tireleri alan
+   * koyuyor. Öncesinde "YYYY-AA-GG" biçimini kullanıcının kendisi
+   * kurmak zorundaydı ve yanlış yazdığında bunu ancak formun en
+   * altındaki "Kaydet"e bastığında öğreniyordu.
+   *
+   * (Gerçek bir tarih seçici `@react-native-community/datetimepicker`
+   * demek — yeni native bağımlılık + dev-client derlemesi; ayrı iş
+   * olarak backlog'da.)
+   */
+  const onBirthDateChange = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    const parts = [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)].filter(
+      (part) => part.length > 0,
+    );
+    setBirthDate(parts.join("-"));
+  };
+
+  // Alan doluyken ANINDA geri bildirim; boşken sessiz (henüz yazıyor olabilir).
+  const birthDateError =
+    birthDate.length === 10 && !isAdultDate(birthDate)
+      ? "18 yaşından büyük olmalısın ve tarih geçerli olmalı."
+      : null;
 
   const save = async () => {
     if (!user || !profile.data) return;
@@ -289,9 +411,9 @@ export default function OwnerProfileScreen() {
         <Text className="text-center text-lg font-bold text-text-primary">
           Sahip profili yüklenemedi
         </Text>
-        <Pressable onPress={() => profile.refetch()} className="mt-5 rounded-xl bg-brand px-5 py-3">
+        <AppPressable onPress={() => profile.refetch()} className="mt-5 rounded-xl bg-brand px-5 py-3">
           <Text className="font-semibold text-white">Tekrar dene</Text>
-        </Pressable>
+        </AppPressable>
       </SafeAreaView>
     );
   }
@@ -304,13 +426,13 @@ export default function OwnerProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View className="flex-row items-center border-b border-border bg-surface px-3 py-3">
-          <Pressable
-            onPress={() => router.back()}
+          <AppPressable
+            onPress={goBack}
             accessibilityLabel="Geri"
             className="h-11 w-11 items-center justify-center rounded-full"
           >
             <Ionicons name="chevron-back" color="#1F1A17" size={27} />
-          </Pressable>
+          </AppPressable>
           <View className="ml-2 flex-1">
             <Text className="text-lg font-bold text-text-primary">Sahip profili</Text>
             <Text className="mt-0.5 text-xs text-text-secondary">
@@ -324,7 +446,7 @@ export default function OwnerProfileScreen() {
           contentContainerClassName="px-5 pb-12 pt-5"
         >
           <View className="mb-7 items-center">
-            <Pressable onPress={pickAvatar} disabled={busy} accessibilityLabel="Sahip fotoğrafını değiştir">
+            <AppPressable onPress={pickAvatar} disabled={busy} accessibilityLabel="Sahip fotoğrafını değiştir">
               {avatar ? (
                 <Image source={avatar.uri} contentFit="cover" style={{ width: 124, height: 124, borderRadius: 62 }} />
               ) : (
@@ -335,12 +457,12 @@ export default function OwnerProfileScreen() {
               <View className="absolute bottom-0 right-0 h-10 w-10 items-center justify-center rounded-full border-2 border-bg-primary bg-brand">
                 <Ionicons name="camera" color="#FFFFFF" size={19} />
               </View>
-            </Pressable>
+            </AppPressable>
             <Text className="mt-3 text-sm font-bold text-text-primary">
               {avatar ? "Fotoğrafı değiştir" : "Sahip fotoğrafı ekle"}
             </Text>
             {avatar ? (
-              <Pressable
+              <AppPressable
                 onPress={() => {
                   setAvatar(null);
                   if (socialOpen) setSocialOpen(false);
@@ -348,7 +470,7 @@ export default function OwnerProfileScreen() {
                 className="mt-2"
               >
                 <Text className="text-xs font-semibold text-danger">Fotoğrafı kaldır</Text>
-              </Pressable>
+              </AppPressable>
             ) : null}
           </View>
 
@@ -371,41 +493,46 @@ export default function OwnerProfileScreen() {
             textAlignVertical="top"
             className="min-h-28 rounded-xl border border-border bg-surface px-4 py-3.5 text-text-primary"
           />
-          <Text className="-mt-4 mb-5 text-right text-xs text-text-tertiary">{bio.length}/500</Text>
+          {/* Sayaç alanın kendi bloğunun içinde; öncesinde `-mt-4` ile
+              yukarı çekiliyordu — Field'in iç boşluğuna bağımlı, kırılgan. */}
+          <Text className="-mt-3 mb-5 text-right text-xs text-text-tertiary">
+            {bio.length}/500
+          </Text>
           <Field
             label="Doğum tarihin"
             value={birthDate}
-            onChangeText={setBirthDate}
+            onChangeText={onBirthDateChange}
             placeholder="YYYY-AA-GG"
-            keyboardType="numbers-and-punctuation"
+            keyboardType="number-pad"
             maxLength={10}
+            error={birthDateError}
             hint="Kesin tarih gösterilmez; uygun durumda yalnızca “30’lu yaşlar” gibi bir aralık görünür."
           />
 
-          <Text className="mb-3 text-lg font-bold text-text-primary">Cinsiyet (opsiyonel)</Text>
+          <SectionTitle>Cinsiyet (opsiyonel)</SectionTitle>
           <View className="mb-6 flex-row flex-wrap gap-2">
             {genderOptions.map((option) => {
               const active = gender === option.value;
               return (
-                <Pressable
+                <AppPressable
                   key={option.value ?? "none"}
                   onPress={() => setGender(option.value)}
-                  className={`rounded-full border px-4 py-2.5 ${
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active, checked: active }}
+                  className={`min-h-11 justify-center rounded-full border px-4 ${
                     active ? "border-brand bg-brand/10" : "border-border bg-surface"
                   }`}
                 >
                   <Text className={`text-sm font-semibold ${active ? "text-brand-dark" : "text-text-secondary"}`}>
                     {option.label}
                   </Text>
-                </Pressable>
+                </AppPressable>
               );
             })}
           </View>
 
           <View className="mb-1 flex-row items-baseline justify-between">
-            <Text className="text-lg font-bold text-text-primary">
-              İlgi alanların (opsiyonel)
-            </Text>
+            <SectionTitle>İlgi alanların (opsiyonel)</SectionTitle>
             <Text className="text-xs text-text-tertiary">
               {interests.length}/{MAX_INTERESTS}
             </Text>
@@ -417,49 +544,69 @@ export default function OwnerProfileScreen() {
             {OWNER_INTERESTS.map((interest) => {
               const active = interests.includes(interest);
               return (
-                <Pressable
+                <AppPressable
                   key={interest}
                   onPress={() => toggleInterest(interest)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  className={`rounded-full border px-4 py-2.5 ${
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ selected: active, checked: active }}
+                  className={`min-h-11 justify-center rounded-full border px-4 ${
                     active ? "border-brand bg-brand/10" : "border-border bg-surface"
                   }`}
                 >
                   <Text className={`text-sm font-semibold ${active ? "text-brand-dark" : "text-text-secondary"}`}>
                     {ownerInterestLabels[interest]}
                   </Text>
-                </Pressable>
+                </AppPressable>
               );
             })}
           </View>
 
-          <Text className="mb-3 text-lg font-bold text-text-primary">Profil görünürlüğü</Text>
+          <SectionTitle>Profil görünürlüğü</SectionTitle>
           <View className="mb-7 gap-2">
-            {visibilityOptions.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => {
-                  setVisibility(option.value);
-                  if (option.value !== "public") setSocialOpen(false);
-                }}
-                className={`rounded-xl border px-4 py-3 ${
-                  visibility === option.value ? "border-brand bg-brand/10" : "border-border bg-surface"
-                }`}
-              >
-                <Text className={`font-semibold ${visibility === option.value ? "text-brand-dark" : "text-text-primary"}`}>
-                  {option.label}
-                </Text>
-                <Text className="mt-1 text-xs leading-4 text-text-secondary">{option.detail}</Text>
-              </Pressable>
-            ))}
+            {/*
+              Seçili durum artık YALNIZCA RENKLE anlatılmıyor: solda bir
+              radyo işareti var. Renk körlüğünde marka rengiyle kenarlık
+              rengi ayırt edilemiyordu; `accessibilityRole="radio"` da
+              yoktu, ekran okuyucu üç seçeneği sıradan düğme okuyordu.
+            */}
+            {visibilityOptions.map((option) => {
+              const active = visibility === option.value;
+              return (
+                <AppPressable
+                  key={option.value}
+                  onPress={() => {
+                    setVisibility(option.value);
+                    if (option.value !== "public") setSocialOpen(false);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active, checked: active }}
+                  className={`flex-row items-start rounded-xl border px-4 py-3 ${
+                    active ? "border-brand bg-brand/10" : "border-border bg-surface"
+                  }`}
+                >
+                  <Ionicons
+                    name={active ? "radio-button-on" : "radio-button-off"}
+                    color={active ? "#E0523F" : "#B9A99F"}
+                    size={20}
+                  />
+                  <View className="ml-3 flex-1">
+                    <Text
+                      className={`font-semibold ${active ? "text-brand-dark" : "text-text-primary"}`}
+                    >
+                      {option.label}
+                    </Text>
+                    <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                      {option.detail}
+                    </Text>
+                  </View>
+                </AppPressable>
+              );
+            })}
           </View>
 
-          <Text className="mb-3 text-lg font-bold text-text-primary">
-            {t("ownerConnection.title")}
-          </Text>
+          <SectionTitle>{t("ownerConnection.title")}</SectionTitle>
           <View className="mb-7 gap-2">
-            <Pressable
+            <AppPressable
               onPress={() => setSocialOpen(false)}
               className={`rounded-2xl border p-4 ${!socialOpen ? "border-accent bg-accent/10" : "border-border bg-surface"}`}
             >
@@ -472,8 +619,8 @@ export default function OwnerProfileScreen() {
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
                 {t("ownerConnection.petOnlyDetail")}
               </Text>
-            </Pressable>
-            <Pressable
+            </AppPressable>
+            <AppPressable
               onPress={() => {
                 setSocialOpen(true);
                 setVisibility("public");
@@ -511,10 +658,10 @@ export default function OwnerProfileScreen() {
                   ))}
                 </View>
               ) : null}
-            </Pressable>
+            </AppPressable>
           </View>
 
-          <Text className="mb-3 text-lg font-bold text-text-primary">Sahip + pet doğrulaması</Text>
+          <SectionTitle>Sahip + pet doğrulaması</SectionTitle>
           <View className="mb-6 rounded-2xl border border-border bg-surface p-4">
             <View className="flex-row items-center">
               <View className={`h-11 w-11 items-center justify-center rounded-full ${
@@ -572,7 +719,7 @@ export default function OwnerProfileScreen() {
                     style={{ width: "100%", aspectRatio: 1.4, borderRadius: 14, marginTop: 16 }}
                   />
                 ) : null}
-                <Pressable
+                <AppPressable
                   onPress={takeVerificationPhoto}
                   disabled={verificationBusy}
                   className="mt-4 items-center rounded-xl border border-accent bg-accent/5 py-3 disabled:opacity-50"
@@ -580,10 +727,10 @@ export default function OwnerProfileScreen() {
                   <Text className="font-semibold text-accent-dark">
                     {verificationPhoto ? "Fotoğrafı yeniden çek" : "Birlikte fotoğraf çek"}
                   </Text>
-                </Pressable>
+                </AppPressable>
                 {verificationPhoto ? (
                   <>
-                    <Pressable
+                    <AppPressable
                       onPress={() => setVerificationAcknowledged((value) => !value)}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: verificationAcknowledged }}
@@ -597,8 +744,8 @@ export default function OwnerProfileScreen() {
                       <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
                         Fotoğrafın bu başvuruyu incelemek için kullanılacağını ve karar sonrası silineceğini anlıyorum.
                       </Text>
-                    </Pressable>
-                    <Pressable
+                    </AppPressable>
+                    <AppPressable
                       onPress={submitVerification}
                       disabled={verificationBusy || !verificationAcknowledged}
                       className="mt-2 min-h-11 items-center justify-center rounded-xl bg-accent py-3 disabled:opacity-50"
@@ -608,7 +755,7 @@ export default function OwnerProfileScreen() {
                       ) : (
                         <Text className="font-bold text-white">Doğrulamaya gönder</Text>
                       )}
-                    </Pressable>
+                    </AppPressable>
                   </>
                 ) : null}
               </>
@@ -623,25 +770,53 @@ export default function OwnerProfileScreen() {
             ) : null}
           </View>
 
-          {error ? (
-            <View className="mb-4 rounded-xl border border-danger/30 bg-danger/10 p-3">
-              <Text className="text-sm text-danger">{error}</Text>
-            </View>
-          ) : null}
-          {notice ? (
-            <View className="mb-4 rounded-xl border border-accent/30 bg-accent/10 p-3">
-              <Text className="text-sm text-accent-dark">{notice}</Text>
-            </View>
-          ) : null}
-
-          <Pressable
-            onPress={save}
-            disabled={busy || verificationBusy}
-            className="items-center rounded-xl bg-brand py-4 disabled:opacity-50"
-          >
-            {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-bold text-white">Sahip profilini kaydet</Text>}
-          </Pressable>
         </ScrollView>
+
+        {/*
+          Sonuç mesajları kaydet şeridinin YANINDA. Öncesinde kaydet
+          düğmesiyle birlikte sayfanın en altındaydı; kullanıcı kaydettikten
+          sonra klavye kapanınca ekran kayıyor ve mesaj çoğu zaman
+          görünmüyordu. Başarı mesajı kendiliğinden kayboluyor, hata
+          kalıyor (biri bildirim, diğeri görev).
+        */}
+        {error || notice ? (
+          <View className="px-5 pb-2">
+            <View
+              className={`rounded-xl border p-3 ${
+                error ? "border-danger/30 bg-danger/10" : "border-accent/30 bg-accent/10"
+              }`}
+            >
+              <Text className={`text-sm ${error ? "text-danger" : "text-accent-dark"}`}>
+                {error ?? notice}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {dirty ? (
+          <View className="flex-row gap-3 border-t border-border bg-surface px-5 pb-2 pt-3">
+            <AppPressable
+              onPress={resetForm}
+              disabled={busy}
+              accessibilityRole="button"
+              className="min-h-[50px] flex-1 items-center justify-center rounded-xl border border-border disabled:opacity-50"
+            >
+              <Text className="font-semibold text-text-secondary">Vazgeç</Text>
+            </AppPressable>
+            <AppPressable
+              onPress={save}
+              disabled={busy || verificationBusy || Boolean(birthDateError)}
+              accessibilityRole="button"
+              className="min-h-[50px] flex-[2] items-center justify-center rounded-xl bg-brand disabled:opacity-50"
+            >
+              {busy ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text className="font-bold text-white">Kaydet</Text>
+              )}
+            </AppPressable>
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
