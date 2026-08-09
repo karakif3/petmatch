@@ -130,6 +130,28 @@ diğerleri outline; saç teli kenarlık). Açık kalanlar: sekme çubuğuna
 kuralı/boyut skalası, **test verisini gerçek fotoğraflarla seed etmek**
 (yer tutucular her görsel değerlendirmeyi zorlaştırıyor).
 
+**2026-08-09 (2. tur) — Kart hiyerarşisi + Lucide + tanışma amacı.** Kartın
+alt bloğunda ad en alttaydı, üstünde üç dolu kutu (çipler/bio/sahip)
+duruyordu; sıra **kim → ne → ayrıntı** olarak tersine çevrildi, bio ve
+sahip kutuları kaldırıldı (sahip artık `self-start` bir hap + ok; ilgi
+alanı boşsa "Sahibini gör" yazıyor — RPC doğru, test hesabında
+`interests` boştu). Karar düğmeleri (geç/süper/beğen) ve uyum rozeti
+**Lucide**'a geçti (`components/ui/icon.tsx`); `react-native-svg` yeni
+native bağımlılık, dev-client yeniden derlendi. "Tanışma amacı" sorusu
+değerlendirildi: **kalmalı** (ürünün merkezindeki belirsizliği çözüyor)
+ama ön koşulları artık kaydetme anında tek hata cümlesi olarak değil,
+seçim anında tek tek listeleniyor. Ayrıntı: `experience-roadmap.md` §14.
+
+Bu turdan açık kalanlar:
+- **Lucide geçişini tamamla** — bugün karışık aile (karar şeridi Lucide,
+  geri kalan Ionicons). Yüzey yüzey çevrilecek; kural: aktif/seçili dolu,
+  geri kalan outline, boyut skalası 16/20/24.
+- **"Tanışma amacı" sorusunun yeri** — sahip profili formunun içinde
+  gömük; sonucun göründüğü yer Keşfet (görünürlük anahtarındaki gibi).
+- **Sekme çubuğuna `expo-blur`** — native bağımlılık, ayrı derleme.
+- **Test verisini gerçek fotoğraflarla seed et** — yer tutucu görseller
+  her görsel değerlendirmeyi zorlaştırıyor (bkz. §13).
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir

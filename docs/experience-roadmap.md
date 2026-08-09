@@ -747,3 +747,69 @@ gerektiriyor. Kalan ikon borcu: uygulama genelinde outline/dolu seçimi
 hâlâ ekran ekran kararlaştırılmış durumda; tek bir kural (aktif/seçili
 dolu, geri kalan outline) ve tek bir boyut skalası (16/20/24) ayrı bir
 tur işi.
+
+---
+
+## 14. Kart hiyerarşisi, Lucide karar ikonları ve "tanışma amacı" değerlendirmesi (2026-08-09)
+
+### Kart: kimlik en üste çıktı, kutular gitti
+
+Kartın alt bloğunda sıralama şöyleydi: çipler → bio kutusu → sahip
+kutusu → **ad**. Yani kartın en büyük tipografisi en alttaydı ve göz önce
+üç koyu dolu kutuya çarpıyordu; fotoğrafın üstüne yapıştırılmış bir liste
+gibi okunuyordu. Yeni sıra **kim → ne → ayrıntı**:
+
+1. Ad + cinsiyet (28px),
+2. tek satır meta: `ırk · yaş · boyut · mesafe` — mesafe eskiden sağda
+   ayrı bir hapta durup adla yer için yarışıyordu, artık aynı cümlenin
+   parçası (bir kutu daha az),
+3. ayrıntı blokları: çipler → bio → sahip hapı.
+
+Bio'nun kutusu kaldırıldı (düz metin), sahip bloğu tam genişlikten
+`self-start` bir hapa indi ve **sağına bir ok** eklendi — dokunulabilir
+olduğunu söyleyen tek görsel işaret bugüne kadar yoktu. Kutular gidince
+okunurluğu tamamen gradyan taşıdığı için dip opaklığı 0.88 → 0.92,
+geçiş uzatıldı. Çipler de hafifledi (`bg-black/45` + `border-white/15`).
+
+**Sahip ilgi alanı görünmüyordu:** RPC doğru (`0049`, `public` kapısıyla
+`prof.interests` dönüyor) — test hesabında `profiles.interests` boş
+olduğu için hap yalnızca isimden ibaret kalıyordu. Boşken "Sahibini gör"
+metni giriyor; ilgi alanı doluysa o metin çıkmıyor.
+
+### Karar ikonları: Ionicons → Lucide
+
+Geç / süper beğeni / beğen düğmeleri uygulamanın en büyük ve en çok
+bakılan yüzeyi; Ionicons **dolu** bir aile olduğu için o boyutta
+"sticker" gibi duruyorlardı. Lucide çizgi tabanlı ve tek bir
+`strokeWidth` ekseni var — büyük boyutta orantısız kalınlaşmıyor.
+`components/ui/icon.tsx` bu üç ikonu + uyum rozetini tek yerden veriyor
+(`DECISION_STROKE = 2.5`).
+
+Kapsam **bilerek dar**: tüm uygulamayı tek seferde çevirmek ~40 çağrı
+yeri ve her biri kendi boyut/hizalama kararını taşıyor. Geçiş yüzey
+yüzey yapılacak; karışık aile geçici, kalıcı hedef tek aile.
+
+`react-native-svg` yeni bir NATIVE bağımlılık: `pod install` + dev-client
+yeniden derlemesi gerekti (README'deki `xcodebuild` komutu).
+
+### "Tanışma amacı" sorusu anlamlı mı? — evet, ama sorulduğu yer yanlıştı
+
+Soru (`Yalnızca petime arkadaş` ↔ `Petimle birlikte yeni insanlarla
+tanışmak`) ürünün merkezindeki belirsizliği çözüyor: aynı destede hem
+yalnızca köpeğine oyun arkadaşı arayan hem de tanışmaya açık insanlar
+var. Bu ayrım olmadan bir taraf rahatsız olur, diğer taraf hayal kırıklığı
+yaşar — Tinder'ın böyle bir soruya ihtiyacı yok çünkü niyet zaten tek;
+burada değil. Yani **soru kalmalı.** Üç uygulama sorunu vardı:
+
+1. **Zamanlama doğru** (kayıtta sorulmuyor, `docs/goal-model.md` §2) ama
+   **yeri gömük**: sahip profili formunun içinde, fotoğraf/bio/doğum
+   tarihi/cinsiyetin altında. Kararın sonucunun göründüğü yer Keşfet;
+   görünürlük anahtarında olduğu gibi (§12) sonuçla aynı ekranda
+   sorulması daha iyi olur — sıradaki iş olarak duruyor.
+2. **Başarısızlık anı yanlıştı — düzeltildi.** Seçenek işaretleniyor,
+   form dolduruluyor, en altta "Kaydet"e basılınca "ad + fotoğraf +
+   herkese açık gerekiyor" hatası tek cümlede geliyordu. Artık eksik
+   kalemler seçeneğin ALTINDA, seçim anında, tek tek listeleniyor.
+3. **İkili olması doğru.** Üçüncü bir "romantik" seçeneği dating modunu
+   ve `connection_mode` göçünü gerektirir (goal-model.md §2); köprü
+   boolean'ı MVP için yeterli.

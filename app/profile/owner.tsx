@@ -185,6 +185,18 @@ export default function OwnerProfileScreen() {
     );
   };
 
+  /**
+   * "Tanışmaya açığım" seçeneğinin ön koşulları (bkz. docs/goal-model.md §2:
+   * açık olması için ad + sahip fotoğrafı + `public` görünürlük zorunlu).
+   * Kaydetme anında tek bir hata cümlesi yerine, seçenek görünürken
+   * eksik kalemler tek tek gösteriliyor.
+   */
+  const missingConnectionRequirements = [
+    displayName.trim() ? null : "Adın",
+    avatar ? null : "Sahip fotoğrafın",
+    visibility === "public" ? null : "Görünürlük: herkese açık",
+  ].filter((item): item is string => item !== null);
+
   const save = async () => {
     if (!user || !profile.data) return;
     if (!isAdultDate(birthDate)) {
@@ -477,6 +489,28 @@ export default function OwnerProfileScreen() {
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
                 {t("ownerConnection.openDetail")}
               </Text>
+              {/*
+                Ön koşullar SEÇİM ANINDA söyleniyor.
+                Öncesinde kullanıcı bu seçeneği işaretliyor, formu
+                dolduruyor, en altta "Kaydet"e basıyor ve ancak orada
+                "önce ad + fotoğraf + herkese açık profil gerekiyor"
+                hatasını görüyordu — eksiğin ne olduğu da tek bir cümlede
+                toplu haldeydi. Eksik olan kalemler burada tek tek ve
+                seçenek görünürken duruyor.
+              */}
+              {socialOpen && missingConnectionRequirements.length > 0 ? (
+                <View className="mt-3 gap-1 rounded-xl bg-bg-secondary p-3">
+                  <Text className="text-[11px] font-bold text-text-primary">
+                    Açık kalması için gerekenler
+                  </Text>
+                  {missingConnectionRequirements.map((requirement) => (
+                    <View key={requirement} className="flex-row items-center gap-1.5">
+                      <Ionicons name="ellipse-outline" color="#9A8B82" size={11} />
+                      <Text className="text-[11px] text-text-secondary">{requirement}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </Pressable>
           </View>
 

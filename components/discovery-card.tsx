@@ -9,6 +9,7 @@ import { formatAge } from "../core/domain/age";
 import { ownerInterestLabels, sizeLabels, temperamentLabels } from "../core/domain/labels";
 import { shadowSm } from "../core/ui/shadow";
 import { PhotoCarousel } from "./photo-carousel";
+import { DecisionIcons } from "./ui/icon";
 import { AppPressable } from "./ui/pressable";
 
 const CARD_ASPECT = 3 / 4;
@@ -31,8 +32,8 @@ function activityLabel(bucket: string | null): string | null {
 /** Foto üstünde okunabilirlik için tutarlı koyu-cam çip stili. */
 function OverlayChip({ children }: { children: ReactNode }) {
   return (
-    <View className="rounded-full bg-black/65 px-2.5 py-1.5">
-      <Text className="text-[11px] font-bold text-white">{children}</Text>
+    <View className="rounded-full border border-white/15 bg-black/45 px-2.5 py-1">
+      <Text className="text-[11px] font-semibold text-white">{children}</Text>
     </View>
   );
 }
@@ -107,12 +108,14 @@ export function DiscoveryCard({
   }
 
   if (card.bio) {
+    // Kutu YOK: kartın altında üst üste binen dolu kutular (bio + sahip)
+    // fotoğrafın üstüne yapıştırılmış bir liste gibi okunuyordu. Metin
+    // doğrudan gradyanın üstünde duruyor; okunurluğu kutu değil gradyan
+    // sağlıyor (aşağıdaki `LinearGradient` bu yüzden dipte daha koyu).
     extraBlocks.push(
-      <View key="bio" className="rounded-xl bg-black/70 px-3 py-2.5">
-        <Text className="text-xs leading-5 text-white" numberOfLines={3}>
-          {card.bio}
-        </Text>
-      </View>,
+      <Text key="bio" className="text-[13px] leading-5 text-white/90" numberOfLines={2}>
+        {card.bio}
+      </Text>,
     );
   }
 
@@ -133,7 +136,11 @@ export function DiscoveryCard({
         accessibilityLabel={
           onOwnerPress ? `${owner.displayName ?? "Pet sahibi"} profilini aç` : undefined
         }
-        className="flex-row items-center gap-2 rounded-2xl bg-black/70 px-2.5 py-2"
+        // `self-start`: kutu içeriğine göre daralıyor. Tam genişlikte
+        // olduğunda ne olduğu belirsiz bir şerit gibi duruyordu; artık
+        // "sahip" olduğu belli bir hap. Sağdaki ok, dokunulabilir
+        // olduğunu söyleyen tek görsel işaret (önceden hiçbiri yoktu).
+        className="max-w-full flex-row items-center gap-2 self-start rounded-full border border-white/15 bg-black/50 py-1.5 pl-1.5 pr-3"
       >
         {owner.photoUrl ? (
           <Image
@@ -153,12 +160,25 @@ export function DiscoveryCard({
           <Ionicons name="shield-checkmark" color="#5ED3C3" size={14} />
         ) : null}
         {interestChips.map((interest) => (
-          <View key={interest} className="rounded-full bg-white/20 px-2 py-1">
-            <Text className="text-[10px] font-bold text-white">
+          <View key={interest} className="rounded-full bg-white/20 px-2 py-0.5">
+            <Text className="text-[10px] font-semibold text-white">
               {ownerInterestLabels[interest]}
             </Text>
           </View>
         ))}
+        {/*
+          Sahip ilgi alanı GİRMEMİŞ olabilir (`profiles.interests` boş) —
+          o zaman hap yalnızca bir isimden ibaret kalıyor ve neden orada
+          durduğu anlaşılmıyordu. Boşken niyeti söyleyen bir metin
+          giriyor; dolu olduğunda gereksiz gürültü olmasın diye
+          yalnızca boşken.
+        */}
+        {interestChips.length === 0 ? (
+          <Text className="text-[10px] font-semibold text-white/70">Sahibini gör</Text>
+        ) : null}
+        {onOwnerPress ? (
+          <Ionicons name="chevron-forward" color="#FFFFFFB3" size={13} />
+        ) : null}
       </AppPressable>,
     );
   }
@@ -201,8 +221,10 @@ export function DiscoveryCard({
       */}
       <LinearGradient
         pointerEvents="none"
-        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.88)"]}
-        locations={[0.1, 0.5, 1]}
+        // Bio ve sahip bloğundan kutular kaldırıldığı için okunurluğu
+        // tamamen bu gradyan taşıyor: dip daha koyu, geçiş daha uzun.
+        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)", "rgba(0,0,0,0.92)"]}
+        locations={[0, 0.45, 1]}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" }}
       />
 
@@ -222,7 +244,7 @@ export function DiscoveryCard({
           // aşağıda duruyor.
           className="absolute right-3 top-16 flex-row items-center gap-1 rounded-full bg-white/95 px-3 py-1.5"
         >
-          <Ionicons name="sparkles" size={13} color="#1E9384" />
+          <DecisionIcons.compatibility size={13} color="#1E9384" strokeWidth={2.25} />
           <Text className="text-xs font-bold text-accent-dark">%{compatibility} uyum</Text>
         </View>
       ) : null}
@@ -232,44 +254,47 @@ export function DiscoveryCard({
         bio/sahip teaser'ı gösterileceği) tamamen değişiyor — `key` React'a
         eskiyi güncellemek yerine yeniden mount etmesini söylüyor.
       */}
+      {/*
+        Sıra BİLEREK böyle: önce KİM (ad + cinsiyet), sonra NE (ırk/yaş/
+        boyut · mesafe), sonra ayrıntı (çipler/bio/sahip). Önceki hâlde
+        ikincil bilgi bloklarının HEPSİ adın üstündeydi; kartın en büyük
+        tipografisi en altta kalıyor, göz önce üç koyu kutuya çarpıyordu.
+        Kimlik en üstte olunca kart tek bakışta okunuyor.
+      */}
       <View
         key={`bottom-${card.id}-${photoIndex}`}
-        className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-10"
+        className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-12"
       >
+        <View className="flex-row items-center gap-2">
+          <Text className="text-[28px] font-bold leading-9 text-white" numberOfLines={1}>
+            {card.name}
+          </Text>
+          <Ionicons
+            name={card.gender === "female" ? "female" : "male"}
+            color={card.gender === "female" ? "#FFB6D0" : "#AFC9F2"}
+            size={19}
+          />
+        </View>
+        {/*
+          Mesafe eskiden sağda ayrı bir hapta duruyor ve adla aynı satırda
+          yer için yarışıyordu. Aynı cümlenin parçası: "Küçük · 2 km
+          uzakta". Bir bilgi daha az kutu demek.
+        */}
+        {details || showDistance ? (
+          <Text className="mt-0.5 text-[13px] font-semibold text-white/85" numberOfLines={1}>
+            {[details, showDistance ? distanceLabel(card.distanceBucket) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
+        ) : null}
+
         {currentExtra.length > 0 ? (
-          <View className="mb-2.5 gap-1.5">
+          <View className="mt-2.5 gap-1.5">
             {currentExtra.map((node, i) => (
               <View key={i}>{node}</View>
             ))}
           </View>
         ) : null}
-        <View className="flex-row items-end justify-between gap-3">
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-[26px] font-bold text-white" numberOfLines={1}>
-                {card.name}
-              </Text>
-              <Ionicons
-                name={card.gender === "female" ? "female" : "male"}
-                color={card.gender === "female" ? "#FFB6D0" : "#AFC9F2"}
-                size={19}
-              />
-            </View>
-            {details ? (
-              <Text className="mt-0.5 text-sm font-semibold text-white/90" numberOfLines={1}>
-                {details}
-              </Text>
-            ) : null}
-          </View>
-          {showDistance ? (
-            <View className="flex-row items-center gap-1 rounded-full bg-white/20 px-2.5 py-1.5">
-              <Ionicons name="location-outline" color="#FFFFFF" size={13} />
-              <Text className="text-[11px] font-bold text-white">
-                {distanceLabel(card.distanceBucket)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
       </View>
     </View>
   );

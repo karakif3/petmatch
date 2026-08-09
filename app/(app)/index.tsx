@@ -52,6 +52,7 @@ import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
 import { decisionHaptic } from "../../core/ui/haptics";
 import { shadowLg } from "../../core/ui/shadow";
+import { DECISION_STROKE, DecisionIcons } from "../../components/ui/icon";
 
 export default function DiscoverScreen() {
   const user = useAuthStore((state) => state.user);
@@ -840,7 +841,7 @@ export default function DiscoverScreen() {
               style={shadowLg}
               className="h-16 w-16 items-center justify-center rounded-full bg-surface disabled:opacity-50"
             >
-              <Ionicons name="close" color="#9A8B82" size={30} />
+              <DecisionIcons.pass color="#7A6A61" size={30} strokeWidth={DECISION_STROKE} />
             </AppPressable>
             <AppPressable
               onPress={handleSuperLike}
@@ -849,7 +850,12 @@ export default function DiscoverScreen() {
               style={shadowLg}
               className="h-12 w-12 items-center justify-center rounded-full bg-warning disabled:opacity-50"
             >
-              <Ionicons name="star" color="#FFFFFF" size={20} />
+              <DecisionIcons.superLike
+                color="#FFFFFF"
+                size={20}
+                strokeWidth={DECISION_STROKE}
+                fill="#FFFFFF"
+              />
             </AppPressable>
             <AppPressable
               onPress={() => handleSwipe("like")}
@@ -861,7 +867,12 @@ export default function DiscoverScreen() {
               {swipe.isPending ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Ionicons name="heart" color="#FFFFFF" size={32} />
+                <DecisionIcons.like
+                  color="#FFFFFF"
+                  size={31}
+                  strokeWidth={DECISION_STROKE}
+                  fill="#FFFFFF"
+                />
               )}
             </AppPressable>
           </View>
