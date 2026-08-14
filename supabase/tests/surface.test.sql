@@ -15,6 +15,20 @@ select tests.assert(
   'public şemadaki her tabloda RLS açık'
 );
 
+-- Uyumluluk sorularında "hayır" ile "cevaplanmadı" ayrışmalı (0050).
+select tests.assert(
+  (
+    select count(*)
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'pets'
+      and column_name in ('good_with_cats', 'good_with_dogs', 'good_with_kids')
+      and is_nullable = 'YES'
+      and column_default is null
+  ) = 3,
+  'pet uyumluluk alanları üç durumlu ve varsayılanı null'
+);
+
 -- Uygulama oturumsuz hiçbir şey yapmıyor; anon'un fonksiyon yüzeyi olmamalı.
 select tests.assert(
   (select count(*) from pg_proc p

@@ -20,7 +20,7 @@ import { AppPressable } from "./pressable";
  */
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <Text className="mb-2 ml-1 text-[11px] font-bold uppercase tracking-wider text-text-tertiary">
+    <Text className="mb-2 ml-1 text-[11px] font-bold uppercase text-text-tertiary">
       {children}
     </Text>
   );

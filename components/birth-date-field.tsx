@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { createElement, useMemo, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import DateTimePicker, {
   type DateTimePickerEvent,
@@ -52,6 +52,39 @@ export function BirthDateField({ label, helper, value, onChange }: Props) {
     if (selected) onChange(toIsoDate(selected));
   };
 
+  if (Platform.OS === "web") {
+    return (
+      <View className="mb-4">
+        <Text className="mb-2 text-sm font-semibold text-text-primary">{label}</Text>
+        {createElement("input", {
+          type: "date",
+          value,
+          min: "1900-01-01",
+          max: toIsoDate(maximumDate),
+          onInput: (event: React.FormEvent<HTMLInputElement>) =>
+            onChange(event.currentTarget.value),
+          "aria-label": label,
+          style: {
+            minHeight: 50,
+            width: "100%",
+            boxSizing: "border-box",
+            border: "1px solid #E8DED7",
+            borderRadius: 12,
+            background: "#FFFFFF",
+            color: "#1F1A17",
+            padding: "0 16px",
+            fontFamily: "inherit",
+            fontSize: 16,
+            fontWeight: 600,
+          },
+        })}
+        {helper ? (
+          <Text className="mt-2 text-xs text-text-tertiary">{helper}</Text>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-semibold text-text-primary">{label}</Text>
@@ -62,9 +95,7 @@ export function BirthDateField({ label, helper, value, onChange }: Props) {
         accessibilityLabel={
           display ? `${label}: ${display}. Değiştirmek için dokun.` : `${label} seç`
         }
-        className={`rounded-xl border px-4 py-4 ${
-          display ? "border-brand bg-brand/5" : "border-border bg-surface"
-        }`}
+        className="rounded-xl border border-border bg-surface px-4 py-4"
       >
         <Text
           className={

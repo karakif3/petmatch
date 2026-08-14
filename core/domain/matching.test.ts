@@ -98,6 +98,13 @@ describe("compatibilityScore", () => {
     expect(compatibilityScore(viewer, catNotOk, NOW).species).toBe(0);
   });
 
+  it("farklı tür uyumu bilinmiyorsa hayır kadar sert cezalandırmaz", () => {
+    const viewer = pet({ species: "dog", goodWithCats: null });
+    const cat = pet({ id: "cat-unknown", species: "cat", goodWithDogs: true });
+
+    expect(compatibilityScore(viewer, cat, NOW).species).toBe(0.25);
+  });
+
   it("mesafe bileşeni yok — sıralamayı sunucu yapıyor", () => {
     const breakdown = compatibilityScore(pet(), pet({ id: "p2" }), NOW);
     expect(breakdown).not.toHaveProperty("distance");

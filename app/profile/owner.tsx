@@ -25,6 +25,7 @@ import {
   submitOwnerVerification,
   type LocalProfilePhoto,
 } from "../../core/api/profile";
+import { BirthDateField } from "../../components/birth-date-field";
 import { isAdultDate } from "../../core/domain/date-validation";
 import { ownerInterestLabels } from "../../core/domain/labels";
 import { OWNER_INTERESTS, type OwnerInterest, type OwnerVisibility } from "../../core/domain/types";
@@ -34,6 +35,8 @@ import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
 import { AppPressable } from "../../components/ui/pressable";
 import { SectionTitle } from "../../components/ui/section";
+import { ProfileFormSkeleton } from "../../components/ui/skeleton";
+import { successHaptic } from "../../core/ui/haptics";
 
 type AvatarState =
   | { kind: "remote"; storagePath: string; uri: string }
@@ -132,6 +135,7 @@ export default function OwnerProfileScreen() {
   const [verificationAcknowledged, setVerificationAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationExpanded, setVerificationExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -173,6 +177,8 @@ export default function OwnerProfileScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.85,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled) return;
     const photo = result.assets[0];
@@ -251,7 +257,9 @@ export default function OwnerProfileScreen() {
       socialOpen !== profile.data!.ownerSocialOpen ||
       !sameInterests ||
       avatar?.kind === "local" ||
-      Boolean(profile.data!.ownerAvatar) !== Boolean(avatar));
+      Boolean(profile.data!.ownerAvatar) !== Boolean(avatar) ||
+      Boolean(verificationPhoto) ||
+      verificationAcknowledged);
 
   const resetForm = () => {
     if (!profile.data) return;
@@ -271,6 +279,8 @@ export default function OwnerProfileScreen() {
           }
         : null,
     );
+    setVerificationPhoto(null);
+    setVerificationAcknowledged(false);
     setError(null);
     setNotice(null);
   };
@@ -294,30 +304,6 @@ export default function OwnerProfileScreen() {
       ],
     );
   };
-
-  /**
-   * Tarih maskesi: kullanıcı yalnızca rakam yazıyor, tireleri alan
-   * koyuyor. Öncesinde "YYYY-AA-GG" biçimini kullanıcının kendisi
-   * kurmak zorundaydı ve yanlış yazdığında bunu ancak formun en
-   * altındaki "Kaydet"e bastığında öğreniyordu.
-   *
-   * (Gerçek bir tarih seçici `@react-native-community/datetimepicker`
-   * demek — yeni native bağımlılık + dev-client derlemesi; ayrı iş
-   * olarak backlog'da.)
-   */
-  const onBirthDateChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 8);
-    const parts = [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)].filter(
-      (part) => part.length > 0,
-    );
-    setBirthDate(parts.join("-"));
-  };
-
-  // Alan doluyken ANINDA geri bildirim; boşken sessiz (henüz yazıyor olabilir).
-  const birthDateError =
-    birthDate.length === 10 && !isAdultDate(birthDate)
-      ? "18 yaşından büyük olmalısın ve tarih geçerli olmalı."
-      : null;
 
   const save = async () => {
     if (!user || !profile.data) return;
@@ -359,6 +345,7 @@ export default function OwnerProfileScreen() {
         queryClient.invalidateQueries({ queryKey: ["profile-completion", user.id] }),
       ]);
       await profile.refetch();
+      successHaptic();
       setNotice("Sahip profilin güncellendi.");
     } catch (saveError) {
       setError(
@@ -388,6 +375,7 @@ export default function OwnerProfileScreen() {
       setVerificationAcknowledged(false);
       await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
       await profile.refetch();
+      successHaptic();
       setNotice("Doğrulama fotoğrafın inceleme kuyruğuna alındı.");
     } catch (verificationError) {
       setError(
@@ -400,8 +388,8 @@ export default function OwnerProfileScreen() {
 
   if (profile.isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-bg-primary">
-        <ActivityIndicator color="#F97362" size="large" />
+      <SafeAreaView className="flex-1 bg-bg-primary">
+        <ProfileFormSkeleton variant="owner" />
       </SafeAreaView>
     );
   }
@@ -498,15 +486,11 @@ export default function OwnerProfileScreen() {
           <Text className="-mt-3 mb-5 text-right text-xs text-text-tertiary">
             {bio.length}/500
           </Text>
-          <Field
+          <BirthDateField
             label="Doğum tarihin"
             value={birthDate}
-            onChangeText={onBirthDateChange}
-            placeholder="YYYY-AA-GG"
-            keyboardType="number-pad"
-            maxLength={10}
-            error={birthDateError}
-            hint="Kesin tarih gösterilmez; uygun durumda yalnızca “30’lu yaşlar” gibi bir aralık görünür."
+            onChange={setBirthDate}
+            helper="Kesin tarih gösterilmez; uygun durumda yalnızca “30’lu yaşlar” gibi bir aralık görünür."
           />
 
           <SectionTitle>Cinsiyet (opsiyonel)</SectionTitle>
@@ -547,9 +531,10 @@ export default function OwnerProfileScreen() {
                 <AppPressable
                   key={interest}
                   onPress={() => toggleInterest(interest)}
+                  disabled={!active && interests.length >= MAX_INTERESTS}
                   accessibilityRole="checkbox"
                   accessibilityState={{ selected: active, checked: active }}
-                  className={`min-h-11 justify-center rounded-full border px-4 ${
+                  className={`min-h-11 justify-center rounded-full border px-4 disabled:opacity-40 ${
                     active ? "border-brand bg-brand/10" : "border-border bg-surface"
                   }`}
                 >
@@ -560,6 +545,11 @@ export default function OwnerProfileScreen() {
               );
             })}
           </View>
+          {interests.length >= MAX_INTERESTS ? (
+            <Text className="-mt-5 mb-7 text-xs font-semibold text-text-secondary">
+              {MAX_INTERESTS} ilgi alanı sınırına ulaştın. Değiştirmek için önce birini kaldır.
+            </Text>
+          ) : null}
 
           <SectionTitle>Profil görünürlüğü</SectionTitle>
           <View className="mb-7 gap-2">
@@ -608,13 +598,18 @@ export default function OwnerProfileScreen() {
           <View className="mb-7 gap-2">
             <AppPressable
               onPress={() => setSocialOpen(false)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: !socialOpen, checked: !socialOpen }}
               className={`rounded-2xl border p-4 ${!socialOpen ? "border-accent bg-accent/10" : "border-border bg-surface"}`}
             >
               <View className="flex-row items-center">
                 <Ionicons name="paw-outline" color={!socialOpen ? "#1E9384" : "#6B5D55"} size={24} />
-                <Text className="ml-3 font-bold text-text-primary">
+                <Text className="ml-3 flex-1 font-bold text-text-primary">
                   {t("ownerConnection.petOnlyTitle")}
                 </Text>
+                {!socialOpen ? (
+                  <Ionicons name="checkmark-circle" color="#1E9384" size={20} />
+                ) : null}
               </View>
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
                 {t("ownerConnection.petOnlyDetail")}
@@ -625,6 +620,8 @@ export default function OwnerProfileScreen() {
                 setSocialOpen(true);
                 setVisibility("public");
               }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: socialOpen, checked: socialOpen }}
               className={`rounded-2xl border p-4 ${socialOpen ? "border-brand bg-brand/10" : "border-border bg-surface"}`}
             >
               <View className="flex-row items-center">
@@ -632,6 +629,9 @@ export default function OwnerProfileScreen() {
                 <Text className="ml-3 flex-1 font-bold text-text-primary">
                   {t("ownerConnection.openTitle")}
                 </Text>
+                {socialOpen ? (
+                  <Ionicons name="checkmark-circle" color="#E0523F" size={20} />
+                ) : null}
               </View>
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
                 {t("ownerConnection.openDetail")}
@@ -695,7 +695,21 @@ export default function OwnerProfileScreen() {
               </View>
             </View>
 
-            {verificationStatus !== "approved" && verificationStatus !== "pending" ? (
+            {verificationStatus !== "approved" &&
+            verificationStatus !== "pending" &&
+            !verificationExpanded ? (
+              <AppPressable
+                onPress={() => setVerificationExpanded(true)}
+                accessibilityRole="button"
+                className="mt-4 min-h-11 items-center justify-center rounded-xl border border-accent bg-accent/5 px-4"
+              >
+                <Text className="font-semibold text-accent-dark">Doğrulamayı başlat</Text>
+              </AppPressable>
+            ) : null}
+
+            {verificationStatus !== "approved" &&
+            verificationStatus !== "pending" &&
+            verificationExpanded ? (
               <>
                 <View className="mt-4 rounded-xl bg-bg-secondary p-3">
                   {[
@@ -758,6 +772,17 @@ export default function OwnerProfileScreen() {
                     </AppPressable>
                   </>
                 ) : null}
+                <AppPressable
+                  onPress={() => {
+                    setVerificationExpanded(false);
+                    setVerificationPhoto(null);
+                    setVerificationAcknowledged(false);
+                  }}
+                  accessibilityRole="button"
+                  className="mt-3 min-h-11 items-center justify-center"
+                >
+                  <Text className="text-sm font-semibold text-text-secondary">Şimdilik kapat</Text>
+                </AppPressable>
               </>
             ) : null}
             {verificationStatus === "approved" ? (
@@ -805,7 +830,7 @@ export default function OwnerProfileScreen() {
             </AppPressable>
             <AppPressable
               onPress={save}
-              disabled={busy || verificationBusy || Boolean(birthDateError)}
+              disabled={busy || verificationBusy || !isAdultDate(birthDate)}
               accessibilityRole="button"
               className="min-h-[50px] flex-[2] items-center justify-center rounded-xl bg-brand disabled:opacity-50"
             >

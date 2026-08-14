@@ -99,9 +99,9 @@ export type Pet = {
   size: Size;
   energyLevel: EnergyLevel;
   temperaments: Temperament[];
-  goodWithCats: boolean;
-  goodWithDogs: boolean;
-  goodWithKids: boolean;
+  goodWithCats: boolean | null;
+  goodWithDogs: boolean | null;
+  goodWithKids: boolean | null;
   goals: MatchGoal[];
   bio: string | null;
   photoUrls: string[];

@@ -41,9 +41,9 @@ export type EditableProfile = {
     energyLevel: EnergyLevel;
     isNeutered: boolean;
     temperaments: Temperament[];
-    goodWithCats: boolean;
-    goodWithDogs: boolean;
-    goodWithKids: boolean;
+    goodWithCats: boolean | null;
+    goodWithDogs: boolean | null;
+    goodWithKids: boolean | null;
     bio: string | null;
     photos: ProfilePhoto[];
     photoUrl: string | null;
@@ -80,9 +80,9 @@ export type PetProfileUpdate = {
   energyLevel: EnergyLevel;
   isNeutered: boolean;
   temperaments: Temperament[];
-  goodWithCats: boolean;
-  goodWithDogs: boolean;
-  goodWithKids: boolean;
+  goodWithCats: boolean | null;
+  goodWithDogs: boolean | null;
+  goodWithKids: boolean | null;
   bio: string;
 };
 

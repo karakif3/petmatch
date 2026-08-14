@@ -452,10 +452,18 @@ karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
          "3 yaş" seçen kullanıcı profilini açtığında `2023-08-04` görüyor,
          kendi girdiğini tanıyamıyordu. Sadeleştirmenin yarattığı
          tutarsızlıktı, kapatıldı.
-   - [ ] Hata mesajları formun altında tek kutuda; hatalı alanın altında
-         satır içi gösterilmeli
-   - [ ] Fotoğraf eklemede kamera seçeneği yok (galeri-only); doğrulama
-         akışında kamera zaten kullanılıyor
+   - [x] Hata mesajları ilgili alanların altında satır içi gösteriliyor;
+         kaydetme/API hatası alt şeritte görev bağlamını koruyor.
+   - [x] Fotoğraf ekleme galeri ve kamera seçeneklerini birlikte sunuyor.
+   - [x] Fotoğraflar kapak seçimi, kaldırma ve sürükleyerek sıralamayı
+         destekliyor; desteklenmeyen eski HEIC dosyaları boş alan yerine
+         yeniden yükleme yönlendirmesi gösteriyor. Yeni iOS galeri seçimleri
+         uyumlu temsil modunda alınıyor.
+   - [x] Kedi/köpek/çocuk uyumluluğu `Evet | Hayır | Bilmiyorum` olarak üç
+         durumlu; nullable veri modeli `0050_pet_compatibility_unknown.sql`
+         ile canlı projeye uygulandı (2026-08-14).
+   - [ ] HEIC uyumluluğu, kamera izni ve çoklu fotoğraf sıralaması fiziksel
+         iOS cihazda kabul testinden geçirilmeli.
 
    > **Not:** İlk incelemede "enerji çıplak rakam" ve "kısırlaştırma toggle
    > etiketi değişiyor" diye iki madde daha yazılmıştı. Kod okunduğunda ikisi

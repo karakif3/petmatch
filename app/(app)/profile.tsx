@@ -133,8 +133,6 @@ export default function ProfileScreen() {
     enabled: Boolean(user),
   });
 
-  const [displayName, setDisplayName] = useState("");
-  const [petName, setPetName] = useState("");
   const [city, setCity] = useState("");
   const [notifyOnMatch, setNotifyOnMatch] = useState(true);
   const [notifyOnMessage, setNotifyOnMessage] = useState(true);
@@ -154,17 +152,13 @@ export default function ProfileScreen() {
   // anlamlı; veri gelmeden `false` kalır.
   const dirty =
     Boolean(profile.data) &&
-    (displayName !== (profile.data!.displayName ?? "") ||
-      petName !== profile.data!.pet.name ||
-      city !== profile.data!.city ||
+    (city !== profile.data!.city ||
       notifyOnMatch !== profile.data!.notifications.onMatch ||
       notifyOnMessage !== profile.data!.notifications.onMessage ||
       coordinates !== null);
 
   useEffect(() => {
     if (!profile.data) return;
-    setDisplayName(profile.data.displayName ?? "");
-    setPetName(profile.data.pet.name);
     setCity(profile.data.city);
     setNotifyOnMatch(profile.data.notifications.onMatch);
     setNotifyOnMessage(profile.data.notifications.onMessage);
@@ -186,8 +180,6 @@ export default function ProfileScreen() {
   /** Kirli formu sunucudaki son hâline döndürür (kaydet şeridindeki "Vazgeç"). */
   const discardChanges = () => {
     if (!profile.data) return;
-    setDisplayName(profile.data.displayName ?? "");
-    setPetName(profile.data.pet.name);
     setCity(profile.data.city);
     setNotifyOnMatch(profile.data.notifications.onMatch);
     setNotifyOnMessage(profile.data.notifications.onMessage);
@@ -232,8 +224,8 @@ export default function ProfileScreen() {
     try {
       await Promise.all([
         updateEditableProfile({
-          displayName,
-          petName,
+          displayName: profile.data!.displayName ?? "",
+          petName: profile.data!.pet.name,
           city,
           // Bu ekran görünürlüğü DÜZENLEMİYOR (bkz. `visibilityLabels`);
           // sunucudaki mevcut değer olduğu gibi geri gönderiliyor, yoksa
@@ -463,30 +455,8 @@ export default function ProfileScreen() {
             </SectionCard>
           </View>
 
-          <SectionTitle>Temel bilgiler</SectionTitle>
+          <SectionTitle>Şehir</SectionTitle>
           <SectionCard>
-            <FieldRow
-              label="Senin adın (opsiyonel)"
-              hint="Boş bırakırsan sahip adı karşı tarafa gösterilmez."
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Sana nasıl hitap edelim?"
-              autoCapitalize="words"
-              maxLength={60}
-              returnKeyType="next"
-            />
-            <RowSeparator inset={false} />
-            <FieldRow
-              label="Petinin adı"
-              hint="Pet adı profil kartında her zaman görünür."
-              value={petName}
-              onChangeText={setPetName}
-              placeholder="Örn. Luna"
-              autoCapitalize="words"
-              maxLength={40}
-              returnKeyType="next"
-            />
-            <RowSeparator inset={false} />
             <FieldRow
               label="Şehir"
               value={city}
@@ -664,7 +634,7 @@ export default function ProfileScreen() {
             </AppPressable>
             <AppPressable
               onPress={save}
-              disabled={saveBusy || locationBusy || !petName.trim() || !city.trim()}
+              disabled={saveBusy || locationBusy || !city.trim()}
               accessibilityRole="button"
               className="min-h-[50px] flex-[2] items-center justify-center rounded-xl bg-brand disabled:opacity-50"
             >

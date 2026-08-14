@@ -1,6 +1,14 @@
-import { Pressable, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import DraggableFlatList, {
+  ScaleDecorator,
+  type RenderItemParams,
+} from "react-native-draggable-flatlist";
+
+import { lightHaptic } from "../core/ui/haptics";
+import { AppPressable } from "./ui/pressable";
 
 export type EditablePhoto = { id: string; uri: string };
 
@@ -14,6 +22,34 @@ type Props = {
 
 /** Kapak satırının yüksekliği; sağdaki iki küçük kare bunu tam dolduruyor. */
 const HERO_HEIGHT = 224;
+
+function PhotoImage({ uri, compact = false }: { uri: string; compact?: boolean }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [uri]);
+
+  if (failed) {
+    return (
+      <View className="h-full w-full items-center justify-center bg-bg-tertiary px-3">
+        <Ionicons name="image-outline" color="#9A8B82" size={compact ? 20 : 30} />
+        {!compact ? (
+          <Text className="mt-2 text-center text-xs leading-4 text-text-secondary">
+            Bu fotoğraf görüntülenemiyor. Yeniden yüklemeyi dene.
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      source={uri}
+      contentFit="cover"
+      style={{ width: "100%", height: "100%" }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 /**
  * Kapak fotoğrafını ayrıcalıklı ama ekranı yutmayan bir düzende gösterir.
@@ -47,25 +83,54 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
   const remove = (id: string) =>
     onChange(photos.filter((photo) => photo.id !== id));
 
+  const moveRest = (id: string, offset: -1 | 1) => {
+    if (!cover) return;
+    const index = rest.findIndex((photo) => photo.id === id);
+    const target = index + offset;
+    if (index < 0 || target < 0 || target >= rest.length) return;
+    const next = [...rest];
+    [next[index], next[target]] = [next[target], next[index]];
+    lightHaptic();
+    onChange([cover, ...next]);
+  };
+
   const canAdd = photos.length < max;
 
-  const Thumb = ({ photo, fill }: { photo: EditablePhoto; fill?: boolean }) => (
-    <Pressable
+  const Thumb = ({
+    photo,
+    drag,
+    isActive,
+  }: {
+    photo: EditablePhoto;
+    drag: () => void;
+    isActive: boolean;
+  }) => (
+    <AppPressable
       onPress={() => promote(photo.id)}
+      onLongPress={() => {
+        drag();
+      }}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel="Bu fotoğrafı kapak yap"
-      className={`overflow-hidden rounded-2xl border border-border bg-surface ${
-        fill ? "flex-1" : "h-[72px] w-[72px]"
+      accessibilityHint="Sıralamak için basılı tutup sürükle"
+      accessibilityActions={[
+        { name: "decrement", label: "Sola taşı" },
+        { name: "increment", label: "Sağa taşı" },
+      ]}
+      onAccessibilityAction={(event) =>
+        moveRest(photo.id, event.nativeEvent.actionName === "decrement" ? -1 : 1)
+      }
+      className={`h-[72px] w-[72px] overflow-hidden rounded-2xl border bg-surface ${
+        isActive ? "border-brand opacity-80" : "border-border"
       }`}
     >
-      <Image
-        source={photo.uri}
-        contentFit="cover"
-        style={{ width: "100%", height: "100%" }}
-      />
-      <Pressable
-        onPress={() => remove(photo.id)}
+      <PhotoImage uri={photo.uri} compact />
+      <AppPressable
+        onPress={(event) => {
+          event.stopPropagation();
+          remove(photo.id);
+        }}
         disabled={busy}
         accessibilityRole="button"
         accessibilityLabel="Fotoğrafı kaldır"
@@ -73,27 +138,25 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
         className="absolute right-1 top-1 h-6 w-6 items-center justify-center rounded-full bg-black/60"
       >
         <Ionicons name="close" color="#FFFFFF" size={13} />
-      </Pressable>
-    </Pressable>
+      </AppPressable>
+    </AppPressable>
   );
 
-  const AddTile = ({ fill }: { fill?: boolean }) => (
-    <Pressable
+  const AddTile = () => (
+    <AppPressable
       onPress={onAdd}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel="Fotoğraf ekle"
-      className={`items-center justify-center rounded-2xl border border-dashed border-brand bg-brand/5 ${
-        fill ? "flex-1" : "h-[72px] w-[72px]"
-      }`}
+      className="h-[72px] w-[72px] items-center justify-center rounded-2xl border border-dashed border-brand bg-brand/5"
     >
       <Ionicons name="add" color="#F97362" size={22} />
-    </Pressable>
+    </AppPressable>
   );
 
   if (!cover) {
     return (
-      <Pressable
+      <AppPressable
         onPress={onAdd}
         disabled={busy}
         accessibilityRole="button"
@@ -106,28 +169,21 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
         <Text className="mt-1 text-xs text-text-tertiary">
           İlk fotoğraf kapak olur
         </Text>
-      </Pressable>
+      </AppPressable>
     );
   }
 
-  // Sağ sütun kapağın yanında iki yuva taşıyor; kalanlar alta iniyor.
-  const side = rest.slice(0, 2);
-  const below = rest.slice(2);
-  const addGoesBeside = canAdd && side.length < 2;
-
   return (
     <View>
-      <View className="flex-row gap-2.5" style={{ height: HERO_HEIGHT }}>
-        <View className="flex-[1.9] overflow-hidden rounded-3xl border border-border bg-surface">
-          <Image
-            source={cover.uri}
-            contentFit="cover"
-            style={{ width: "100%", height: "100%" }}
-          />
+      <View
+        className="w-full overflow-hidden rounded-3xl border border-border bg-surface"
+        style={{ height: HERO_HEIGHT }}
+      >
+          <PhotoImage uri={cover.uri} />
           <View className="absolute left-2.5 top-2.5 rounded-full bg-brand px-2.5 py-1">
             <Text className="text-[10px] font-bold text-white">Kapak</Text>
           </View>
-          <Pressable
+          <AppPressable
             onPress={() => remove(cover.id)}
             disabled={busy}
             accessibilityRole="button"
@@ -136,33 +192,38 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
             className="absolute right-2.5 top-2.5 h-8 w-8 items-center justify-center rounded-full bg-black/55"
           >
             <Ionicons name="trash-outline" color="#FFFFFF" size={15} />
-          </Pressable>
-        </View>
-
-        <View className="flex-1 gap-2.5">
-          {side.map((photo) => (
-            <Thumb key={photo.id} photo={photo} fill />
-          ))}
-          {addGoesBeside ? <AddTile fill /> : null}
-          {/* Yuva boş kalırsa sağ sütun kapağın yüksekliğini korusun. */}
-          {side.length + (addGoesBeside ? 1 : 0) < 2 ? (
-            <View className="flex-1" />
-          ) : null}
-        </View>
+          </AppPressable>
       </View>
 
-      {below.length > 0 || (canAdd && !addGoesBeside) ? (
-        <View className="mt-2.5 flex-row flex-wrap gap-2.5">
-          {below.map((photo) => (
-            <Thumb key={photo.id} photo={photo} />
-          ))}
-          {canAdd && !addGoesBeside ? <AddTile /> : null}
+      {rest.length > 0 || canAdd ? (
+        <View className="mt-2.5 flex-row gap-2.5">
+          {rest.length > 0 ? (
+            <DraggableFlatList
+              horizontal
+              data={rest}
+              keyExtractor={(photo) => photo.id}
+              onDragEnd={({ data }) => onChange([cover, ...data])}
+              onDragBegin={lightHaptic}
+              activationDistance={8}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 10 }}
+              renderItem={({ item, drag, isActive }: RenderItemParams<EditablePhoto>) => (
+                <ScaleDecorator>
+                  <Thumb photo={item} drag={drag} isActive={isActive} />
+                </ScaleDecorator>
+              )}
+              style={{ flex: 1 }}
+            />
+          ) : (
+            <View className="flex-1" />
+          )}
+          {canAdd ? <AddTile /> : null}
         </View>
       ) : null}
 
       <Text className="mt-2.5 text-xs leading-4 text-text-tertiary">
         {rest.length > 0
-          ? "Kapak, keşfette görünen fotoğraftır. Değiştirmek için küçük fotoğraflardan birine dokun."
+          ? "Küçük fotoğrafa dokunarak kapak yap; basılı tutup sürükleyerek sırala."
           : "Kapak, keşfette görünen fotoğraftır."}
       </Text>
     </View>

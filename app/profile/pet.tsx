@@ -4,7 +4,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Switch,
   Text,
@@ -43,6 +42,9 @@ import {
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
+import { AppPressable } from "../../components/ui/pressable";
+import { ProfileFormSkeleton } from "../../components/ui/skeleton";
+import { successHaptic } from "../../core/ui/haptics";
 
 type PhotoItem =
   | { id: string; kind: "remote"; storagePath: string; uri: string }
@@ -54,6 +56,16 @@ const sizeOptions: { value: Size; label: string }[] = [
   { value: "large", label: sizeLabels.large },
 ];
 
+const energyLabels: Record<EnergyLevel, string> = {
+  1: "Çok sakin",
+  2: "Sakin",
+  3: "Dengeli",
+  4: "Enerjik",
+  5: "Çok enerjik",
+};
+
+type CompatibilityAnswer = boolean | null;
+
 function Field({
   label,
   error,
@@ -64,6 +76,7 @@ function Field({
       <Text className="mb-2 text-sm font-semibold text-text-primary">{label}</Text>
       <TextInput
         placeholderTextColor="#9A8B82"
+        accessibilityLabel={label}
         className={`rounded-xl border bg-surface px-4 py-3.5 text-text-primary ${
           error ? "border-danger" : "border-border"
         }`}
@@ -103,6 +116,52 @@ function Toggle({
   );
 }
 
+function CompatibilityControl({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: CompatibilityAnswer;
+  onChange: (value: CompatibilityAnswer) => void;
+}) {
+  const options: { value: CompatibilityAnswer; label: string }[] = [
+    { value: true, label: "Evet" },
+    { value: false, label: "Hayır" },
+    { value: null, label: "Bilmiyorum" },
+  ];
+
+  return (
+    <View className="px-4 py-3.5">
+      <Text className="mb-2.5 font-semibold text-text-primary">{label}</Text>
+      <View className="flex-row rounded-xl bg-bg-secondary p-1">
+        {options.map((option) => {
+          const active = value === option.value;
+          return (
+            <AppPressable
+              key={String(option.value)}
+              onPress={() => onChange(option.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active, checked: active }}
+              className={`min-h-10 flex-1 items-center justify-center rounded-lg px-2 ${
+                active ? "bg-surface" : "bg-transparent"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  active ? "text-brand-dark" : "text-text-secondary"
+                }`}
+              >
+                {option.label}
+              </Text>
+            </AppPressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function PetProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
@@ -121,9 +180,9 @@ export default function PetProfileScreen() {
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel>(3);
   const [isNeutered, setIsNeutered] = useState(false);
   const [temperaments, setTemperaments] = useState<Temperament[]>([]);
-  const [goodWithCats, setGoodWithCats] = useState(false);
-  const [goodWithDogs, setGoodWithDogs] = useState(false);
-  const [goodWithKids, setGoodWithKids] = useState(false);
+  const [goodWithCats, setGoodWithCats] = useState<CompatibilityAnswer>(null);
+  const [goodWithDogs, setGoodWithDogs] = useState<CompatibilityAnswer>(null);
+  const [goodWithKids, setGoodWithKids] = useState<CompatibilityAnswer>(null);
   const [bio, setBio] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -156,6 +215,80 @@ export default function PetProfileScreen() {
     );
   }, [profile.data]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(timeout);
+  }, [notice]);
+
+  const photosMatch =
+    profile.data !== undefined &&
+    photos.length === profile.data.pet.photos.length &&
+    photos.every(
+      (photo, index) =>
+        photo.kind === "remote" &&
+        photo.storagePath === profile.data!.pet.photos[index]?.storagePath,
+    );
+
+  const dirty =
+    Boolean(profile.data) &&
+    (name !== profile.data!.pet.name ||
+      breed !== (profile.data!.pet.breed ?? "") ||
+      petAge !== birthDateToPetAge(profile.data!.pet.birthDate) ||
+      size !== profile.data!.pet.size ||
+      energyLevel !== profile.data!.pet.energyLevel ||
+      isNeutered !== profile.data!.pet.isNeutered ||
+      temperaments.length !== profile.data!.pet.temperaments.length ||
+      temperaments.some((item) => !profile.data!.pet.temperaments.includes(item)) ||
+      goodWithCats !== profile.data!.pet.goodWithCats ||
+      goodWithDogs !== profile.data!.pet.goodWithDogs ||
+      goodWithKids !== profile.data!.pet.goodWithKids ||
+      bio !== (profile.data!.pet.bio ?? "") ||
+      !photosMatch);
+
+  const resetForm = () => {
+    if (!profile.data) return;
+    const pet = profile.data.pet;
+    setName(pet.name);
+    setBreed(pet.breed ?? "");
+    setPetAge(birthDateToPetAge(pet.birthDate));
+    setSize(pet.size);
+    setEnergyLevel(pet.energyLevel);
+    setIsNeutered(pet.isNeutered);
+    setTemperaments(pet.temperaments);
+    setGoodWithCats(pet.goodWithCats);
+    setGoodWithDogs(pet.goodWithDogs);
+    setGoodWithKids(pet.goodWithKids);
+    setBio(pet.bio ?? "");
+    setPhotos(
+      pet.photos.map((photo) => ({
+        id: photo.storagePath,
+        kind: "remote" as const,
+        storagePath: photo.storagePath,
+        uri: photo.url,
+      })),
+    );
+    setNameError(null);
+    setPhotosError(null);
+    setError(null);
+    setNotice(null);
+  };
+
+  const goBack = () => {
+    if (!dirty) {
+      router.back();
+      return;
+    }
+    Alert.alert(
+      "Kaydedilmemiş değişiklikler var",
+      "Çıkarsan bu turdaki pet profili değişiklikleri kaybolur.",
+      [
+        { text: "Düzenlemeye dön", style: "cancel" },
+        { text: "Çık ve vazgeç", style: "destructive", onPress: () => router.back() },
+      ],
+    );
+  };
+
   const pickFromLibrary = async (available: number) => {
     if (!(await ensureImageLibraryAccess())) {
       setPhotosError("Fotoğraf seçmek için galeri izni gerekiyor.");
@@ -166,6 +299,8 @@ export default function PetProfileScreen() {
       allowsMultipleSelection: true,
       selectionLimit: available,
       quality: 0.85,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled) return;
     const selected: PhotoItem[] = result.assets.slice(0, available).map((asset, index) => ({
@@ -276,6 +411,7 @@ export default function PetProfileScreen() {
         queryClient.invalidateQueries({ queryKey: ["profile-completion", user.id] }),
       ]);
       await profile.refetch();
+      successHaptic();
       setNotice("Pet profili ve fotoğraf sırası güncellendi.");
     } catch (saveError) {
       setError(errorMessage(saveError, "Pet profili kaydedilemedi."));
@@ -286,8 +422,8 @@ export default function PetProfileScreen() {
 
   if (profile.isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-bg-primary">
-        <ActivityIndicator color="#F97362" size="large" />
+      <SafeAreaView className="flex-1 bg-bg-primary">
+        <ProfileFormSkeleton variant="pet" />
       </SafeAreaView>
     );
   }
@@ -297,9 +433,9 @@ export default function PetProfileScreen() {
         <Text className="text-center text-lg font-bold text-text-primary">
           Pet profili yüklenemedi
         </Text>
-        <Pressable onPress={() => profile.refetch()} className="mt-5 rounded-xl bg-brand px-5 py-3">
+        <AppPressable onPress={() => profile.refetch()} className="mt-5 rounded-xl bg-brand px-5 py-3">
           <Text className="font-semibold text-white">Tekrar dene</Text>
-        </Pressable>
+        </AppPressable>
       </SafeAreaView>
     );
   }
@@ -312,13 +448,13 @@ export default function PetProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View className="flex-row items-center border-b border-border bg-surface px-3 py-3">
-          <Pressable
-            onPress={() => router.back()}
+          <AppPressable
+            onPress={goBack}
             accessibilityLabel="Geri"
             className="h-11 w-11 items-center justify-center rounded-full"
           >
             <Ionicons name="chevron-back" color="#1F1A17" size={27} />
-          </Pressable>
+          </AppPressable>
           <View className="ml-2 flex-1">
             <Text className="text-lg font-bold text-text-primary">Pet profilini düzenle</Text>
             <Text className="mt-0.5 text-xs text-text-secondary">
@@ -330,7 +466,7 @@ export default function PetProfileScreen() {
 
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="px-5 pb-12 pt-5"
+          contentContainerClassName={dirty ? "px-5 pb-28 pt-5" : "px-5 pb-12 pt-5"}
         >
           <View className="mb-7">
             <View className="mb-3 flex-row items-end justify-between">
@@ -373,9 +509,11 @@ export default function PetProfileScreen() {
           <Text className="mb-3 text-lg font-bold text-text-primary">Boyut</Text>
           <View className="mb-6 flex-row gap-2">
             {sizeOptions.map((option) => (
-              <Pressable
+              <AppPressable
                 key={option.value}
                 onPress={() => setSize(option.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: size === option.value, checked: size === option.value }}
                 className={`flex-1 items-center rounded-xl border py-3 ${
                   size === option.value ? "border-brand bg-brand/10" : "border-border bg-surface"
                 }`}
@@ -383,24 +521,29 @@ export default function PetProfileScreen() {
                 <Text className={`font-semibold ${size === option.value ? "text-brand-dark" : "text-text-primary"}`}>
                   {option.label}
                 </Text>
-              </Pressable>
+              </AppPressable>
             ))}
           </View>
 
           <View className="mb-6">
             <Text className="text-lg font-bold text-text-primary">Enerji seviyesi</Text>
-            <Text className="mb-3 mt-1 text-xs text-text-secondary">1 çok sakin, 5 çok enerjik.</Text>
+            <Text className="mb-3 mt-1 text-xs font-semibold text-brand-dark">
+              {energyLabels[energyLevel]}
+            </Text>
             <View className="flex-row gap-2">
               {([1, 2, 3, 4, 5] as EnergyLevel[]).map((value) => (
-                <Pressable
+                <AppPressable
                   key={value}
                   onPress={() => setEnergyLevel(value)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Enerji seviyesi ${value}: ${energyLabels[value]}`}
+                  accessibilityState={{ selected: energyLevel === value, checked: energyLevel === value }}
                   className={`h-11 flex-1 items-center justify-center rounded-xl border ${
                     energyLevel === value ? "border-brand bg-brand" : "border-border bg-surface"
                   }`}
                 >
                   <Text className={`font-bold ${energyLevel === value ? "text-white" : "text-text-primary"}`}>{value}</Text>
-                </Pressable>
+                </AppPressable>
               ))}
             </View>
           </View>
@@ -414,9 +557,11 @@ export default function PetProfileScreen() {
             {TEMPERAMENTS.map((value) => {
               const active = temperaments.includes(value);
               return (
-                <Pressable
+                <AppPressable
                   key={value}
                   onPress={() => toggleTemperament(value)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: active }}
                   className={`rounded-full border px-4 py-2.5 ${
                     active ? "border-accent bg-accent/10" : "border-border bg-surface"
                   }`}
@@ -424,18 +569,30 @@ export default function PetProfileScreen() {
                   <Text className={`text-sm font-semibold ${active ? "text-accent-dark" : "text-text-secondary"}`}>
                     {temperamentLabels[value]}
                   </Text>
-                </Pressable>
+                </AppPressable>
               );
             })}
           </View>
 
           <Text className="mb-3 text-lg font-bold text-text-primary">Uyumluluk</Text>
-          <View className="mb-6 rounded-2xl border border-border bg-surface px-4">
-            <Toggle label="Kedilerle iyi anlaşır" value={goodWithCats} onValueChange={setGoodWithCats} />
+          <View className="mb-6 overflow-hidden rounded-2xl border border-border bg-surface">
+            <CompatibilityControl
+              label="Kedilerle iyi anlaşır mı?"
+              value={goodWithCats}
+              onChange={setGoodWithCats}
+            />
             <View className="h-px bg-border" />
-            <Toggle label="Köpeklerle iyi anlaşır" value={goodWithDogs} onValueChange={setGoodWithDogs} />
+            <CompatibilityControl
+              label="Köpeklerle iyi anlaşır mı?"
+              value={goodWithDogs}
+              onChange={setGoodWithDogs}
+            />
             <View className="h-px bg-border" />
-            <Toggle label="Çocuklarla iyi anlaşır" value={goodWithKids} onValueChange={setGoodWithKids} />
+            <CompatibilityControl
+              label="Çocuklarla iyi anlaşır mı?"
+              value={goodWithKids}
+              onChange={setGoodWithKids}
+            />
           </View>
 
           <Field
@@ -450,25 +607,46 @@ export default function PetProfileScreen() {
           />
           <Text className="-mt-4 mb-5 text-right text-xs text-text-tertiary">{bio.length}/500</Text>
 
-          {error ? (
-            <View className="mb-4 rounded-xl border border-danger/30 bg-danger/10 p-3">
-              <Text className="text-sm text-danger">{error}</Text>
-            </View>
-          ) : null}
-          {notice ? (
-            <View className="mb-4 rounded-xl border border-accent/30 bg-accent/10 p-3">
-              <Text className="text-sm text-accent-dark">{notice}</Text>
-            </View>
-          ) : null}
-
-          <Pressable
-            onPress={save}
-            disabled={busy || !name.trim() || !photos.length}
-            className="items-center rounded-xl bg-brand py-4 disabled:opacity-50"
-          >
-            {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text className="font-bold text-white">Pet profilini kaydet</Text>}
-          </Pressable>
         </ScrollView>
+
+        {error || notice ? (
+          <View className="px-5 pb-2">
+            <View
+              className={`rounded-xl border p-3 ${
+                error ? "border-danger/30 bg-danger/10" : "border-accent/30 bg-accent/10"
+              }`}
+            >
+              <Text className={`text-sm ${error ? "text-danger" : "text-accent-dark"}`}>
+                {error ?? notice}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {dirty ? (
+          <View className="flex-row gap-3 border-t border-border bg-surface px-5 pb-2 pt-3">
+            <AppPressable
+              onPress={resetForm}
+              disabled={busy}
+              accessibilityRole="button"
+              className="min-h-[50px] flex-1 items-center justify-center rounded-xl border border-border disabled:opacity-50"
+            >
+              <Text className="font-semibold text-text-secondary">Vazgeç</Text>
+            </AppPressable>
+            <AppPressable
+              onPress={save}
+              disabled={busy || !name.trim() || !photos.length}
+              accessibilityRole="button"
+              className="min-h-[50px] flex-[2] items-center justify-center rounded-xl bg-brand disabled:opacity-50"
+            >
+              {busy ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text className="font-bold text-white">Değişiklikleri kaydet</Text>
+              )}
+            </AppPressable>
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

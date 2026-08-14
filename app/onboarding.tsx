@@ -186,6 +186,8 @@ export default function OnboardingScreen() {
       allowsMultipleSelection: true,
       selectionLimit: remaining,
       quality: 0.85,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (!result.canceled) {
       const additions: LocalPhoto[] = result.assets.slice(0, remaining).map((asset) => ({

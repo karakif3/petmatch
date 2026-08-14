@@ -1,6 +1,7 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import { PET_AGE_OPTIONS, PET_AGE_UNKNOWN } from "../core/domain/pet-age";
+import { AppPressable } from "./ui/pressable";
 
 type Props = {
   value: string;
@@ -21,7 +22,7 @@ export function PetAgePicker({ value, onChange }: Props) {
   const renderChip = (optionValue: string, label: string) => {
     const active = value === optionValue;
     return (
-      <Pressable
+      <AppPressable
         key={optionValue}
         onPress={() => onChange(optionValue)}
         accessibilityRole="radio"
@@ -37,7 +38,7 @@ export function PetAgePicker({ value, onChange }: Props) {
         >
           {label}
         </Text>
-      </Pressable>
+      </AppPressable>
     );
   };
 

@@ -691,9 +691,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean
-          good_with_dogs: boolean
-          good_with_kids: boolean
+          good_with_cats: boolean | null
+          good_with_dogs: boolean | null
+          good_with_kids: boolean | null
           id: string
           is_active: boolean
           is_neutered: boolean
@@ -717,9 +717,9 @@ export type Database = {
           energy_level?: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals?: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats?: boolean
-          good_with_dogs?: boolean
-          good_with_kids?: boolean
+          good_with_cats?: boolean | null
+          good_with_dogs?: boolean | null
+          good_with_kids?: boolean | null
           id?: string
           is_active?: boolean
           is_neutered?: boolean
@@ -743,9 +743,9 @@ export type Database = {
           energy_level?: number
           gender?: Database["public"]["Enums"]["pet_gender"]
           goals?: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats?: boolean
-          good_with_dogs?: boolean
-          good_with_kids?: boolean
+          good_with_cats?: boolean | null
+          good_with_dogs?: boolean | null
+          good_with_kids?: boolean | null
           id?: string
           is_active?: boolean
           is_neutered?: boolean
@@ -1039,9 +1039,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean
-          good_with_dogs: boolean
-          good_with_kids: boolean
+          good_with_cats: boolean | null
+          good_with_dogs: boolean | null
+          good_with_kids: boolean | null
           id: string
           is_neutered: boolean
           name: string
@@ -1071,9 +1071,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean
-          good_with_dogs: boolean
-          good_with_kids: boolean
+          good_with_cats: boolean | null
+          good_with_dogs: boolean | null
+          good_with_kids: boolean | null
           id: string
           is_neutered: boolean
           name: string
@@ -1153,9 +1153,9 @@ export type Database = {
           breed: string
           city: string
           gender: Database["public"]["Enums"]["pet_gender"]
-          good_with_cats: boolean
-          good_with_dogs: boolean
-          good_with_kids: boolean
+          good_with_cats: boolean | null
+          good_with_dogs: boolean | null
+          good_with_kids: boolean | null
           id: string
           is_neutered: boolean
           name: string
@@ -1240,9 +1240,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean
-          good_with_dogs: boolean
-          good_with_kids: boolean
+          good_with_cats: boolean | null
+          good_with_dogs: boolean | null
+          good_with_kids: boolean | null
           id: string
           is_neutered: boolean
           is_super: boolean
@@ -1419,9 +1419,9 @@ export type Database = {
           p_birth_date: string
           p_breed: string
           p_energy_level: number
-          p_good_with_cats: boolean
-          p_good_with_dogs: boolean
-          p_good_with_kids: boolean
+          p_good_with_cats: boolean | null
+          p_good_with_dogs: boolean | null
+          p_good_with_kids: boolean | null
           p_is_neutered: boolean
           p_name: string
           p_pet_id: string

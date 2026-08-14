@@ -93,3 +93,31 @@ export function ConversationRowSkeleton() {
 export function LikeCardSkeleton() {
   return <SkeletonBlock className="aspect-[3/4] w-[48%] rounded-2xl" />;
 }
+
+/** Profil düzenleme ekranlarının yerini ve kaydırma geometrisini korur. */
+export function ProfileFormSkeleton({ variant }: { variant: "owner" | "pet" }) {
+  return (
+    <View className="flex-1 bg-bg-primary">
+      <View className="flex-row items-center border-b border-border bg-surface px-5 py-4">
+        <SkeletonBlock className="h-8 w-8 rounded-full" />
+        <View className="ml-4 flex-1 gap-2">
+          <SkeletonBlock className="h-4 w-2/5 rounded-full" />
+          <SkeletonBlock className="h-3 w-3/5 rounded-full" />
+        </View>
+      </View>
+      <View className="px-5 pt-5">
+        <View className="items-center">
+          <SkeletonBlock
+            className={variant === "owner" ? "h-[124px] w-[124px] rounded-full" : "h-56 w-full rounded-3xl"}
+          />
+        </View>
+        <View className="mt-7 gap-5">
+          <SkeletonBlock className="h-14 w-full rounded-xl" />
+          <SkeletonBlock className="h-14 w-full rounded-xl" />
+          <SkeletonBlock className="h-14 w-full rounded-xl" />
+          <SkeletonBlock className="h-28 w-full rounded-2xl" />
+        </View>
+      </View>
+    </View>
+  );
+}
