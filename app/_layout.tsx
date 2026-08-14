@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AppState, Platform } from "react-native";
+import { ActivityIndicator, AppState, Platform, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import type { NotificationResponse } from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
@@ -27,6 +27,7 @@ import { useAuthStore } from "../stores/auth";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppErrorBoundary } from "../components/app-error-boundary";
+import { AppPressable } from "../components/ui/pressable";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 configureForegroundNotifications();
@@ -95,7 +96,7 @@ function NotificationEffects() {
       const data = response.notification.request.content.data;
       const conversationId =
         typeof data.conversationId === "string" ? data.conversationId : null;
-      if (data.type === "message" && conversationId) {
+      if ((data.type === "message" || data.type === "match") && conversationId) {
         router.push({
           pathname: "/chat/[conversationId]",
           params: { conversationId },
@@ -186,6 +187,11 @@ function LocalizationEffects() {
 
 export default function RootLayout() {
   const init = useAuthStore((s) => s.init);
+  const user = useAuthStore((s) => s.user);
+  const onboarded = useAuthStore((s) => s.onboarded);
+  const onboardingStatusError = useAuthStore((s) => s.onboardingStatusError);
+  const retryOnboardingStatus = useAuthStore((s) => s.retryOnboardingStatus);
+  const signOut = useAuthStore((s) => s.signOut);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -216,16 +222,43 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AppErrorBoundary>
           <QueryClientProvider client={queryClient}>
-            <NotificationEffects />
-            <ActivityEffects />
-            <LocalizationEffects />
-            <StatusBar style="dark" />
-            <Stack
+            {user && onboarded === null && onboardingStatusError ? (
+              <View className="flex-1 items-center justify-center bg-bg-primary px-8">
+                <Text className="text-center text-xl font-bold text-text-primary">
+                  Hesap bilgilerin alınamadı
+                </Text>
+                <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
+                  Bağlantını kontrol edip tekrar dene. Hiçbir bilgin değişmedi.
+                </Text>
+                <AppPressable
+                  onPress={() => void retryOnboardingStatus()}
+                  className="mt-6 min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5"
+                >
+                  <Text className="font-bold text-white">Tekrar dene</Text>
+                </AppPressable>
+                <AppPressable
+                  onPress={() => void signOut()}
+                  className="mt-2 min-h-12 items-center justify-center px-5"
+                >
+                  <Text className="font-semibold text-text-secondary">Başka hesapla giriş yap</Text>
+                </AppPressable>
+              </View>
+            ) : user && onboarded === null ? (
+              <View className="flex-1 items-center justify-center bg-bg-primary">
+                <ActivityIndicator color="#F97362" />
+              </View>
+            ) : (
+              <>
+                <NotificationEffects />
+                <ActivityEffects />
+                <LocalizationEffects />
+                <StatusBar style="dark" />
+                <Stack
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: "#FFFBF7" },
               }}
-            >
+                >
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="onboarding" />
               <Stack.Screen name="(app)" />
@@ -233,7 +266,9 @@ export default function RootLayout() {
               <Stack.Screen name="profile/pet" />
               <Stack.Screen name="profile/owner" />
               <Stack.Screen name="moderation/index" />
-            </Stack>
+                </Stack>
+              </>
+            )}
           </QueryClientProvider>
         </AppErrorBoundary>
       </SafeAreaProvider>

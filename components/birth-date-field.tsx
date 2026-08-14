@@ -14,6 +14,7 @@ import {
 type Props = {
   label: string;
   helper?: string;
+  error?: string;
   value: string;
   onChange: (isoDate: string) => void;
 };
@@ -31,7 +32,7 @@ type Props = {
  * edilemediği için ona ait doğrulama hatasına da gerek kalmıyor — hata
  * mesajı yazmak yerine hatayı imkânsız kıldık.
  */
-export function BirthDateField({ label, helper, value, onChange }: Props) {
+export function BirthDateField({ label, helper, error, value, onChange }: Props) {
   const [open, setOpen] = useState(false);
 
   const maximumDate = useMemo(() => adultCutoffDate(), []);
@@ -68,7 +69,7 @@ export function BirthDateField({ label, helper, value, onChange }: Props) {
             minHeight: 50,
             width: "100%",
             boxSizing: "border-box",
-            border: "1px solid #E8DED7",
+            border: `1px solid ${error ? "#E5484D" : "#E8DED7"}`,
             borderRadius: 12,
             background: "#FFFFFF",
             color: "#1F1A17",
@@ -78,6 +79,7 @@ export function BirthDateField({ label, helper, value, onChange }: Props) {
             fontWeight: 600,
           },
         })}
+        {error ? <Text className="mt-2 text-xs font-semibold text-danger">{error}</Text> : null}
         {helper ? (
           <Text className="mt-2 text-xs text-text-tertiary">{helper}</Text>
         ) : null}
@@ -95,7 +97,7 @@ export function BirthDateField({ label, helper, value, onChange }: Props) {
         accessibilityLabel={
           display ? `${label}: ${display}. Değiştirmek için dokun.` : `${label} seç`
         }
-        className="rounded-xl border border-border bg-surface px-4 py-4"
+        className={`rounded-xl border bg-surface px-4 py-4 ${error ? "border-danger" : "border-border"}`}
       >
         <Text
           className={
@@ -105,6 +107,8 @@ export function BirthDateField({ label, helper, value, onChange }: Props) {
           {display ?? "Doğum tarihini seç"}
         </Text>
       </Pressable>
+
+      {error ? <Text className="mt-2 text-xs font-semibold text-danger">{error}</Text> : null}
 
       {helper ? (
         <Text className="mt-2 text-xs text-text-tertiary">{helper}</Text>

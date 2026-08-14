@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -16,8 +16,10 @@ import Animated, {
 } from "react-native-reanimated";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 
 import { BirthDateField } from "../components/birth-date-field";
 import { BrandMark } from "../components/brand-mark";
@@ -37,6 +39,14 @@ import { useAuthStore } from "../stores/auth";
 import { errorMessage } from "../core/domain/error-message";
 
 type Step = 0 | 1 | 2;
+type FieldError =
+  | "ownerBirthDate"
+  | "region"
+  | "city"
+  | "petName"
+  | "photos"
+  | "legal"
+  | "locationConsent";
 
 // `PetPhotoEditor` (kapak seçimi + kaldırma + ekleme) `{id,uri}` şeklinde
 // çalışıyor; onboarding'in gönderdiği `OnboardingPhoto` bunun üstüne
@@ -44,6 +54,21 @@ type Step = 0 | 1 | 2;
 // seçim oturumu için yeterince benzersiz, ekstra bir kimlik üretmeye gerek
 // yok.
 type LocalPhoto = OnboardingPhoto & { id: string };
+
+type OnboardingDraft = {
+  version: 1;
+  step: Step;
+  displayName: string;
+  ownerBirthDate: string;
+  city: string;
+  regionSlug: string | null;
+  petName: string;
+  species: Species;
+  gender: "male" | "female";
+  petAge: string;
+  coordinates: Coordinates | null;
+  photos: LocalPhoto[];
+};
 
 function Choice({
   active,
@@ -73,16 +98,21 @@ function Choice({
 
 function Field({
   label,
+  error,
   ...props
-}: { label: string } & React.ComponentProps<typeof TextInput>) {
+}: { label: string; error?: string } & React.ComponentProps<typeof TextInput>) {
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-semibold text-text-primary">{label}</Text>
       <TextInput
         placeholderTextColor="#9A8B82"
-        className="rounded-xl border border-border bg-surface px-4 py-3.5 text-text-primary"
+        className={`rounded-xl border bg-surface px-4 py-3.5 text-text-primary ${
+          error ? "border-danger" : "border-border"
+        }`}
+        accessibilityHint={error}
         {...props}
       />
+      {error ? <Text className="mt-2 text-xs font-semibold text-danger">{error}</Text> : null}
     </View>
   );
 }
@@ -91,6 +121,7 @@ export default function OnboardingScreen() {
   const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const setOnboarded = useAuthStore((state) => state.setOnboarded);
+  const signOut = useAuthStore((state) => state.signOut);
 
   const [step, setStep] = useState<Step>(0);
   const [displayName, setDisplayName] = useState("");
@@ -110,10 +141,68 @@ export default function OnboardingScreen() {
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldError, string>>>({});
+  const draftHydrated = useRef(false);
 
   // Bölge listesi veriden geliyor: yeni pilot bölge açmak istemci sürümü
   // gerektirmesin diye enum değil tablo.
   const regions = useQuery({ queryKey: ["regions"], queryFn: listRegions });
+
+  const draftKey = user ? `petmatch:onboarding-draft:${user.id}` : null;
+  useEffect(() => {
+    if (!draftKey) return;
+    let active = true;
+    void AsyncStorage.getItem(draftKey)
+      .then((value) => {
+        if (!active || !value) return;
+        const draft = JSON.parse(value) as Partial<OnboardingDraft>;
+        if (draft.version !== 1) return;
+        if (draft.step === 0 || draft.step === 1 || draft.step === 2) setStep(draft.step);
+        if (typeof draft.displayName === "string") setDisplayName(draft.displayName);
+        if (typeof draft.ownerBirthDate === "string") setOwnerBirthDate(draft.ownerBirthDate);
+        if (typeof draft.city === "string") setCity(draft.city);
+        if (typeof draft.regionSlug === "string" || draft.regionSlug === null) {
+          setRegionSlug(draft.regionSlug);
+        }
+        if (typeof draft.petName === "string") setPetName(draft.petName);
+        if (draft.species === "dog" || draft.species === "cat") setSpecies(draft.species);
+        if (draft.gender === "male" || draft.gender === "female") setGender(draft.gender);
+        if (typeof draft.petAge === "string") setPetAge(draft.petAge);
+        if (draft.coordinates) setCoordinates(draft.coordinates);
+        if (Array.isArray(draft.photos)) setPhotos(draft.photos);
+      })
+      .catch((draftError) => console.warn("Onboarding taslağı okunamadı:", draftError))
+      .finally(() => {
+        if (active) draftHydrated.current = true;
+      });
+    return () => {
+      active = false;
+    };
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftKey || !draftHydrated.current) return;
+    const timeout = setTimeout(() => {
+      const draft: OnboardingDraft = {
+        version: 1,
+        step,
+        displayName,
+        ownerBirthDate,
+        city,
+        regionSlug,
+        petName,
+        species,
+        gender,
+        petAge,
+        coordinates,
+        photos,
+      };
+      void AsyncStorage.setItem(draftKey, JSON.stringify(draft)).catch((draftError) =>
+        console.warn("Onboarding taslağı kaydedilemedi:", draftError),
+      );
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [city, coordinates, displayName, draftKey, gender, ownerBirthDate, petAge, petName, photos, regionSlug, species, step]);
 
   const progress = useMemo(() => `${step + 1} / 3`, [step]);
 
@@ -149,21 +238,35 @@ export default function OnboardingScreen() {
   const needsManualCity = selectedRegion !== null && selectedRegion.city === null;
   const resolvedCity = needsManualCity ? city.trim() || null : selectedRegion?.city ?? null;
 
+  const clearFieldError = (field: FieldError) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
+
   const next = () => {
     setError(null);
+    setFieldErrors({});
     if (step === 0) {
       // Takvim 18 yaş altını zaten seçtirmiyor; burada kalan tek durum
       // kullanıcının tarihe hiç dokunmamış olması.
       if (!isAdultDate(ownerBirthDate)) {
-        return setError("Doğum tarihini seçmelisin.");
+        return setFieldErrors({ ownerBirthDate: "Doğum tarihini seçmelisin." });
       }
-      if (!regionSlug) return setError("Bölgeni seçmelisin.");
-      if (needsManualCity && !city.trim()) return setError("Şehrini yazmalısın.");
+      if (!regionSlug) return setFieldErrors({ region: "Bölgeni seçmelisin." });
+      if (needsManualCity && !city.trim()) {
+        return setFieldErrors({ city: "Şehrini yazmalısın." });
+      }
       setStep(1);
       return;
     }
     if (step === 1) {
-      if (!petName.trim()) return setError("Petinin adını yazmalısın.");
+      if (!petName.trim()) {
+        return setFieldErrors({ petName: "Petinin adını yazmalısın." });
+      }
       setStep(2);
     }
   };
@@ -197,6 +300,7 @@ export default function OnboardingScreen() {
         mimeType: asset.mimeType ?? null,
       }));
       setPhotos((current) => [...current, ...additions].slice(0, 6));
+      clearFieldError("photos");
     }
   };
 
@@ -215,6 +319,7 @@ export default function OnboardingScreen() {
           longitude: result.coords.longitude,
         }),
       );
+      clearFieldError("locationConsent");
     } catch (err) {
       setError(errorMessage(err, "Konum alınamadı."));
     } finally {
@@ -225,20 +330,25 @@ export default function OnboardingScreen() {
   const submit = async () => {
     if (!user) return;
     if (photos.length === 0) {
-      setError("En az bir pet fotoğrafı eklemelisin.");
+      setFieldErrors({ photos: "En az bir pet fotoğrafı eklemelisin." });
       return;
     }
     if (!legalAccepted) {
-      setError("Kullanım koşullarını kabul edip gizlilik/KVKK metnini okuduğunu onaylamalısın.");
+      setFieldErrors({
+        legal: "Devam etmek için koşulları ve aydınlatma metnini onaylamalısın.",
+      });
       return;
     }
     if (coordinates && !locationConsent) {
-      setError("Yaklaşık konumu kullanmak için ayrı açık rıza seçimini yapmalısın.");
+      setFieldErrors({
+        locationConsent: "Yaklaşık konum için açık rıza vermeli veya konumu kaldırmalısın.",
+      });
       return;
     }
 
     setBusy(true);
     setError(null);
+    setFieldErrors({});
     try {
       // Bölge ayrı dar yazma yolundan gidiyor; onboarding RPC'sinin imzasını
       // değiştirmek mevcut çağrıları kırardı.
@@ -263,6 +373,7 @@ export default function OnboardingScreen() {
           locationConsent: coordinates !== null && locationConsent,
         },
       });
+      if (draftKey) await AsyncStorage.removeItem(draftKey);
       setOnboarded(true);
     } catch (err) {
       setError(errorMessage(err, "Onboarding tamamlanamadı."));
@@ -278,7 +389,7 @@ export default function OnboardingScreen() {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerClassName="px-6 pb-12 pt-16"
+        contentContainerClassName="px-6 pb-32 pt-12"
       >
         <View className="mb-7 flex-row items-center justify-between">
           <View className="mr-4 flex-1 flex-row items-center">
@@ -296,7 +407,18 @@ export default function OnboardingScreen() {
               </Text>
             </View>
           </View>
-          <Text className="text-sm font-semibold text-text-tertiary">{progress}</Text>
+          <View className="items-center">
+            <Text className="text-sm font-semibold text-text-tertiary">{progress}</Text>
+            <AppPressable
+              onPress={() => void signOut()}
+              disabled={busy}
+              accessibilityLabel="Başka hesapla giriş yap"
+              accessibilityHint="Mevcut oturumu kapatır"
+              className="mt-1 h-10 w-10 items-center justify-center rounded-full"
+            >
+              <Ionicons name="log-out-outline" size={20} color="#6F625B" />
+            </AppPressable>
+          </View>
         </View>
 
         <View className="mb-8 h-1.5 overflow-hidden rounded-full bg-bg-tertiary">
@@ -326,7 +448,11 @@ export default function OnboardingScreen() {
               label="Doğum tarihin"
               helper="PetMatch yalnızca 18 yaş ve üzeri kullanıcılar içindir; takvim zaten 18 yaş altını seçtirmiyor."
               value={ownerBirthDate}
-              onChange={setOwnerBirthDate}
+              onChange={(value) => {
+                setOwnerBirthDate(value);
+                clearFieldError("ownerBirthDate");
+              }}
+              error={fieldErrors.ownerBirthDate}
             />
             <Text className="mb-2 text-sm font-semibold text-text-primary">
               Bölgen
@@ -336,12 +462,16 @@ export default function OnboardingScreen() {
               kimse olması için önce buralarda yoğunlaşıyoruz.
             </Text>
             <View className="mb-5 flex-row flex-wrap gap-2">
+              {regions.isLoading ? <ActivityIndicator color="#F97362" /> : null}
               {(regions.data ?? []).map((region) => {
                 const active = regionSlug === region.slug;
                 return (
                   <AppPressable
                     key={region.slug}
-                    onPress={() => setRegionSlug(region.slug)}
+                    onPress={() => {
+                      setRegionSlug(region.slug);
+                      clearFieldError("region");
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
                     accessibilityLabel={region.name}
@@ -360,6 +490,18 @@ export default function OnboardingScreen() {
                 );
               })}
             </View>
+            {regions.isError ? (
+              <View className="mb-5 rounded-xl border border-danger/30 bg-danger/10 p-3">
+                <Text className="text-sm text-danger">Bölgeler yüklenemedi.</Text>
+                <AppPressable onPress={() => void regions.refetch()} className="mt-2 self-start py-1">
+                  <Text className="font-semibold text-brand-dark">Tekrar dene</Text>
+                </AppPressable>
+              </View>
+            ) : fieldErrors.region ? (
+              <Text className="-mt-3 mb-5 text-xs font-semibold text-danger">
+                {fieldErrors.region}
+              </Text>
+            ) : null}
             {/*
               Şehir yalnızca "Diğer" seçilince soruluyor. Pilot bölgelerin
               ikisi de İstanbul; bölge seçildiği an şehir zaten belli ve
@@ -369,8 +511,12 @@ export default function OnboardingScreen() {
             {needsManualCity ? (
               <Field
                 label="Şehir"
+                error={fieldErrors.city}
                 value={city}
-                onChangeText={setCity}
+                onChangeText={(value) => {
+                  setCity(value);
+                  clearFieldError("city");
+                }}
                 placeholder="Örn. Ankara"
                 autoCapitalize="words"
               />
@@ -421,12 +567,19 @@ export default function OnboardingScreen() {
           <>
             <Field
               label="Petinin adı"
+              error={fieldErrors.petName}
               value={petName}
-              onChangeText={setPetName}
+              onChangeText={(value) => {
+                setPetName(value);
+                clearFieldError("petName");
+              }}
               placeholder="Örn. Luna"
               autoCapitalize="words"
               maxLength={40}
             />
+            {fieldErrors.photos ? (
+              <Text className="mt-2 text-xs font-semibold text-danger">{fieldErrors.photos}</Text>
+            ) : null}
             <Text className="mb-2 text-sm font-semibold text-text-primary">Türü</Text>
             <View className="mb-4 flex-row gap-2">
               <View className="flex-1">
@@ -492,14 +645,23 @@ export default function OnboardingScreen() {
               // sıralar, yeni nesne üretmez — bu yüzden döndürdüğü referanslar
               // hâlâ `LocalPhoto`. Tip imzası genel `EditablePhoto[]` olduğu
               // için burada güvenli bir daraltma gerekiyor.
-              onChange={(next) => setPhotos(next as LocalPhoto[])}
+              onChange={(next) => {
+                setPhotos(next as LocalPhoto[]);
+                clearFieldError("photos");
+              }}
             />
 
             {/* Konum artık adım 1'de, bölgenin yanında. Rızası burada
                 kalıyor çünkü diğer yasal onaylarla birlikte alınıyor. */}
 
             <View className="mt-5 rounded-2xl border border-border bg-surface p-4">
-              <Checkbox checked={legalAccepted} onChange={setLegalAccepted}>
+              <Checkbox
+                checked={legalAccepted}
+                onChange={(value) => {
+                  setLegalAccepted(value);
+                  clearFieldError("legal");
+                }}
+              >
                 <Text className="text-sm leading-5 text-text-secondary">
                   Kullanım koşullarını kabul ediyor; gizlilik politikası ve KVKK
                   aydınlatma metnini okuduğumu onaylıyorum.
@@ -508,15 +670,29 @@ export default function OnboardingScreen() {
               <AppPressable onPress={() => router.push("/(auth)/legal")} className="mt-3">
                 <Text className="text-sm font-semibold text-brand">Metinleri aç</Text>
               </AppPressable>
+              {fieldErrors.legal ? (
+                <Text className="mt-3 text-xs font-semibold text-danger">{fieldErrors.legal}</Text>
+              ) : null}
 
               {coordinates ? (
                 <View className="mt-4 border-t border-border pt-4">
-                  <Checkbox checked={locationConsent} onChange={setLocationConsent}>
+                  <Checkbox
+                    checked={locationConsent}
+                    onChange={(value) => {
+                      setLocationConsent(value);
+                      clearFieldError("locationConsent");
+                    }}
+                  >
                     <Text className="text-sm leading-5 text-text-secondary">
                       Yaklaşık konumumun mesafe bazlı keşfet için işlenmesine açık rıza
                       veriyorum. Bu özellik isteğe bağlıdır.
                     </Text>
                   </Checkbox>
+                  {fieldErrors.locationConsent ? (
+                    <Text className="mt-2 text-xs font-semibold text-danger">
+                      {fieldErrors.locationConsent}
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
 
@@ -537,7 +713,9 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        <View className="mt-8 flex-row gap-3">
+      </ScrollView>
+
+      <View className="absolute bottom-0 left-0 right-0 flex-row gap-3 border-t border-border bg-bg-primary px-6 pb-6 pt-3">
           {step > 0 ? (
             <AppPressable
               onPress={() => setStep((step - 1) as Step)}
@@ -558,8 +736,7 @@ export default function OnboardingScreen() {
               <Text className="font-bold text-white">{step === 2 ? "Profili tamamla" : "Devam"}</Text>
             )}
           </AppPressable>
-        </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }

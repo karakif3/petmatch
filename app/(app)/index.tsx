@@ -60,10 +60,12 @@ export default function DiscoverScreen() {
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<{
+    matchId: string;
     petName: string;
     photoUrl: string | null;
     ownerPhotoUrl: string | null;
     conversationId: string | null;
+    conversationStatus: "loading" | "ready" | "error";
   } | null>(null);
   const [segment, setSegment] = useState<DiscoverySegment>("all");
   const [safetyVisible, setSafetyVisible] = useState(false);
@@ -209,6 +211,32 @@ export default function DiscoverScreen() {
   });
   const adoptableCount = adoptable.data?.length ?? 0;
 
+  const resolveMatchConversation = (matchId: string) => {
+    setMatch((current) =>
+      current?.matchId === matchId
+        ? { ...current, conversationStatus: "loading" }
+        : current,
+    );
+    void loadConversationIdForMatch(matchId)
+      .then((conversationId) => {
+        if (!conversationId) throw new Error("Eşleşmenin sohbeti henüz hazır değil.");
+        setMatch((current) =>
+          current?.matchId === matchId
+            ? { ...current, conversationId, conversationStatus: "ready" }
+            : current,
+        );
+      })
+      .catch((conversationError) => {
+        console.error("Eşleşmenin konuşması bulunamadı:", conversationError);
+        void trackProductEvent("match_conversation_failed");
+        setMatch((current) =>
+          current?.matchId === matchId
+            ? { ...current, conversationStatus: "error" }
+            : current,
+        );
+      });
+  };
+
   const swipe = useMutation({
     mutationFn: async ({
       toPetId,
@@ -239,20 +267,17 @@ export default function DiscoverScreen() {
 
       if (direction === "like" && matchId && swipedCard) {
         setMatch({
+          matchId,
           petName: swipedCard.name,
           photoUrl: swipedCard.photoUrls[0] ?? null,
           ownerPhotoUrl: swipedCard.owner?.photoUrl ?? null,
           conversationId: null,
+          conversationStatus: "loading",
         });
+        void trackProductEvent("match_celebration_viewed");
         // Konuşma id'si ayrı bir sorgu; kutlama onu beklemeden açılıyor,
         // "Mesaj gönder" gelene kadar beklemede kalıyor.
-        void loadConversationIdForMatch(matchId)
-          .then((conversationId) =>
-            setMatch((current) => (current ? { ...current, conversationId } : current)),
-          )
-          .catch((conversationError) =>
-            console.error("Eşleşmenin konuşması bulunamadı:", conversationError),
-          );
+        resolveMatchConversation(matchId);
       }
 
       scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -932,21 +957,21 @@ export default function DiscoverScreen() {
         matchedPhotoUrl={match?.photoUrl ?? null}
         matchedOwnerPhotoUrl={match?.ownerPhotoUrl ?? null}
         canOpenChat={Boolean(match?.conversationId)}
-        // Doğrulama istemi kayıt akışında değil BURADA: ilk eşleşme, rozetin
-        // değerinin somutlaştığı ilk an (bkz. docs/benchmark.md).
-        showVerifyPrompt={
-          deck.data?.ownerSettings.verificationStatus !== "approved" &&
-          deck.data?.ownerSettings.verificationStatus !== "pending"
-        }
+        chatError={match?.conversationStatus === "error"}
+        onRetry={() => {
+          if (match) resolveMatchConversation(match.matchId);
+        }}
         onSendMessage={() => {
           const conversationId = match?.conversationId;
           setMatch(null);
-          if (conversationId) router.push(`/chat/${conversationId}`);
+          if (conversationId) {
+            void trackProductEvent("match_chat_opened");
+            router.push(`/chat/${conversationId}`);
+          }
         }}
-        onKeepBrowsing={() => setMatch(null)}
-        onVerify={() => {
+        onKeepBrowsing={() => {
+          void trackProductEvent("match_celebration_dismissed");
           setMatch(null);
-          router.push("/profile/owner");
         }}
       />
     </SafeAreaView>

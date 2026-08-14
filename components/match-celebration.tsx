@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,11 +48,17 @@ function FloatingPaw({
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      cancelAnimation(progress);
+      progress.value = 0;
+      return;
+    }
+    progress.value = 0;
     progress.value = withDelay(
       delay,
       withRepeat(withTiming(1, { duration: 2600 }), -1, false),
     );
+    return () => cancelAnimation(progress);
   }, [delay, enabled, progress]);
 
   const style = useAnimatedStyle(() => ({
@@ -80,6 +87,7 @@ function PetAvatar({
   name,
   from,
   animate,
+  visible,
 }: {
   photoUrl: string | null;
   /** Sahip görünürlüğü zaten yukarıda çözülmüş geliyor — burada ekstra kural yok. */
@@ -87,18 +95,26 @@ function PetAvatar({
   name: string;
   from: "left" | "right";
   animate: boolean;
+  visible: boolean;
 }) {
   const offset = useSharedValue(animate ? (from === "left" ? -60 : 60) : 0);
   const scale = useSharedValue(animate ? 0.6 : 1);
 
   useEffect(() => {
-    if (!animate) return;
+    if (!visible) return;
+    if (!animate) {
+      offset.value = 0;
+      scale.value = 1;
+      return;
+    }
+    offset.value = from === "left" ? -60 : 60;
+    scale.value = 0.6;
     offset.value = withSpring(0, { damping: 12, stiffness: 140 });
     scale.value = withSequence(
       withSpring(1.08, { damping: 10, stiffness: 160 }),
       withSpring(1, { damping: 14, stiffness: 160 }),
     );
-  }, [animate, offset, scale]);
+  }, [animate, from, offset, scale, visible]);
 
   const style = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.value }, { scale: scale.value }],
@@ -152,10 +168,10 @@ export function MatchCelebration({
   matchedPhotoUrl,
   matchedOwnerPhotoUrl,
   canOpenChat,
-  showVerifyPrompt,
+  chatError,
   onSendMessage,
   onKeepBrowsing,
-  onVerify,
+  onRetry,
 }: {
   visible: boolean;
   viewerPetName: string;
@@ -166,20 +182,18 @@ export function MatchCelebration({
   matchedOwnerPhotoUrl: string | null;
   /** Konuşma henüz çözülmediyse birincil eylem beklemede gösterilir. */
   canOpenChat: boolean;
-  /**
-   * Doğrulama istemi burada gösterilir çünkü değerin en somut olduğu an bu.
-   * Sektörde isteğe bağlı doğrulamayı çoğu kullanıcı atlıyor; sebep genelde
-   * özelliğin kendisi değil, istenme anının kötü seçilmesi.
-   */
-  showVerifyPrompt: boolean;
+  chatError: boolean;
   onSendMessage: () => void;
   onKeepBrowsing: () => void;
-  onVerify: () => void;
+  onRetry: () => void;
 }) {
-  const [animate, setAnimate] = useState(true);
+  const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setAnimate(false);
+      return;
+    }
 
     // Hareket azaltma tercihini olan kullanıcıya sabit bir sahne gösteriyoruz.
     let cancelled = false;
@@ -187,15 +201,21 @@ export function MatchCelebration({
       if (!cancelled) setAnimate(!reduceMotion);
     });
 
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     AccessibilityInfo.announceForAccessibility(
-      `${viewerPetName} ve ${matchedPetName} eşleşti. Mesaj gönderebilirsin.`,
+      `${viewerPetName} ve ${matchedPetName} eşleşti.`,
     );
 
     return () => {
       cancelled = true;
     };
   }, [matchedPetName, viewerPetName, visible]);
+
+  useEffect(() => {
+    if (visible && canOpenChat) {
+      AccessibilityInfo.announceForAccessibility("Sohbet hazır. Mesaj gönderebilirsin.");
+    }
+  }, [canOpenChat, visible]);
 
   return (
     <Modal
@@ -210,7 +230,7 @@ export function MatchCelebration({
         accessibilityViewIsModal
       >
         {PAW_POSITIONS.map((paw) => (
-          <FloatingPaw key={paw.left} {...paw} enabled={animate} />
+          <FloatingPaw key={paw.left} {...paw} enabled={visible && animate} />
         ))}
 
         {/*
@@ -239,6 +259,7 @@ export function MatchCelebration({
             name={viewerPetName}
             from="left"
             animate={animate}
+            visible={visible}
           />
           <View className="h-28 items-center justify-center">
             <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
@@ -251,22 +272,35 @@ export function MatchCelebration({
             name={matchedPetName}
             from="right"
             animate={animate}
+            visible={visible}
           />
         </View>
 
         <View className="mt-10 w-full">
           <Pressable
-            onPress={onSendMessage}
-            disabled={!canOpenChat}
+            onPress={chatError ? onRetry : onSendMessage}
+            disabled={!canOpenChat && !chatError}
             accessibilityRole="button"
-            accessibilityLabel={`${matchedPetName} ile sohbeti aç`}
+            accessibilityLabel={
+              chatError ? "Sohbeti hazırlamayı tekrar dene" : `${matchedPetName} ile sohbeti aç`
+            }
             className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 disabled:opacity-60"
           >
             <Ionicons name="chatbubble-ellipses" size={18} color="#F97362" />
             <Text className="text-base font-bold text-brand">
-              {canOpenChat ? "Mesaj gönder" : "Sohbet hazırlanıyor…"}
+              {chatError
+                ? "Tekrar dene"
+                : canOpenChat
+                  ? "Mesaj gönder"
+                  : "Sohbet hazırlanıyor…"}
             </Text>
           </Pressable>
+
+          {chatError ? (
+            <Text className="mt-2 text-center text-xs leading-4 text-white/90">
+              Sohbet şu anda hazırlanamadı. Eşleşmen kaydedildi.
+            </Text>
+          ) : null}
 
           <Pressable
             onPress={onKeepBrowsing}
@@ -278,19 +312,6 @@ export function MatchCelebration({
             </Text>
           </Pressable>
 
-          {showVerifyPrompt ? (
-            <Pressable
-              onPress={onVerify}
-              accessibilityRole="button"
-              accessibilityLabel="Profilini doğrula"
-              className="mt-2 min-h-12 flex-row items-center justify-center rounded-2xl border border-white/40 px-4 py-3"
-            >
-              <Ionicons name="shield-checkmark-outline" size={16} color="#FFFFFF" />
-              <Text className="ml-2 text-sm font-semibold text-white">
-                {matchedPetName ? "Profilini doğrula, güven ver" : "Profilini doğrula"}
-              </Text>
-            </Pressable>
-          ) : null}
         </View>
       </View>
     </Modal>
