@@ -15,6 +15,11 @@ export type MeetupPlace = {
   id: string;
   name: string;
   note: string | null;
+  verificationMethod: "official_source" | "field" | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  sourceCheckedAt: string | null;
+  amenities: string[];
 };
 
 export async function listMeetupPlaces(): Promise<MeetupPlace[]> {
@@ -24,6 +29,10 @@ export async function listMeetupPlaces(): Promise<MeetupPlace[]> {
     id: row.id,
     name: row.name,
     note: row.note,
+    verificationMethod: row.verification_method as MeetupPlace["verificationMethod"],
+    sourceName: row.source_name,
+    sourceUrl: row.source_url,
+    sourceCheckedAt: row.source_checked_at,
+    amenities: row.amenities ?? [],
   }));
 }
-

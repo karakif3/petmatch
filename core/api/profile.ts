@@ -369,9 +369,11 @@ export async function updatePetProfile(input: PetProfileUpdate): Promise<string>
     p_energy_level: input.energyLevel,
     p_is_neutered: input.isNeutered,
     p_temperaments: input.temperaments,
-    p_good_with_cats: input.goodWithCats,
-    p_good_with_dogs: input.goodWithDogs,
-    p_good_with_kids: input.goodWithKids,
+    // Postgres function parameters accept null, but generated RPC types cannot
+    // express parameter nullability. Null is the domain value for "unknown".
+    p_good_with_cats: input.goodWithCats ?? (null as unknown as boolean),
+    p_good_with_dogs: input.goodWithDogs ?? (null as unknown as boolean),
+    p_good_with_kids: input.goodWithKids ?? (null as unknown as boolean),
     p_bio: bio || "",
   });
   if (error) throw error;

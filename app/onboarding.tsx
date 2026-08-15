@@ -62,6 +62,7 @@ type OnboardingDraft = {
   ownerBirthDate: string;
   city: string;
   regionSlug: string | null;
+  notifyWhenRegionOpens: boolean;
   petName: string;
   species: Species;
   gender: "male" | "female";
@@ -128,6 +129,7 @@ export default function OnboardingScreen() {
   const [ownerBirthDate, setOwnerBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [regionSlug, setRegionSlug] = useState<string | null>(null);
+  const [notifyWhenRegionOpens, setNotifyWhenRegionOpens] = useState(true);
 
   const [petName, setPetName] = useState("");
   const [species, setSpecies] = useState<Species>("dog");
@@ -164,6 +166,9 @@ export default function OnboardingScreen() {
         if (typeof draft.regionSlug === "string" || draft.regionSlug === null) {
           setRegionSlug(draft.regionSlug);
         }
+        if (typeof draft.notifyWhenRegionOpens === "boolean") {
+          setNotifyWhenRegionOpens(draft.notifyWhenRegionOpens);
+        }
         if (typeof draft.petName === "string") setPetName(draft.petName);
         if (draft.species === "dog" || draft.species === "cat") setSpecies(draft.species);
         if (draft.gender === "male" || draft.gender === "female") setGender(draft.gender);
@@ -190,6 +195,7 @@ export default function OnboardingScreen() {
         ownerBirthDate,
         city,
         regionSlug,
+        notifyWhenRegionOpens,
         petName,
         species,
         gender,
@@ -202,7 +208,7 @@ export default function OnboardingScreen() {
       );
     }, 250);
     return () => clearTimeout(timeout);
-  }, [city, coordinates, displayName, draftKey, gender, ownerBirthDate, petAge, petName, photos, regionSlug, species, step]);
+  }, [city, coordinates, displayName, draftKey, gender, notifyWhenRegionOpens, ownerBirthDate, petAge, petName, photos, regionSlug, species, step]);
 
   const progress = useMemo(() => `${step + 1} / 3`, [step]);
 
@@ -237,6 +243,14 @@ export default function OnboardingScreen() {
   // seçilirse kullanıcıya sorulur.
   const needsManualCity = selectedRegion !== null && selectedRegion.city === null;
   const resolvedCity = needsManualCity ? city.trim() || null : selectedRegion?.city ?? null;
+  const pilotRegions = useMemo(
+    () => (regions.data ?? []).filter((region) => region.isPilot),
+    [regions.data],
+  );
+  const outsideRegion = useMemo(
+    () => (regions.data ?? []).find((region) => region.slug === "other") ?? null,
+    [regions.data],
+  );
 
   const clearFieldError = (field: FieldError) => {
     setFieldErrors((current) => {
@@ -257,8 +271,8 @@ export default function OnboardingScreen() {
         return setFieldErrors({ ownerBirthDate: "Doğum tarihini seçmelisin." });
       }
       if (!regionSlug) return setFieldErrors({ region: "Bölgeni seçmelisin." });
-      if (needsManualCity && !city.trim()) {
-        return setFieldErrors({ city: "Şehrini yazmalısın." });
+      if (needsManualCity && city.trim().length < 2) {
+        return setFieldErrors({ city: "Bulunduğun ilçe veya şehri yazmalısın." });
       }
       setStep(1);
       return;
@@ -352,7 +366,12 @@ export default function OnboardingScreen() {
     try {
       // Bölge ayrı dar yazma yolundan gidiyor; onboarding RPC'sinin imzasını
       // değiştirmek mevcut çağrıları kırardı.
-      if (regionSlug) await setMyRegion(regionSlug);
+      if (regionSlug) {
+        await setMyRegion(regionSlug, {
+          requestedLocation: needsManualCity ? city : undefined,
+          notifyWhenOpen: needsManualCity && notifyWhenRegionOpens,
+        });
+      }
 
       await completeOnboarding({
         userId: user.id,
@@ -458,12 +477,12 @@ export default function OnboardingScreen() {
               Bölgen
             </Text>
             <Text className="mb-3 text-xs leading-4 text-text-tertiary">
-              PetMatch şimdilik Kadıköy ve Nişantaşı&apos;nda başlıyor. Yakınında
-              kimse olması için önce buralarda yoğunlaşıyoruz.
+              Şu anda açık bölgeler aşağıda. Yakınında gerçek eşleşmeler olması
+              için topluluğu bu bölgelerde yoğunlaştırıyoruz.
             </Text>
             <View className="mb-5 flex-row flex-wrap gap-2">
               {regions.isLoading ? <ActivityIndicator color="#F97362" /> : null}
-              {(regions.data ?? []).map((region) => {
+              {pilotRegions.map((region) => {
                 const active = regionSlug === region.slug;
                 return (
                   <AppPressable
@@ -490,6 +509,19 @@ export default function OnboardingScreen() {
                 );
               })}
             </View>
+            {outsideRegion ? (
+              <View className="mb-5">
+                <Choice
+                  active={regionSlug === outsideRegion.slug}
+                  label={outsideRegion.name}
+                  detail="Bulunduğun yeri kaydet; sıradaki bölgeyi taleplere göre açalım."
+                  onPress={() => {
+                    setRegionSlug(outsideRegion.slug);
+                    clearFieldError("region");
+                  }}
+                />
+              </View>
+            ) : null}
             {regions.isError ? (
               <View className="mb-5 rounded-xl border border-danger/30 bg-danger/10 p-3">
                 <Text className="text-sm text-danger">Bölgeler yüklenemedi.</Text>
@@ -503,23 +535,44 @@ export default function OnboardingScreen() {
               </Text>
             ) : null}
             {/*
-              Şehir yalnızca "Diğer" seçilince soruluyor. Pilot bölgelerin
-              ikisi de İstanbul; bölge seçildiği an şehir zaten belli ve
-              `regions.city` üzerinden geliyor. Hedef kitleye aynı soruyu iki
+              Konum yalnızca "Bölgem listede yok" seçilince soruluyor. Pilot
+              bölgelerin şehri seçim anında `regions.city` üzerinden geliyor;
               kez sormanın anlamı yoktu.
             */}
             {needsManualCity ? (
               <Field
-                label="Şehir"
+                label="Bulunduğun ilçe veya şehir"
                 error={fieldErrors.city}
                 value={city}
                 onChangeText={(value) => {
                   setCity(value);
                   clearFieldError("city");
                 }}
-                placeholder="Örn. Ankara"
+                placeholder="Örn. Üsküdar veya Ankara"
                 autoCapitalize="words"
               />
+            ) : null}
+            {needsManualCity ? (
+              <View className="-mt-1 mb-5 rounded-xl border border-accent/30 bg-accent/10 p-4">
+                <View className="mb-3 flex-row items-start">
+                  <Ionicons name="information-circle-outline" size={19} color="#1E9384" />
+                  <Text className="ml-2 flex-1 text-xs leading-5 text-text-secondary">
+                    Bu bölgede keşfet henüz açılmadı. Kaydını tamamlayabilirsin;
+                    talebin sıradaki bölgeleri belirlememize yardımcı olur.
+                  </Text>
+                </View>
+                <Checkbox
+                  checked={notifyWhenRegionOpens}
+                  onChange={setNotifyWhenRegionOpens}
+                >
+                  <Text className="font-semibold text-text-primary">
+                    Bölgem açıldığında haber ver
+                  </Text>
+                </Checkbox>
+                <Text className="ml-8 mt-2 text-xs leading-5 text-text-tertiary">
+                  Açılış iletişimi tercihin talebinle birlikte güvenli biçimde saklanır.
+                </Text>
+              </View>
             ) : null}
 
             {/*

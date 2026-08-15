@@ -33,7 +33,7 @@ export function MeetupFeedbackPrompt({
   onAnswer,
 }: {
   petName: string | null;
-  /** Kayıtlı, onaylanmış buluşmadan geliyorsa yeri/tarihi — sorada adıyla anmak için. */
+  /** Kayıtlı, onaylanmış buluşmadan geliyorsa yeri/tarihi soruda adıyla anmak için. */
   meetupPlaceName?: string | null;
   meetupScheduledAt?: string | null;
   onAnswer: (outcome: MeetupOutcome) => Promise<void>;
@@ -55,8 +55,8 @@ export function MeetupFeedbackPrompt({
     if (meetupPlaceName && meetupScheduledAt) {
       const when = formatWhen(meetupScheduledAt);
       return who
-        ? `${who} ${meetupPlaceName}'de ${when} buluştunuz mu?`
-        : `${meetupPlaceName}'de ${when} buluştunuz mu?`;
+        ? `${who} ${meetupPlaceName} konumunda ${when} buluştunuz mu?`
+        : `${meetupPlaceName} konumunda ${when} buluştunuz mu?`;
     }
     return who ? `${who} buluştunuz mu?` : "Buluştunuz mu?";
   })();

@@ -390,6 +390,7 @@ export type Database = {
       }
       meetup_places: {
         Row: {
+          amenities: string[]
           created_at: string
           id: string
           is_active: boolean
@@ -398,10 +399,15 @@ export type Database = {
           note: string | null
           region_slug: string
           sort_order: number
+          source_checked_at: string | null
+          source_name: string | null
+          source_url: string | null
+          verification_method: string | null
           verified_at: string | null
           verified_by: string | null
         }
         Insert: {
+          amenities?: string[]
           created_at?: string
           id?: string
           is_active?: boolean
@@ -410,10 +416,15 @@ export type Database = {
           note?: string | null
           region_slug: string
           sort_order?: number
+          source_checked_at?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          verification_method?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
         Update: {
+          amenities?: string[]
           created_at?: string
           id?: string
           is_active?: boolean
@@ -422,6 +433,10 @@ export type Database = {
           note?: string | null
           region_slug?: string
           sort_order?: number
+          source_checked_at?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          verification_method?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -901,6 +916,38 @@ export type Database = {
           },
         ]
       }
+      region_waitlist: {
+        Row: {
+          created_at: string
+          notify_when_open: boolean
+          requested_location: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notify_when_open?: boolean
+          requested_location: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notify_when_open?: boolean
+          requested_location?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "region_waitlist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regions: {
         Row: {
           city: string | null
@@ -1011,6 +1058,7 @@ export type Database = {
       conversation_meetup: {
         Args: { p_conversation_id: string }
         Returns: {
+          amenities: string[]
           id: string
           mine: boolean
           place_id: string
@@ -1018,7 +1066,11 @@ export type Database = {
           place_note: string
           proposed_by: string
           scheduled_at: string
+          source_checked_at: string
+          source_name: string
+          source_url: string
           status: Database["public"]["Enums"]["meetup_status"]
+          verification_method: string
         }[]
       }
       discover_pets: {
@@ -1039,9 +1091,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean | null
-          good_with_dogs: boolean | null
-          good_with_kids: boolean | null
+          good_with_cats: boolean
+          good_with_dogs: boolean
+          good_with_kids: boolean
           id: string
           is_neutered: boolean
           name: string
@@ -1071,9 +1123,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean | null
-          good_with_dogs: boolean | null
-          good_with_kids: boolean | null
+          good_with_cats: boolean
+          good_with_dogs: boolean
+          good_with_kids: boolean
           id: string
           is_neutered: boolean
           name: string
@@ -1153,9 +1205,9 @@ export type Database = {
           breed: string
           city: string
           gender: Database["public"]["Enums"]["pet_gender"]
-          good_with_cats: boolean | null
-          good_with_dogs: boolean | null
-          good_with_kids: boolean | null
+          good_with_cats: boolean
+          good_with_dogs: boolean
+          good_with_kids: boolean
           id: string
           is_neutered: boolean
           name: string
@@ -1182,9 +1234,14 @@ export type Database = {
       list_meetup_places: {
         Args: never
         Returns: {
+          amenities: string[]
           id: string
           name: string
           note: string
+          source_checked_at: string
+          source_name: string
+          source_url: string
+          verification_method: string
         }[]
       }
       list_my_conversations: {
@@ -1240,9 +1297,9 @@ export type Database = {
           energy_level: number
           gender: Database["public"]["Enums"]["pet_gender"]
           goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean | null
-          good_with_dogs: boolean | null
-          good_with_kids: boolean | null
+          good_with_cats: boolean
+          good_with_dogs: boolean
+          good_with_kids: boolean
           id: string
           is_neutered: boolean
           is_super: boolean
@@ -1297,6 +1354,15 @@ export type Database = {
           p_document_version: string
         }
         Returns: undefined
+      }
+      region_demand: {
+        Args: never
+        Returns: {
+          interested: number
+          latest_request_at: string
+          requested_location: string
+          wants_notification: number
+        }[]
       }
       region_density: {
         Args: never
@@ -1353,7 +1419,14 @@ export type Database = {
         Args: { p_note?: string; p_place_id: string; p_verified: boolean }
         Returns: undefined
       }
-      set_my_region: { Args: { p_region_slug: string }; Returns: undefined }
+      set_my_region: {
+        Args: {
+          p_notify_when_open?: boolean
+          p_region_slug: string
+          p_requested_location?: string
+        }
+        Returns: undefined
+      }
       shares_active_match_with: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -1419,9 +1492,9 @@ export type Database = {
           p_birth_date: string
           p_breed: string
           p_energy_level: number
-          p_good_with_cats: boolean | null
-          p_good_with_dogs: boolean | null
-          p_good_with_kids: boolean | null
+          p_good_with_cats: boolean
+          p_good_with_dogs: boolean
+          p_good_with_kids: boolean
           p_is_neutered: boolean
           p_name: string
           p_pet_id: string

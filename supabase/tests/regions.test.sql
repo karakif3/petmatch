@@ -9,8 +9,8 @@ select tests.seed_user('22222222-2222-2222-2222-222222222222');
 select tests.seed_pet('aaaa1111-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
 
 select tests.assert(
-  (select count(*) from regions where is_pilot) = 2,
-  'iki pilot bölge tanımlı'
+  (select count(*) from regions where is_pilot) = 3,
+  'üç pilot bölge tanımlı'
 );
 
 -- --------------------------------------------------------------------------
@@ -33,26 +33,49 @@ select tests.assert(
   'bölge seçimi kaydediliyor'
 );
 
+select set_my_region('besiktas');
+
+select tests.assert(
+  (select region_slug = 'besiktas' from profiles
+   where id = '11111111-1111-1111-1111-111111111111'),
+  'Beşiktaş pilot bölge olarak seçilebiliyor'
+);
+
 select tests.assert_raises(
-  'select set_my_region(''besiktas'')',
+  'select set_my_region(''bilinmeyen'')',
   'tanımsız bölge reddediliyor'
 );
 
-select tests.assert(
-  (select region_slug = 'kadikoy' from profiles
-   where id = '11111111-1111-1111-1111-111111111111'),
-  'reddedilen seçim mevcut bölgeyi bozmuyor'
+-- Kullanıcı yalnızca RPC ile yazabilmeli; doğrudan UPDATE yolu yok.
+select tests.assert_raises(
+  'select set_my_region(''other'')',
+  'pilot dışı seçimde talep konumu zorunlu'
 );
 
--- Kullanıcı yalnızca RPC ile yazabilmeli; doğrudan UPDATE yolu yok.
-select set_my_region('other');
+select set_my_region('other', 'Üsküdar', true);
 select tests.assert(
   (select region_slug = 'other' from profiles
    where id = '11111111-1111-1111-1111-111111111111'),
   '"Diğer" de gerçek bir seçim — boş bırakmakla aynı şey değil'
 );
 
+select tests.assert(
+  (select requested_location = 'Üsküdar' and notify_when_open
+   from region_waitlist
+   where user_id = '11111111-1111-1111-1111-111111111111'),
+  'pilot dışı bölge talebi ve bildirim tercihi kaydediliyor'
+);
+
 select set_my_region('kadikoy');
+select tests.assert(
+  not exists (
+    select 1 from region_waitlist
+    where user_id = '11111111-1111-1111-1111-111111111111'
+  ),
+  'açık bölgeye geçen kullanıcı bekleme listesinden çıkarılıyor'
+);
+
+select set_my_region('other', 'Üsküdar', true);
 reset role;
 
 -- --------------------------------------------------------------------------
@@ -65,6 +88,11 @@ select tests.act_as('22222222-2222-2222-2222-222222222222');
 select tests.assert_raises(
   'select * from region_density()',
   'moderatör olmayan yoğunluk raporunu göremiyor'
+);
+
+select tests.assert_raises(
+  'select * from region_demand()',
+  'moderatör olmayan bölge talep raporunu göremiyor'
 );
 
 reset role;
@@ -91,8 +119,14 @@ select tests.assert(
 );
 
 select tests.assert(
-  (select count(*) from region_density()) = 3,
+  (select count(*) from region_density()) = 4,
   'rapor "Diğer" dahil tüm aktif bölgeleri veriyor'
+);
+
+select tests.assert(
+  (select interested = 1 and wants_notification = 1
+   from region_demand() where requested_location = 'Üsküdar'),
+  'bölge talebi ve bildirim isteği önceliklendirme raporunda sayılıyor'
 );
 
 reset role;

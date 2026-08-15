@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ConversationMeetup } from "../../core/api/meetups";
 import { addMeetupToCalendar } from "../../core/calendar";
 import { getIntlLocale } from "../../core/i18n";
+import { MeetupPlaceTrust } from "./meetup-place-trust";
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString(getIntlLocale(), {
@@ -51,7 +52,10 @@ export function MeetupCard({
       const result = await addMeetupToCalendar({
         title: `PetMatch buluşması: ${meetup.placeName}`,
         location: meetup.placeName,
-        notes: meetup.placeNote ?? undefined,
+        notes:
+          [meetup.placeNote, meetup.sourceUrl ? `Kaynak: ${meetup.sourceUrl}` : null]
+            .filter(Boolean)
+            .join("\n") || undefined,
         startDate: new Date(meetup.scheduledAt),
       });
       if (result === "denied") {
@@ -101,6 +105,12 @@ export function MeetupCard({
           {meetup.placeNote}
         </Text>
       ) : null}
+      <MeetupPlaceTrust
+        verificationMethod={meetup.verificationMethod}
+        sourceName={meetup.sourceName}
+        sourceUrl={meetup.sourceUrl}
+        amenities={meetup.amenities}
+      />
 
       {busy ? (
         <View className="mt-3 items-center">

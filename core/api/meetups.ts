@@ -10,6 +10,11 @@ export type ConversationMeetup = {
   placeId: string;
   placeName: string;
   placeNote: string | null;
+  verificationMethod: "official_source" | "field" | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  sourceCheckedAt: string | null;
+  amenities: string[];
   scheduledAt: string;
   status: MeetupStatus;
   /** Öneriyi ben mi yaptım — yanıt düğmelerini kime göstereceğimizi belirler. */
@@ -38,6 +43,11 @@ export async function loadConversationMeetup(
     placeId: row.place_id,
     placeName: row.place_name,
     placeNote: row.place_note,
+    verificationMethod: row.verification_method as ConversationMeetup["verificationMethod"],
+    sourceName: row.source_name,
+    sourceUrl: row.source_url,
+    sourceCheckedAt: row.source_checked_at,
+    amenities: row.amenities ?? [],
     scheduledAt: row.scheduled_at,
     status: row.status as MeetupStatus,
     mine: row.mine,

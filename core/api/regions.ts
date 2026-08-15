@@ -38,9 +38,14 @@ export async function listRegions(): Promise<Region[]> {
  * "Diğer" diyenlerin sayısı, bir sonraki pilot bölgeyi tahminle değil veriyle
  * seçmenin tek yolu.
  */
-export async function setMyRegion(regionSlug: string): Promise<void> {
+export async function setMyRegion(
+  regionSlug: string,
+  options?: { requestedLocation?: string; notifyWhenOpen?: boolean },
+): Promise<void> {
   const { error } = await requireSupabaseClient().rpc("set_my_region", {
     p_region_slug: regionSlug,
+    p_requested_location: options?.requestedLocation?.trim() || (null as unknown as string),
+    p_notify_when_open: options?.notifyWhenOpen ?? false,
   });
   if (error) throw error;
 }

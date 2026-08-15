@@ -6,6 +6,7 @@ import DateTimePicker, {
 import { Ionicons } from "@expo/vector-icons";
 
 import type { MeetupPlace } from "../../core/api/meetup-places";
+import { MeetupPlaceTrust } from "./meetup-place-trust";
 
 /** Öneri varsayılanı: yarın 15:00. Kullanıcı çoğunlukla "yakın bir gün" istiyor. */
 function defaultWhen(): Date {
@@ -66,6 +67,12 @@ export function MeetupScheduleSheet({
           <Text className="mt-1 text-xs text-text-secondary">
             Ne zaman buluşalım?
           </Text>
+          <MeetupPlaceTrust
+            verificationMethod={place.verificationMethod}
+            sourceName={place.sourceName}
+            sourceUrl={place.sourceUrl}
+            amenities={place.amenities}
+          />
 
           <View className="mt-2 overflow-hidden rounded-2xl border border-border bg-surface">
             <DateTimePicker

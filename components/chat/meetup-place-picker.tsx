@@ -2,6 +2,8 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import type { MeetupPlace } from "../../core/api/meetup-places";
+import { AppPressable } from "../ui/pressable";
+import { MeetupPlaceTrust } from "./meetup-place-trust";
 
 /**
  * Buluşma yeri seçici.
@@ -35,30 +37,40 @@ export function MeetupPlacePicker({
             Buluşma yeri öner
           </Text>
           <Text className="mt-1 text-xs leading-4 text-text-secondary">
-            Bölgende bilinen, halka açık noktalar. İlk buluşma için kalabalık bir
-            yer seçmek ikiniz için de rahat olur.
+            Resmi kaynaklarda pet olanağı görülen halka açık noktalar. Kurallar
+            değişebileceği için gitmeden önce kaynağı kontrol et.
           </Text>
 
           <ScrollView className="mt-4" keyboardShouldPersistTaps="handled">
             {places.map((place) => (
-              <Pressable
+              <View
                 key={place.id}
-                onPress={() => onSelect(place)}
-                accessibilityRole="button"
-                accessibilityLabel={`${place.name} öner`}
-                className="mb-2 min-h-12 flex-row items-center rounded-2xl border border-border bg-bg-secondary px-4 py-3"
+                className="mb-3 rounded-2xl border border-border bg-bg-secondary px-4 py-3"
               >
-                <Ionicons name="location-outline" size={18} color="#F97362" />
-                <View className="ml-3 flex-1">
-                  <Text className="text-sm font-semibold text-text-primary">
-                    {place.name}
-                  </Text>
-                  {place.note ? (
-                    <Text className="mt-0.5 text-xs text-text-secondary">{place.note}</Text>
-                  ) : null}
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#C4B7AE" />
-              </Pressable>
+                <AppPressable
+                  onPress={() => onSelect(place)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${place.name} için buluşma öner`}
+                  className="min-h-11 flex-row items-center"
+                >
+                  <Ionicons name="location-outline" size={18} color="#F97362" />
+                  <View className="ml-3 flex-1">
+                    <Text className="text-sm font-bold text-text-primary">{place.name}</Text>
+                    {place.note ? (
+                      <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                        {place.note}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#C4B7AE" />
+                </AppPressable>
+                <MeetupPlaceTrust
+                  verificationMethod={place.verificationMethod}
+                  sourceName={place.sourceName}
+                  sourceUrl={place.sourceUrl}
+                  amenities={place.amenities}
+                />
+              </View>
             ))}
           </ScrollView>
 
