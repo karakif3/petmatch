@@ -5,10 +5,12 @@ import { RefreshControl, ScrollView, Text, View } from "react-native";
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { CloudOff, Heart } from "lucide-react-native";
 import { useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { PendingLikeCard } from "../../components/pending-like-card";
+import { EmptyState } from "../../components/ui/empty-state";
 import { LikeCardSkeleton } from "../../components/ui/skeleton";
 import { loadPendingLikes, loadPendingLikesCount } from "../../core/api/likes";
 
@@ -75,11 +77,14 @@ export default function LikesScreen() {
       ) : null}
 
       {isError && !isLoading ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="cloud-offline-outline" color="#E5484D" size={44} />
-          <Text className="mt-4 text-lg font-bold text-text-primary">
-            Beğeniler yüklenemedi
-          </Text>
+        <View className="flex-1 justify-center">
+          <EmptyState
+            icon={CloudOff}
+            title="Beğeniler yüklenemedi"
+            description="Bağlantını kontrol edip yeniden deneyebilirsin."
+            tone="danger"
+            action={{ label: "Tekrar dene", onPress: refetch }}
+          />
         </View>
       ) : null}
 
@@ -91,14 +96,12 @@ export default function LikesScreen() {
           }
         >
           {(count.data ?? 0) === 0 ? (
-            <View className="mt-20 items-center px-10">
-              <Ionicons name="heart-outline" color="#C4B7AE" size={54} />
-              <Text className="mt-4 text-center text-xl font-bold text-text-primary">
-                Henüz beğeni yok
-              </Text>
-              <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-                Petin birini beğendiğinde burada göreceksin.
-              </Text>
+            <View className="mt-8">
+              <EmptyState
+                icon={Heart}
+                title="Henüz beğeni yok"
+                description="Petin birini beğendiğinde burada göreceksin."
+              />
             </View>
           ) : (
             <>
