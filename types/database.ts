@@ -556,6 +556,8 @@ export type Database = {
       }
       moderation_items: {
         Row: {
+          appeal_text: string | null
+          appealed_at: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -563,6 +565,7 @@ export type Database = {
           note: string | null
           payload: Json
           reason: Database["public"]["Enums"]["report_reason"] | null
+          rejection_reason_code: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: Database["public"]["Enums"]["moderation_status"]
@@ -570,6 +573,8 @@ export type Database = {
           subject_user_id: string | null
         }
         Insert: {
+          appeal_text?: string | null
+          appealed_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -577,6 +582,7 @@ export type Database = {
           note?: string | null
           payload?: Json
           reason?: Database["public"]["Enums"]["report_reason"] | null
+          rejection_reason_code?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["moderation_status"]
@@ -584,6 +590,8 @@ export type Database = {
           subject_user_id?: string | null
         }
         Update: {
+          appeal_text?: string | null
+          appealed_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -591,6 +599,7 @@ export type Database = {
           note?: string | null
           payload?: Json
           reason?: Database["public"]["Enums"]["report_reason"] | null
+          rejection_reason_code?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["moderation_status"]
@@ -1355,6 +1364,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_required_legal_acceptances: {
+        Args: { p_document_version: string }
+        Returns: undefined
+      }
       region_demand: {
         Args: never
         Returns: {
@@ -1404,6 +1417,7 @@ export type Database = {
           p_decision: Database["public"]["Enums"]["moderation_status"]
           p_item_id: string
           p_note?: string
+          p_rejection_reason_code?: string
         }
         Returns: undefined
       }
@@ -1434,6 +1448,10 @@ export type Database = {
       submit_verification: {
         Args: { p_pet_id: string; p_photo_path: string }
         Returns: string
+      }
+      submit_verification_appeal: {
+        Args: { p_appeal_text: string; p_item_id: string }
+        Returns: undefined
       }
       swipe_pet: {
         Args: {

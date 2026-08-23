@@ -122,6 +122,8 @@ export default function OnboardingScreen() {
   const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const setOnboarded = useAuthStore((state) => state.setOnboarded);
+  const setRegionAccess = useAuthStore((state) => state.setRegionAccess);
+  const setLegalRequired = useAuthStore((state) => state.setLegalRequired);
   const signOut = useAuthStore((state) => state.signOut);
 
   const [step, setStep] = useState<Step>(0);
@@ -394,6 +396,8 @@ export default function OnboardingScreen() {
       });
       if (draftKey) await AsyncStorage.removeItem(draftKey);
       setOnboarded(true);
+      setRegionAccess(regionSlug === "other" ? "waitlist" : "open");
+      setLegalRequired(false);
     } catch (err) {
       setError(errorMessage(err, "Onboarding tamamlanamadı."));
     } finally {

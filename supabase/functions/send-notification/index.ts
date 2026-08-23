@@ -9,7 +9,8 @@ type EventBody =
   | { type: "match"; matchId: string }
   | { type: "message"; messageId: string }
   | { type: "new_candidate"; petId: string }
-  | { type: "super_like"; swipeId: string };
+  | { type: "super_like"; swipeId: string }
+  | { type: "verification"; moderationItemId: string };
 
 type PushContent = {
   title: string;
@@ -47,6 +48,9 @@ function eventBody(value: unknown): EventBody | null {
   }
   if (body.type === "super_like" && isUuid(body.swipeId)) {
     return { type: "super_like", swipeId: body.swipeId };
+  }
+  if (body.type === "verification" && isUuid(body.moderationItemId)) {
+    return { type: "verification", moderationItemId: body.moderationItemId };
   }
   return null;
 }
@@ -92,17 +96,19 @@ async function claimAndSend(
       ? "notify_on_match"
       : input.eventType === "message"
         ? "notify_on_message"
-        : "notify_on_new_candidates";
-  const { data: preferences, error: preferenceError } = await admin
-    .from("discovery_preferences")
-    .select("notify_on_match,notify_on_message,notify_on_new_candidates")
-    .eq("user_id", input.recipientId)
-    .single();
-  if (preferenceError) throw preferenceError;
-
-  const enabled = Boolean(
-    (preferences as Record<string, unknown>)[preferenceColumn],
-  );
+        : input.eventType === "new_candidate"
+          ? "notify_on_new_candidates"
+          : null;
+  let enabled = true;
+  if (preferenceColumn) {
+    const { data: preferences, error: preferenceError } = await admin
+      .from("discovery_preferences")
+      .select("notify_on_match,notify_on_message,notify_on_new_candidates")
+      .eq("user_id", input.recipientId)
+      .single();
+    if (preferenceError) throw preferenceError;
+    enabled = Boolean((preferences as Record<string, unknown>)[preferenceColumn]);
+  }
   const { data: tokens, error: tokenError } = await admin
     .from("push_tokens")
     .select("token")
@@ -235,6 +241,47 @@ Deno.serve(async (request) => {
   if (!body) return json({ error: "Invalid notification event" }, 400);
 
   try {
+    if (body.type === "verification") {
+      const [{ data: role }, { data: item, error: itemError }] = await Promise.all([
+        admin
+          .from("app_user_roles")
+          .select("role")
+          .eq("user_id", authData.user.id)
+          .maybeSingle(),
+        admin
+          .from("moderation_items")
+          .select("id,kind,status,subject_user_id,rejection_reason_code")
+          .eq("id", body.moderationItemId)
+          .single(),
+      ]);
+      if (!role || !["moderator", "admin"].includes(role.role)) {
+        return json({ error: "Moderator role required" }, 403);
+      }
+      if (
+        itemError ||
+        !item ||
+        item.kind !== "verification" ||
+        !["approved", "rejected"].includes(item.status) ||
+        !item.subject_user_id
+      ) {
+        return json({ error: "Verification decision not found" }, 404);
+      }
+      const approved = item.status === "approved";
+      const result = await claimAndSend(admin, {
+        eventType: "verification",
+        eventId: item.id,
+        recipientId: item.subject_user_id,
+        content: {
+          title: approved ? "Profilin doğrulandı" : "Doğrulama sonucunu incele",
+          body: approved
+            ? "Sahip + pet doğrulama rozetin artık aktif."
+            : "Başvurun için açıklama ve yeniden gönderim adımları hazır.",
+          data: { type: "verification" },
+        },
+      });
+      return json({ status: result });
+    }
+
     if (body.type === "match") {
       const { data: match, error: matchError } = await admin
         .from("matches")

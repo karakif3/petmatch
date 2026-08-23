@@ -69,4 +69,5 @@ Supabase resmi dokümantasyonu:
 
 Fiziksel cihaz kontrolü backlog 2 kapsamında yapılır: şifre sıfırlama e-postası
 istenir, bağlantı development build'i açar, yeni şifre kaydedilir ve kullanıcı
-yeni şifreyle tekrar giriş yapar.
+yeni şifreyle tekrar giriş yapar. Tam iki cihaz matrisi:
+[`two-device-release-test.md`](two-device-release-test.md).

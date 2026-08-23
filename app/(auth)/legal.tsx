@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { getLegalConfig, LEGAL_DOCUMENT_VERSION } from "../../core/domain/legal";
@@ -42,6 +42,28 @@ export default function LegalScreen() {
             Veri sorumlusu unvanı, adresi ve başvuru e-postası yayın build’inden önce
             ortam değişkenlerine yazılmalı.
           </Text>
+        </View>
+      ) : null}
+
+      {config.privacyUrl || config.termsUrl || config.accountDeletionUrl ? (
+        <View className="mb-5 rounded-xl border border-border bg-surface p-4">
+          <Text className="mb-2 font-bold text-text-primary">Herkese açık belgeler</Text>
+          {[
+            ["Gizlilik politikası", config.privacyUrl],
+            ["Kullanım koşulları", config.termsUrl],
+            ["Hesap silme talebi", config.accountDeletionUrl],
+          ].map(([label, url]) =>
+            url ? (
+              <Pressable
+                key={label}
+                accessibilityRole="link"
+                onPress={() => void Linking.openURL(url)}
+                className="min-h-11 justify-center"
+              >
+                <Text className="font-semibold text-brand-dark">{label} ↗</Text>
+              </Pressable>
+            ) : null,
+          )}
         </View>
       ) : null}
 

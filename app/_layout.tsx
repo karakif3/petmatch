@@ -42,6 +42,8 @@ function useAuthGate() {
   const segments = useSegments();
   const user = useAuthStore((s) => s.user);
   const onboarded = useAuthStore((s) => s.onboarded);
+  const regionAccess = useAuthStore((s) => s.regionAccess);
+  const legalRequired = useAuthStore((s) => s.legalRequired);
   const loading = useAuthStore((s) => s.loading);
   const recoveryMode = useAuthStore((s) => s.recoveryMode);
 
@@ -50,6 +52,8 @@ function useAuthGate() {
 
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
+    const inWaitlist = segments[0] === "waitlist";
+    const inLegalConsent = segments[0] === "legal-consent";
     const onAuthCallback =
       segments[0] === "auth" &&
       (segments as readonly string[])[1] === "callback";
@@ -66,10 +70,18 @@ function useAuthGate() {
       return;
     } else if (user && !onboarded && !inOnboarding) {
       router.replace("/onboarding");
+    } else if (user && onboarded && legalRequired && !inLegalConsent) {
+      router.replace("/legal-consent");
+    } else if (user && onboarded && !legalRequired && inLegalConsent) {
+      router.replace(regionAccess === "waitlist" ? "/waitlist" : "/(app)");
+    } else if (user && onboarded && regionAccess === "waitlist" && !inWaitlist) {
+      router.replace("/waitlist");
+    } else if (user && onboarded && regionAccess === "open" && inWaitlist) {
+      router.replace("/(app)");
     } else if (user && onboarded && (inAuthGroup || inOnboarding)) {
       router.replace("/(app)");
     }
-  }, [loading, onboarded, recoveryMode, router, segments, user]);
+  }, [legalRequired, loading, onboarded, recoveryMode, regionAccess, router, segments, user]);
 }
 
 function NotificationEffects() {
@@ -105,6 +117,8 @@ function NotificationEffects() {
         router.push("/(app)/matches");
       } else if (data.type === "new_candidate") {
         router.push("/(app)");
+      } else if (data.type === "verification") {
+        router.push("/profile/owner");
       }
     };
 
@@ -261,6 +275,8 @@ export default function RootLayout() {
                 >
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="onboarding" />
+              <Stack.Screen name="waitlist" />
+              <Stack.Screen name="legal-consent" />
               <Stack.Screen name="(app)" />
               <Stack.Screen name="chat/[conversationId]" />
               <Stack.Screen name="profile/pet" />

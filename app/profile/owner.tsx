@@ -23,6 +23,7 @@ import {
   loadEditableProfile,
   saveOwnerProfile,
   submitOwnerVerification,
+  submitVerificationAppeal,
   type LocalProfilePhoto,
 } from "../../core/api/profile";
 import { BirthDateField } from "../../components/birth-date-field";
@@ -62,6 +63,15 @@ const visibilityOptions: {
 ];
 
 const MAX_INTERESTS = 8;
+
+const verificationReasonLabels: Record<string, string> = {
+  unclear_photo: "Fotoğraf yeterince net değil",
+  pet_not_visible: "Pet fotoğrafta net görünmüyor",
+  owner_not_visible: "Sahibin yüzü net görünmüyor",
+  multiple_people: "Fotoğrafta birden fazla kişi var",
+  edited_photo: "Fotoğraf filtrelenmiş veya düzenlenmiş görünüyor",
+  other: "Başvuru koşulları karşılanmadı",
+};
 
 const genderOptions: {
   value: "female" | "male" | "other" | null;
@@ -136,6 +146,8 @@ export default function OwnerProfileScreen() {
   const [busy, setBusy] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [verificationExpanded, setVerificationExpanded] = useState(false);
+  const [appealText, setAppealText] = useState("");
+  const [appealBusy, setAppealBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -383,6 +395,26 @@ export default function OwnerProfileScreen() {
       );
     } finally {
       setVerificationBusy(false);
+    }
+  };
+
+  const submitAppeal = async () => {
+    const review = profile.data?.verificationReview;
+    if (!review || appealText.trim().length < 10) {
+      setError("İtiraz açıklaması en az 10 karakter olmalı.");
+      return;
+    }
+    setAppealBusy(true);
+    setError(null);
+    try {
+      await submitVerificationAppeal(review.itemId, appealText);
+      setAppealText("");
+      await profile.refetch();
+      setNotice("İtirazın moderasyon ekibine iletildi.");
+    } catch (appealError) {
+      setError(errorMessage(appealError, "İtiraz gönderilemedi."));
+    } finally {
+      setAppealBusy(false);
     }
   };
 
@@ -688,9 +720,16 @@ export default function OwnerProfileScreen() {
                 </Text>
                 {verificationStatus === "rejected" &&
                 profile.data.verificationReviewNote ? (
-                  <Text className="mt-2 text-xs font-semibold leading-4 text-danger">
-                    İnceleme notu: {profile.data.verificationReviewNote}
-                  </Text>
+                  <View className="mt-3 rounded-xl bg-danger/5 p-3">
+                    {profile.data.verificationReview?.reasonCode ? (
+                      <Text className="text-xs font-bold leading-4 text-danger">
+                        {verificationReasonLabels[profile.data.verificationReview.reasonCode] ?? "Başvuru koşulları karşılanmadı"}
+                      </Text>
+                    ) : null}
+                    <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                      {profile.data.verificationReviewNote}
+                    </Text>
+                  </View>
                 ) : null}
               </View>
             </View>
@@ -792,6 +831,35 @@ export default function OwnerProfileScreen() {
                   Sahip fotoğrafını değiştirirsen rozet güvenlik nedeniyle kaldırılır ve yeniden doğrulama gerekir.
                 </Text>
               </View>
+            ) : null}
+            {verificationStatus === "rejected" && profile.data.verificationReview ? (
+              profile.data.verificationReview.appealText ? (
+                <View className="mt-3 rounded-xl bg-bg-secondary p-3">
+                  <Text className="text-xs font-bold text-text-primary">İtirazın alındı</Text>
+                  <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                    {profile.data.verificationReview.appealText}
+                  </Text>
+                </View>
+              ) : (
+                <View className="mt-3">
+                  <TextInput
+                    value={appealText}
+                    onChangeText={setAppealText}
+                    placeholder="Karara neden itiraz ettiğini açıkla"
+                    placeholderTextColor="#9A8B82"
+                    multiline
+                    maxLength={1000}
+                    className="min-h-24 rounded-xl border border-border bg-bg-primary px-3 py-3 text-text-primary"
+                  />
+                  <AppPressable
+                    onPress={() => void submitAppeal()}
+                    disabled={appealBusy || appealText.trim().length < 10}
+                    className="mt-2 min-h-11 items-center justify-center rounded-xl border border-brand px-4 disabled:opacity-40"
+                  >
+                    {appealBusy ? <ActivityIndicator color="#F97362" /> : <Text className="font-semibold text-brand-dark">Karara itiraz et</Text>}
+                  </AppPressable>
+                </View>
+              )
             ) : null}
           </View>
 

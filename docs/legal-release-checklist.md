@@ -9,9 +9,9 @@ pazarlarla birlikte hukuk danışmanı tarafından doğrulanmalıdır.
 - `EXPO_PUBLIC_LEGAL_CONTROLLER_NAME`
 - `EXPO_PUBLIC_LEGAL_CONTROLLER_ADDRESS`
 - `EXPO_PUBLIC_SUPPORT_EMAIL`
-- Herkese açık gizlilik politikası URL'si
-- Herkese açık kullanım koşulları URL'si
-- Google Play için harici hesap silme talep URL'si
+- `EXPO_PUBLIC_PRIVACY_URL`
+- `EXPO_PUBLIC_TERMS_URL`
+- `EXPO_PUBLIC_ACCOUNT_DELETION_URL`
 
 Uygulama içi hesap silme yolu Profil → Hesabımı kalıcı olarak sil'dir. Edge
 Function, auth kaydıyla birlikte profil/pet verilerini ve kullanıcıya ait pet,
@@ -25,8 +25,8 @@ Pet-first sosyal/dating konumlandırması mağazaya açılmadan önce:
   tek checkbox yerine risk-temelli yaş güvencesi doğrulanmalı.
 - UGC koşulları; yasak içeriği, raporlama/engelleme yolunu, moderasyon
   iletişimini ve müdahale standardını yayınlanmış biçimde içermeli.
-- `2026-07-29-v2` koşulları yalnız yeni onboarding kayıtlarında kalmamalı;
-  mevcut kullanıcı için sürüm kontrolü ve yeniden kabul kapısı eklenmeli.
+- `2026-08-22-v3` koşulları mevcut kullanıcılar için oturum kapısında kontrol
+  edilir; eksik kabul varsa uygulama yasal yeniden kabul ekranına yönlendirir.
 - Bağlantı modu açık ve amaçla sınırlı olmalı. Cinsiyet/yönelim tercihi veya
   bunların çıkarımı eklenirse KVKK özel nitelikli veri ve yurt dışı aktarım
   incelemesi tamamlanmadan yayınlanmamalı.

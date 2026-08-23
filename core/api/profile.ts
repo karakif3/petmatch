@@ -30,6 +30,11 @@ export type EditableProfile = {
   } | null;
   verificationStatus: ProfileRow["verification_status"];
   verificationReviewNote: string | null;
+  verificationReview: {
+    itemId: string;
+    reasonCode: string | null;
+    appealText: string | null;
+  } | null;
   pet: {
     id: string;
     name: string;
@@ -150,7 +155,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       .single(),
     sb
       .from("moderation_items")
-      .select("note")
+      .select("id,note,rejection_reason_code,appeal_text")
       .eq("created_by", userId)
       .eq("kind", "verification")
       .eq("status", "rejected")
@@ -198,6 +203,13 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
         : null,
     verificationStatus: profileResult.data.verification_status,
     verificationReviewNote: verificationResult.data?.note ?? null,
+    verificationReview: verificationResult.data
+      ? {
+          itemId: verificationResult.data.id,
+          reasonCode: verificationResult.data.rejection_reason_code,
+          appealText: verificationResult.data.appeal_text,
+        }
+      : null,
     pet: {
       id: petResult.data.id,
       name: petResult.data.name,
@@ -228,6 +240,17 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       requireVerified: preferencesResult.data.require_verified_owner,
     },
   };
+}
+
+export async function submitVerificationAppeal(
+  moderationItemId: string,
+  appealText: string,
+): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc("submit_verification_appeal", {
+    p_item_id: moderationItemId,
+    p_appeal_text: appealText.trim(),
+  });
+  if (error) throw error;
 }
 
 export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void> {
@@ -339,6 +362,18 @@ export async function updateOwnerDiscoveryFilters(input: {
   requireSocial: boolean;
   requireVerified: boolean;
 }): Promise<void> {
+  if (input.requirePhoto) {
+    const { data: me, error: profileError } = await requireSupabaseClient()
+      .from("profiles")
+      .select("avatar_url,owner_visibility")
+      .single();
+    if (profileError) throw profileError;
+    if (!me.avatar_url || me.owner_visibility !== "public") {
+      throw new Error(
+        "Yalnızca fotoğraflı sahipleri görmek için kendi sahip fotoğrafını herkese açık paylaşmalısın.",
+      );
+    }
+  }
   const { error } = await requireSupabaseClient().rpc(
     "update_owner_discovery_filters",
     {

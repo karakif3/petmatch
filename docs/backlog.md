@@ -154,17 +154,16 @@ Bu turdan açık kalanlar:
 
 ### ⛔ Yayın kapıcıları — sırayla
 
-1. **`require_owner_photo` tek yönlü.** Avatarı olmayan ve `hidden` bir
-   kullanıcı "yalnızca fotoğraflı sahipleri göster" diyebiliyor: açıklama
-   tüketiyor, vermiyor. Kod tabanının kendi kuralıyla çelişiyor —
-   `require_visible_owner` ve `require_owner_social` çift yönlü.
-   Ayrıntı: [`experience-roadmap.md`](experience-roadmap.md) §8.
+1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız
+   kendi herkese açık sahip fotoğrafı bulunan kullanıcıda açılabiliyor;
+   fotoğraf kaldırılır veya profil gizlenirse otomatik kapanıyor.
 2. **Yasal alanlar.** Veri sorumlusu unvanı/adresi, destek e-postası,
    herkese açık politika ve hesap silme URL'leri.
    [`legal-release-checklist.md`](legal-release-checklist.md).
-3. **Fiziksel cihazda iki hesapla uçtan uca test.** Push bildirimleri
-   yalnızca gerçek cihazda doğrulanabiliyor; simülatörde keychain
-   entitlement hatası veriyor.
+3. **Fiziksel cihazda iki hesapla uçtan uca test.** Çalıştırılabilir senaryo
+   ve sunucu kanıtları [`two-device-release-test.md`](two-device-release-test.md)
+   dosyasında hazır. Push bildirimleri yalnızca gerçek cihazda doğrulanabildiği
+   için son yayın onayı fiziksel test bekliyor.
 
 ### 🔒 Yayın anında yapılacak — şimdi DEĞİL, bilerek erteleniyor
 

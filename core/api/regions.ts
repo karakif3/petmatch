@@ -49,3 +49,22 @@ export async function setMyRegion(
   });
   if (error) throw error;
 }
+
+export async function loadMyRegionWaitlist(): Promise<{
+  requestedLocation: string;
+  notifyWhenOpen: boolean;
+  updatedAt: string;
+} | null> {
+  const { data, error } = await requireSupabaseClient()
+    .from("region_waitlist")
+    .select("requested_location,notify_when_open,updated_at")
+    .maybeSingle();
+  if (error) throw error;
+  return data
+    ? {
+        requestedLocation: data.requested_location,
+        notifyWhenOpen: data.notify_when_open,
+        updatedAt: data.updated_at,
+      }
+    : null;
+}
