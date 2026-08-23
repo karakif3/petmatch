@@ -236,6 +236,11 @@ export function DiscoveryFilterModal({
             <Text className="mb-2 text-sm font-semibold text-text-primary">
               En uzak mesafe · {maxDistanceKm} km
             </Text>
+            <Text className="mb-2 text-xs leading-4 text-text-tertiary">
+              Mesafe, seçtiğin bölgenin içinde uygulanır. Konum vermezsen veya
+              karşı taraf vermediyse bu filtre atlanır ve mesafe etiketi
+              görünmez.
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
               <View className="flex-row gap-2">
                 {distanceOptions.map((distance) => (

@@ -674,8 +674,9 @@ export default function DiscoverScreen() {
               Bu ayarlarda yeni bir pet yok
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              Beğendiğin/geçtiğin petler desteden çıkar. Mesafeyi genişletebilir,
-              filtreleri temizleyebilir veya yeni aday bildirimi isteyebilirsin.
+              Yalnızca seçtiğin bölgedeki petler destede. Beğendiğin/geçtiğin
+              petler çıkar. Aynı bölgede mesafeyi genişletebilir, filtreleri
+              temizleyebilir veya yeni aday bildirimi isteyebilirsin.
             </Text>
             {/*
               Öncesinde burada 4 düğme üst üste duruyordu (yarıçap/temizle/

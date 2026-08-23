@@ -15,8 +15,8 @@ import { AppPressable } from "./ui/pressable";
 const CARD_ASPECT = 3 / 4;
 const MAX_OWNER_INTEREST_CHIPS = 2;
 
-function distanceLabel(bucket: string | null): string {
-  if (!bucket) return "Mesafe bilinmiyor";
+function distanceLabel(bucket: string | null): string | null {
+  if (!bucket) return null;
   if (bucket === "<1") return "1 km’den yakın";
   if (bucket === "25+") return "25 km’den uzak";
   return `${bucket} km uzakta`;
@@ -280,7 +280,7 @@ export function DiscoveryCard({
           yer için yarışıyordu. Aynı cümlenin parçası: "Küçük · 2 km
           uzakta". Bir bilgi daha az kutu demek.
         */}
-        {details || showDistance ? (
+        {details || (showDistance && distanceLabel(card.distanceBucket)) ? (
           <Text className="mt-0.5 text-[13px] font-semibold text-white/85" numberOfLines={1}>
             {[details, showDistance ? distanceLabel(card.distanceBucket) : null]
               .filter(Boolean)

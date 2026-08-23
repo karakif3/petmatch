@@ -12,6 +12,13 @@ iş burada.**
 
 ### Son turlarda kapananlar
 
+**Keşfet coğrafyası (`0057`).** Seçilen yaşama/erişim bölgesi artık Keşfet
+arama havuzu. `discover_pets` / `discover_playdate_pets` (ve aynı deliği
+paylaşan `swipe_pet`, `pending_likes`) karşılıklı `region_slug` eleyen;
+bekleme listesi (`other`) ve boş bölge destede yok. Cihaz konumu yalnızca
+aynı bölge içinde mesafe filtresi/sıralama; etiket yoksa kartta da yok.
+"Başka bölgeye bak" bilinçli olarak yok — üç İstanbul havuzunu karıştırırdı.
+
 Keşfette sağa/sola kaydırma jesti · sahip profiline geçiş paneli (kart ve
 sohbet) · ilgi alanları · **Beğeniler sekmesi** (4 sekmeli yapı) ·
 **yapılandırılmış buluşma kaydı** (öneri → yanıt → iptal, `0043`) ·

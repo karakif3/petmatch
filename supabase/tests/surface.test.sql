@@ -70,6 +70,11 @@ select tests.assert(
   'keşfet sarmalayıcısı authenticated''a açık'
 );
 
+select tests.assert(
+  not has_function_privilege('authenticated', 'shares_discover_region(uuid,uuid)', 'execute'),
+  'bölge paylaşım yardımcısı istemciye kapalı'
+);
+
 -- Moderasyon yüzeyi yalnızca sunucu tarafında yetkilenmeli.
 select tests.assert(
   (select count(*) from pg_proc p

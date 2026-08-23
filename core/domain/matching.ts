@@ -6,10 +6,10 @@
  * İkisi ayrı tutuluyor: sıralama değişse bile eleme kuralları sabit kalmalı.
  *
  * MESAFE BURADA YOK — bilerek. `discover_pets` ham koordinat döndürmüyor
- * (üçgenleme savunması, bkz. 0007) ve zaten mesafeye göre sıralayıp
- * `max_distance_km` ile eliyor. Skora mesafe bileşeni koymak, istemcide
- * hiçbir zaman dolmayacak bir alana ağırlık vermek olurdu — nitekim eski
- * sürümde ağırlığın %30'u sessizce ölüydü.
+ * (üçgenleme savunması, bkz. 0007). Arama havuzu seçilen `region_slug`'dır;
+ * mesafe yalnızca o bölge içinde sıralayıp `max_distance_km` ile eler.
+ * Skora mesafe bileşeni koymak, istemcide hiçbir zaman dolmayacak bir alana
+ * ağırlık vermek olurdu — nitekim eski sürümde ağırlığın %30'u sessizce ölüydü.
  */
 import { ageInYears } from "./age";
 import type { DiscoveryPreferences, MatchGoal, Pet } from "./types";

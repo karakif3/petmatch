@@ -106,7 +106,7 @@ etiketler eşleşme amacıyla profillenmez. Serbest bio metninden “mindset sko
 | Kimi görmek istediği | Mevcut sosyal filtre cihazda ve ücretsiz; dating için karşılıklı eşleşme gerektirdiğinden ancak ayrı hukuki temel, açık rıza ve erişim/silme kontrolleri tamamlanınca sunucuda tutulabilir |
 | Cinsel yönelim/cinsel hayat | MVP'de toplanmaz veya çıkarılmaz |
 | Kesin yaş/doğum tarihi | 18+ kontrolü için private; kartta yalnız yaş kovası |
-| Kesin konum | Gönderilmez; yaklaşık bölge ve mesafe kovası |
+| Kesin konum | Gönderilmez; seçilen bölge ve varsa mesafe kovası |
 | Doğrulama fotoğrafı | Private, karar sonrası silinir; biyometrik tanıma yapılmaz |
 | Mesaj/bio/fotoğraf | UGC ve güvenlik politikalarına tabi; reklam profillemesine girmez |
 

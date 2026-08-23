@@ -377,7 +377,7 @@ Deno.serve(async (request) => {
           admin
             .from("profiles")
             .select(
-              "owner_visibility,avatar_url,owner_social_open,verification_status,require_visible_owner",
+              "owner_visibility,avatar_url,owner_social_open,verification_status,require_visible_owner,region_slug",
             )
             .eq("id", newPet.owner_id)
             .single(),
@@ -407,7 +407,7 @@ Deno.serve(async (request) => {
           .eq("is_active", true),
         admin
           .from("profiles")
-          .select("id,owner_visibility")
+          .select("id,owner_visibility,region_slug")
           .in("id", preferenceUserIds),
         admin
           .from("blocks")
@@ -436,6 +436,13 @@ Deno.serve(async (request) => {
         const viewerPet = viewerPetByOwner.get(preference.user_id);
         const viewerProfile = viewerProfileById.get(preference.user_id);
         if (!viewerPet || !viewerProfile || blockedIds.has(preference.user_id)) {
+          return false;
+        }
+        if (
+          !ownerProfile.region_slug ||
+          ownerProfile.region_slug === "other" ||
+          viewerProfile.region_slug !== ownerProfile.region_slug
+        ) {
           return false;
         }
         if (

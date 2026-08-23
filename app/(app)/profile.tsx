@@ -481,7 +481,7 @@ export default function ProfileScreen() {
                     ? "Konum kayıtlı"
                     : "Konum eklenmedi"
               }
-              detail="Tam adres saklanmaz; koordinatlar yaklaşık 1 km’lik alana yuvarlanır."
+              detail="Keşfet havuzu seçtiğin bölgedir. Konum yalnızca o bölge içinde mesafe etiketi ve filtresi içindir; tam adres saklanmaz, koordinatlar yaklaşık 1 km’lik alana yuvarlanır."
             />
             <RowSeparator inset={false} />
             <AppPressable

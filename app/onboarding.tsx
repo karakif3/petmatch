@@ -481,8 +481,9 @@ export default function OnboardingScreen() {
               Bölgen
             </Text>
             <Text className="mb-3 text-xs leading-4 text-text-tertiary">
-              Şu anda açık bölgeler aşağıda. Yakınında gerçek eşleşmeler olması
-              için topluluğu bu bölgelerde yoğunlaştırıyoruz.
+              Yalnızca seçtiğin bölgedeki petleri görürsün. Şu anda açık
+              bölgeler aşağıda; yakınında gerçek eşleşmeler olması için
+              topluluğu bu bölgelerde yoğunlaştırıyoruz.
             </Text>
             <View className="mb-5 flex-row flex-wrap gap-2">
               {regions.isLoading ? <ActivityIndicator color="#F97362" /> : null}
@@ -583,18 +584,21 @@ export default function OnboardingScreen() {
               Konum bölgeyle AYNI blokta duruyor.
               Ayrı adımlardayken kullanıcıya "nerede yaşıyorsun" iki kez
               sorulmuş gibi geliyordu. Aynı şey değiller — bölge zorunlu ve
-              pilot ölçümünün anahtarı, konum ise opsiyonel ve yalnızca
-              mesafeye göre sıralama için — ama bu ayrım ancak yan yana
-              dururken anlaşılıyor. Konum bölgeden TÜRETİLEMİYOR: izni
-              vermeyen kullanıcı pilot ölçümünden düşerdi.
+              Keşfet havuzunun kendisi, konum ise opsiyonel ve yalnızca
+              aynı bölge içinde mesafe filtresi/sıralama için — ama bu ayrım
+              ancak yan yana dururken anlaşılıyor. Konum bölgeden
+              TÜRETİLEMİYOR: izni vermeyen kullanıcı yine kendi bölgesinde
+              keşfeder, mesafe etiketi görmez.
             */}
             <Text className="mb-1 text-sm font-semibold text-text-primary">
               Yaklaşık konum (opsiyonel)
             </Text>
             <Text className="mb-3 text-xs leading-5 text-text-tertiary">
-              Bölgen kimlerle eşleştiğini belirliyor; konum ise onları sana
-              yakınlıklarına göre sıralıyor. Tam konumun saklanmaz, uygulama
-              göndermeden önce yaklaşık 1 km&apos;lik alana yuvarlar.
+              Bölgen kimlerle eşleştiğini belirler. Konum vermezsen yine o
+              bölgede keşfedersin; mesafe etiketi çıkmaz. Konum yalnızca aynı
+              bölge içinde sıralama ve mesafe filtresi içindir. Tam konumun
+              saklanmaz, uygulama göndermeden önce yaklaşık 1 km&apos;lik alana
+              yuvarlar.
             </Text>
             <AppPressable
               onPress={useCurrentLocation}
@@ -741,8 +745,8 @@ export default function OnboardingScreen() {
                     }}
                   >
                     <Text className="text-sm leading-5 text-text-secondary">
-                      Yaklaşık konumumun mesafe bazlı keşfet için işlenmesine açık rıza
-                      veriyorum. Bu özellik isteğe bağlıdır.
+                      Yaklaşık konumumun, seçtiğim bölge içinde mesafe bazlı keşfet
+                      için işlenmesine açık rıza veriyorum. Bu özellik isteğe bağlıdır.
                     </Text>
                   </Checkbox>
                   {fieldErrors.locationConsent ? (

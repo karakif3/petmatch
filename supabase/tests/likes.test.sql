@@ -10,6 +10,10 @@ select tests.seed_user('11111111-1111-1111-1111-111111111111'); -- ben
 select tests.seed_user('22222222-2222-2222-2222-222222222222'); -- cevapsız beğeni
 select tests.seed_user('33333333-3333-3333-3333-333333333333'); -- engellenecek
 select tests.seed_user('44444444-4444-4444-4444-444444444444'); -- eşleşecek
+select tests.assign_region('11111111-1111-1111-1111-111111111111', 'kadikoy');
+select tests.assign_region('22222222-2222-2222-2222-222222222222', 'kadikoy');
+select tests.assign_region('33333333-3333-3333-3333-333333333333', 'kadikoy');
+select tests.assign_region('44444444-4444-4444-4444-444444444444', 'kadikoy');
 
 select tests.seed_pet('aaaa1111-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Luna');
 select tests.seed_pet('bbbb2222-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'Karam');
@@ -59,6 +63,9 @@ reset role;
 select tests.seed_user('55555555-5555-5555-5555-555555555555'); -- ben (süper senaryosu)
 select tests.seed_user('66666666-6666-6666-6666-666666666666'); -- normal beğeni, daha yeni
 select tests.seed_user('77777777-7777-7777-7777-777777777777'); -- süper beğeni, daha eski
+select tests.assign_region('55555555-5555-5555-5555-555555555555', 'kadikoy');
+select tests.assign_region('66666666-6666-6666-6666-666666666666', 'kadikoy');
+select tests.assign_region('77777777-7777-7777-7777-777777777777', 'kadikoy');
 
 select tests.seed_pet('aaaa5555-0000-0000-0000-000000000005', '55555555-5555-5555-5555-555555555555', 'Zeytin');
 select tests.seed_pet('bbbb6666-0000-0000-0000-000000000006', '66666666-6666-6666-6666-666666666666', 'Rüzgar');
