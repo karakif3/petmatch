@@ -12,6 +12,10 @@ select tests.seed_user('11111111-1111-1111-1111-111111111111'); -- bakan
 select tests.seed_user('22222222-2222-2222-2222-222222222222', null, 'public'); -- public sahip
 select tests.seed_user('33333333-3333-3333-3333-333333333333', null, 'after_match'); -- after_match sahip
 
+select tests.assign_region('11111111-1111-1111-1111-111111111111', 'kadikoy');
+select tests.assign_region('22222222-2222-2222-2222-222222222222', 'kadikoy');
+select tests.assign_region('33333333-3333-3333-3333-333333333333', 'kadikoy');
+
 select tests.seed_pet('aaaa1111-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Benim');
 select tests.seed_pet('bbbb2222-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'Public Pet');
 select tests.seed_pet('cccc3333-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333', 'AfterMatch Pet');

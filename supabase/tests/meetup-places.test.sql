@@ -35,8 +35,13 @@ select tests.assert(
 );
 
 select tests.assert(
-  (select count(*) from meetup_places) = 3,
+  not exists (select 1 from meetup_places where name = 'Fenerbahçe Parkı'),
   'RLS doğrulanmamış Kadıköy adayını gizliyor'
+);
+
+select tests.assert(
+  (select count(*) from meetup_places) = 4,
+  'RLS doğrulanmış yerleri bölgeden bağımsız gösterir — bölge süzmesi RPC''de'
 );
 
 select tests.assert(
@@ -104,7 +109,8 @@ select tests.assert(
 );
 
 -- "Diğer" için küratörlü liste yok; uydurma öneri vermiyoruz.
-select set_my_region('other');
+-- 0053'ten beri `other` talep konumu ister (2-80 karakter).
+select set_my_region('other', 'Üsküdar', true);
 select tests.assert(
   (select count(*) from list_meetup_places()) = 0,
   '"Diğer" bölgesinde öneri yok'

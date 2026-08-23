@@ -51,7 +51,11 @@ export default function RegionWaitlistScreen() {
       );
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["region-waitlist"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["region-waitlist"] }),
+        queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+        queryClient.invalidateQueries({ queryKey: ["pending-likes"] }),
+      ]);
       setEditing(false);
       await retryAccountStatus();
     },

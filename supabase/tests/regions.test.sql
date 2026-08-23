@@ -75,7 +75,6 @@ select tests.assert(
   'açık bölgeye geçen kullanıcı bekleme listesinden çıkarılıyor'
 );
 
-select set_my_region('other', 'Üsküdar', true);
 reset role;
 
 -- --------------------------------------------------------------------------
@@ -122,6 +121,16 @@ select tests.assert(
   (select count(*) from region_density()) = 4,
   'rapor "Diğer" dahil tüm aktif bölgeleri veriyor'
 );
+
+reset role;
+
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+select set_my_region('other', 'Üsküdar', true);
+reset role;
+
+set local role authenticated;
+select tests.act_as('22222222-2222-2222-2222-222222222222');
 
 select tests.assert(
   (select interested = 1 and wants_notification = 1

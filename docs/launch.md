@@ -108,7 +108,12 @@ yanına ölçülebilir bir anahtar ekliyor:
 - `region_density()` — moderatöre açık; bölge başına onboarded kullanıcı ve
   aktif peti olan kullanıcı sayısı
 
-Onboarding'in ilk adımında bölge seçimi zorunlu. Pilot dışındaki kullanıcıdan
+Onboarding'in ilk adımında bölge seçimi zorunlu. Seçilen bölge aynı zamanda
+Keşfet arama havuzudur (`0057`): üç pilot ilçe birbirini görmez, bekleme
+listesi (`other`) destede yoktur. Cihaz konumu isteğe bağlıdır ve yalnızca
+aynı bölge içinde mesafe etiketi/filtresi üretir.
+
+Pilot dışındaki kullanıcıdan
 ilçe/şehir ve haber alma tercihi `region_waitlist` tablosunda tutulur.
 `region_demand()` moderatör sorgusu talepleri normalize edilmiş yer adına göre
 sıralar; sonraki bölge böylece toplam ilgi ve bildirim talebiyle seçilir.
