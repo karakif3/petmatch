@@ -45,9 +45,19 @@ select tests.assert(
   'profil gizlenince fotoğraf filtresi otomatik kapanıyor'
 );
 
+reset role;
+insert into storage.objects (bucket_id, name, owner)
+values (
+  'verification-photos',
+  '11111111-1111-1111-1111-111111111111/aaaa1111-0000-0000-0000-000000000001/proof.jpg',
+  '11111111-1111-1111-1111-111111111111'
+);
+
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
 select submit_verification(
   'aaaa1111-0000-0000-0000-000000000001',
-  '11111111-1111-1111-1111-111111111111/proof.jpg'
+  '11111111-1111-1111-1111-111111111111/aaaa1111-0000-0000-0000-000000000001/proof.jpg'
 ) as verification_id \gset
 reset role;
 

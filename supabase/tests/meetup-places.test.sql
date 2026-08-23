@@ -35,8 +35,13 @@ select tests.assert(
 );
 
 select tests.assert(
-  (select count(*) from meetup_places) = 3,
+  not exists (select 1 from meetup_places where name = 'Fenerbahçe Parkı'),
   'RLS doğrulanmamış Kadıköy adayını gizliyor'
+);
+
+select tests.assert(
+  (select count(*) from meetup_places) = 4,
+  'RLS doğrulanmış yerleri bölgeden bağımsız gösterir — bölge süzmesi RPC''de'
 );
 
 select tests.assert(
