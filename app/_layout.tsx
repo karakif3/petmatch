@@ -27,6 +27,7 @@ import { useAuthStore } from "../stores/auth";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppErrorBoundary } from "../components/app-error-boundary";
+import { InAppNotificationBanner } from "../components/in-app-notification-banner";
 import { AppPressable } from "../components/ui/pressable";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -117,6 +118,8 @@ function NotificationEffects() {
         router.push("/(app)/matches");
       } else if (data.type === "new_candidate") {
         router.push("/(app)");
+      } else if (data.type === "super_like") {
+        router.push("/(app)/likes");
       } else if (data.type === "verification") {
         router.push("/profile/owner");
       }
@@ -283,6 +286,7 @@ export default function RootLayout() {
               <Stack.Screen name="profile/owner" />
               <Stack.Screen name="moderation/index" />
                 </Stack>
+                <InAppNotificationBanner enabled={Boolean(user && onboarded)} />
               </>
             )}
           </QueryClientProvider>

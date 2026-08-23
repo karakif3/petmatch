@@ -51,9 +51,11 @@ export function configureForegroundNotifications(): void {
   void import("expo-notifications").then((Notifications) => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowBanner: true,
+        // Uygulama açıkken PetMatch'in kendi route-aware banner'ı gösterilir.
+        // Sistem banner'ını da açmak aynı bildirimi iki kez gösterirdi.
+        shouldShowBanner: false,
         shouldShowList: true,
-        shouldPlaySound: true,
+        shouldPlaySound: false,
         shouldSetBadge: true,
       }),
     });
