@@ -109,7 +109,8 @@ select tests.assert(
 );
 
 -- "Diğer" için küratörlü liste yok; uydurma öneri vermiyoruz.
-select set_my_region('other');
+-- 0053'ten beri `other` talep konumu ister (2-80 karakter).
+select set_my_region('other', 'Üsküdar', true);
 select tests.assert(
   (select count(*) from list_meetup_places()) = 0,
   '"Diğer" bölgesinde öneri yok'
