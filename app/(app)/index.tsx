@@ -41,7 +41,6 @@ import {
   type OwnerDiscoveryFilterInput,
 } from "../../core/api/discovery";
 import { loadProfileCompletion } from "../../core/api/profile-completion";
-import { updateOwnerVisibility } from "../../core/api/profile";
 import { blockUser } from "../../core/api/safety";
 import { FEATURES } from "../../core/features";
 import type { OwnerVisibility, SwipeDirection } from "../../core/domain/types";
@@ -73,7 +72,6 @@ export default function DiscoverScreen() {
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterBusy, setFilterBusy] = useState(false);
-  const [visibilityBusy, setVisibilityBusy] = useState(false);
   const [filterReady, setFilterReady] = useState(false);
   const [ownerFilters, setOwnerFilters] = useState<OwnerDiscoveryFilterInput>({
     genders: [],
@@ -389,46 +387,7 @@ export default function DiscoverScreen() {
   const ownerVisibility: OwnerVisibility =
     deck.data?.ownerSettings.visibility ?? "after_match";
   const ownerPublic = ownerVisibility === "public";
-  const lastPrivateVisibility = useRef<OwnerVisibility>("after_match");
-  useEffect(() => {
-    if (ownerVisibility !== "public") lastPrivateVisibility.current = ownerVisibility;
-  }, [ownerVisibility]);
 
-  const toggleOwnerVisibility = async () => {
-    if (!user || !deck.data || visibilityBusy) return;
-    const next: OwnerVisibility = ownerPublic
-      ? lastPrivateVisibility.current
-      : "public";
-
-    if (next === "public" && !deck.data.ownerSettings.avatarUrl) {
-      Alert.alert(
-        "Önce kendi fotoğrafını ekle",
-        "Herkese açık profilde kartında adın ve fotoğrafın görünür. Fotoğrafın olmadan bu anahtarın bir karşılığı olmaz.",
-        [
-          { text: "Vazgeç", style: "cancel" },
-          {
-            text: "Sahip profiline git",
-            onPress: () => router.push("/profile/owner"),
-          },
-        ],
-      );
-      return;
-    }
-
-    setVisibilityBusy(true);
-    setError(null);
-    try {
-      await updateOwnerVisibility({ userId: user.id, visibility: next });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["discovery", user.id] }),
-        queryClient.invalidateQueries({ queryKey: ["profile", user.id] }),
-      ]);
-    } catch (visibilityError) {
-      setError(errorMessage(visibilityError, "Görünürlük değiştirilemedi."));
-    } finally {
-      setVisibilityBusy(false);
-    }
-  };
 
   const toggleNewCandidateNotification = async () => {
     if (!deck.data) return;
@@ -490,31 +449,37 @@ export default function DiscoverScreen() {
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-text-primary">Keşfet</Text>
           <View className="flex-row items-center gap-2">
+            {/*
+              Bu düğme ESKİDEN görünürlüğü doğrudan yazan ikili bir anahtardı.
+              Kaldırıldı: `owner_visibility` ÜÇ durumlu (gizli · eşleşince ·
+              herkese açık) ve ikili bir kısayol üçüncü durumu kaçınılmaz
+              olarak kaybediyordu. Kayıp durumu bellekte tutuyordu
+              (`useRef`), o bellek de oturumla sıfırlanıyordu: "Gizli"
+              seçmiş bir kullanıcı, uygulamayı yeniden açıp anahtarı
+              kapattığında GİZLİ'ye değil "eşleşince"ye düşüyordu — yani
+              gizliliği kendisine söylenmeden gevşiyordu.
+
+              Şimdi durum burada GÖSTERİLİYOR ama değiştirilmiyor; dokunuş
+              ayarın tek sahibi olan sahip profiline götürüyor.
+            */}
             {deck.data ? (
               <AppPressable
-                onPress={() => void toggleOwnerVisibility()}
-                disabled={visibilityBusy}
-                accessibilityRole="switch"
-                accessibilityState={{ checked: ownerPublic, disabled: visibilityBusy }}
-                accessibilityLabel="Sahip profilim keşfette görünsün"
-                accessibilityHint={
+                onPress={() => router.push("/profile/owner")}
+                accessibilityRole="button"
+                accessibilityLabel={
                   ownerPublic
-                    ? "Kapatırsan adın ve fotoğrafın yalnızca eşleştiğin kişilere görünür."
-                    : "Açarsan adın ve fotoğrafın kartında herkese görünür."
+                    ? "Sahip profilin keşfette görünüyor. Görünürlük ayarını aç."
+                    : "Sahip profilin keşfette görünmüyor. Görünürlük ayarını aç."
                 }
-                className={`h-11 w-11 items-center justify-center rounded-full border disabled:opacity-40 ${
+                className={`h-11 w-11 items-center justify-center rounded-full border ${
                   ownerPublic ? "border-brand bg-brand/10" : "border-border bg-surface"
                 }`}
               >
-                {visibilityBusy ? (
-                  <ActivityIndicator size="small" color="#6B5D55" />
-                ) : (
-                  <AppIcon
-                    name={ownerPublic ? "eye" : "eye-off"}
-                    color={ownerPublic ? "#F97362" : "#6B5D55"}
-                    size={20}
-                  />
-                )}
+                <AppIcon
+                  name={ownerPublic ? "eye" : "eye-off"}
+                  color={ownerPublic ? "#F97362" : "#6B5D55"}
+                  size={20}
+                />
               </AppPressable>
             ) : null}
             <AppPressable

@@ -10,6 +10,8 @@ import { AppIcon } from "../../components/ui/icon";
 import { AppPressable } from "../../components/ui/pressable";
 import { loadConversationOwnerProfile } from "../../core/api/conversations";
 import { loadEditableProfile } from "../../core/api/profile";
+import { loadProfileCompletion } from "../../core/api/profile-completion";
+import { missingProfileItems } from "../../core/domain/profile-completion";
 import { useAuthStore } from "../../stores/auth";
 import { loadPetProfile } from "../../core/api/pet-profile";
 import { formatAge } from "../../core/domain/age";
@@ -92,6 +94,20 @@ export default function PetProfileScreen() {
     : null;
   const previewVisibility = myProfile.data?.ownerVisibility ?? "after_match";
 
+  /*
+   * Önizleme aynı zamanda bir KALİTE aracı. Kullanıcı boşluğu en çok
+   * gördüğü yerde doldurmaya yatkın: "karşı taraf şunları göremiyor"
+   * cümlesi, Keşfet'teki yüzde göstergesinden daha somut. Eksik hesabı
+   * yeniden yazılmıyor — tamamlama kartının kullandığı aynı domain
+   * fonksiyonu (`missingProfileItems`) besliyor.
+   */
+  const completion = useQuery({
+    queryKey: ["profile-completion", user?.id],
+    queryFn: () => loadProfileCompletion(user!.id),
+    enabled: isPreview && Boolean(user),
+  });
+  const missing = completion.data ? missingProfileItems(completion.data) : [];
+
   const age = pet.data ? formatAge(pet.data.birthDate) : null;
   const facts = pet.data
     ? [pet.data.breed, age, sizeLabels[pet.data.size]].filter(Boolean).join(" · ")
@@ -157,6 +173,40 @@ export default function PetProfileScreen() {
             index={photoIndex}
             onIndexChange={setPhotoIndex}
           />
+
+          {/*
+            Bu kutu KARŞI TARAFA GÖRÜNMÜYOR; önizlemenin kendisine ait.
+            Kesikli kenarlık ve "yalnızca sana görünür" notu onu profilin
+            gerçek içeriğinden ayırıyor — aksi halde önizleme, önizlediği
+            şeye kendi arayüzünü karıştırırdı.
+          */}
+          {isPreview && missing.length > 0 ? (
+            <View className="mx-5 mt-5 rounded-2xl border border-dashed border-brand/40 bg-brand/5 p-4">
+              <Text className="text-sm font-bold text-brand-dark">
+                Karşı taraf şunları göremiyor
+              </Text>
+              <View className="mt-3 gap-2">
+                {missing.map((item) => (
+                  <AppPressable
+                    key={item.key}
+                    onPress={() => router.push(item.route)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.label} ekle`}
+                    className="flex-row items-center rounded-xl bg-surface px-3 py-2.5"
+                  >
+                    <AppIcon name="circle" color="#C4B7AE" size={15} />
+                    <Text className="ml-2.5 flex-1 text-[13px] text-text-primary">
+                      {item.label}
+                    </Text>
+                    <AppIcon name="chevron-right" color="#9A8B82" size={15} />
+                  </AppPressable>
+                ))}
+              </View>
+              <Text className="mt-3 text-[11px] leading-4 text-text-tertiary">
+                Bu kutu yalnızca sana görünür.
+              </Text>
+            </View>
+          ) : null}
 
           <View className="px-5 pt-5">
             <View className="flex-row items-center gap-2">
