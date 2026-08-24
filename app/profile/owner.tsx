@@ -34,6 +34,7 @@ import { useTranslation } from "../../core/i18n";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
+import { OwnerVisibilityPreview } from "../../components/owner-visibility-preview";
 import { AppPressable } from "../../components/ui/pressable";
 import { SectionTitle } from "../../components/ui/section";
 import { ProfileFormSkeleton } from "../../components/ui/skeleton";
@@ -625,6 +626,22 @@ export default function OwnerProfileScreen() {
               );
             })}
           </View>
+
+          <OwnerVisibilityPreview
+            visibility={visibility}
+            petName={profile.data?.pet.name ?? "petin"}
+            owner={{
+              displayName: displayName.trim() || null,
+              photoUrl: avatar?.uri ?? null,
+              bio: bio.trim() || null,
+              // Yaş/cinsiyet sunucuda karşılıklı açıklama kuralına bağlı;
+              // önizleme onları taklit etmiyor, dipnotta açıklıyor.
+              gender: null,
+              ageBucket: null,
+              socialOpen,
+              verified: profile.data?.verificationStatus === "approved",
+            }}
+          />
 
           <SectionTitle>{t("ownerConnection.title")}</SectionTitle>
           <View className="mb-7 gap-2">

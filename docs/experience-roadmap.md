@@ -1003,6 +1003,35 @@ Keşfet kartı, Beğeniler ve Mesajlar satırı da aynı rotaya bağlanmalı; de
 satırı sahip alanlarını zaten taşıdığı için oradan gelindiğinde
 `conversationId` olmadan da sahip bölümü doldurulabilir.
 
+### Görünürlük önizlemesi (aynı gün)
+
+Sahip profili ekranında üç görünürlük seçeneği vardı ama hiçbirinin karşı
+tarafta ne demek olduğu görünmüyordu — ve `Profilimi önizle` yalnızca PET
+kartını gösteriyor, sahip katmanını bilerek hiç render etmiyor. Yani
+**gizlilik kararı olan tek katman, önizlenemeyen katmandı.**
+
+Görünürlük seçeneklerinin hemen altına "Karşı taraf ne görüyor" bloğu kondu:
+
+- **Gizli** → `eye-off` + "Keşfette yalnızca {pet} görünür. Eşleşseniz bile
+  profil sayfanda 'Sahibi' bölümü hiç çıkmaz."
+- **Eşleşince** → "Yalnızca eşleştikten sonra — sohbette ve profil
+  sayfasında:" + gerçek `OwnerProfileSection`
+- **Keşfette görünür** → destedeki sahip hapının kendisi + aynı bölüm
+
+**Ayrı bir üç durumlu anahtar konmadı, bilerek:** üç seçenek zaten hemen
+yukarıda radyo olarak duruyor; ikinci bir seçici aynı kararı iki yerde
+sormak olurdu. Önizleme seçimi canlı takip ediyor.
+
+**Sunucu mantığı taklit edilmiyor:** yaş kovası (`owner_age_bucket()`) ve
+karşılıklı açıklama kuralı (`0021`) sunucuda. Önizleme onları yeniden
+uygulamak yerine dipnotta ne olduklarını söylüyor — istemcide ikinci bir
+kopya, bu deponun tekrar tekrar temizlediği hata sınıfı.
+
+**Ertelenen yarısı:** "Profilimi önizle"nin kartı değil TAM PROFİL SAYFASINI
+göstermesi. Sayfanın giriş noktaları henüz bitmediği için (yalnız sohbetten
+giriliyor) hâlâ değişen bir şeyin önizlemesini iki kez yazmamak adına
+bekletiliyor.
+
 ---
 
 ## 16. Profil ekranı: gruplu liste diline geçiş (2026-08-09)
