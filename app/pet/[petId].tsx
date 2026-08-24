@@ -9,6 +9,8 @@ import { PhotoCarousel } from "../../components/photo-carousel";
 import { AppIcon } from "../../components/ui/icon";
 import { AppPressable } from "../../components/ui/pressable";
 import { loadConversationOwnerProfile } from "../../core/api/conversations";
+import { loadEditableProfile } from "../../core/api/profile";
+import { useAuthStore } from "../../stores/auth";
 import { loadPetProfile } from "../../core/api/pet-profile";
 import { formatAge } from "../../core/domain/age";
 import { sizeLabels, temperamentLabels } from "../../core/domain/labels";
@@ -37,10 +39,14 @@ import { errorMessage } from "../../core/domain/error-message";
  * geldiğinde `conversationId` olmadan da sahip bölümü doldurulabilir.
  */
 export default function PetProfileScreen() {
-  const { petId, conversationId } = useLocalSearchParams<{
+  const { petId, conversationId, preview } = useLocalSearchParams<{
     petId: string;
     conversationId?: string;
+    /** "1" ise kullanıcı KENDİ profiline karşı tarafın gözünden bakıyor. */
+    preview?: string;
   }>();
+  const isPreview = preview === "1";
+  const user = useAuthStore((state) => state.user);
   const [photoIndex, setPhotoIndex] = useState(0);
 
   const pet = useQuery({
@@ -54,8 +60,37 @@ export default function PetProfileScreen() {
   const owner = useQuery({
     queryKey: ["conversation-owner", conversationId],
     queryFn: () => loadConversationOwnerProfile(conversationId!),
-    enabled: Boolean(conversationId),
+    enabled: Boolean(conversationId) && !isPreview,
   });
+
+  /*
+   * ÖNİZLEMEDE sahip verisi konuşmadan değil kendi profilinden geliyor —
+   * ortada bir konuşma yok. Görünürlük kuralı burada İSTEMCİDE uygulanmıyor:
+   * bölüm her durumda gösterilip üstüne "kim görüyor" etiketi konuyor.
+   * Sebep, kullanıcının sorduğu sorunun tam olarak bu olması: "ayarı açtım,
+   * peki karşı taraf ne görüyor?" Bölümü sessizce gizlemek o soruyu
+   * yanıtsız bırakıyordu.
+   */
+  const myProfile = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => loadEditableProfile(user!.id),
+    enabled: isPreview && Boolean(user),
+  });
+
+  const previewOwner = myProfile.data
+    ? {
+        displayName: myProfile.data.displayName,
+        photoUrl: myProfile.data.ownerAvatar?.url ?? null,
+        bio: myProfile.data.ownerBio,
+        // Yaş kovası ve karşılıklı açıklama kuralı sunucuda; istemcide
+        // yeniden uygulanmıyor (bkz. görünürlük önizlemesi).
+        gender: null,
+        ageBucket: null,
+        socialOpen: myProfile.data.ownerSocialOpen,
+        verified: myProfile.data.verificationStatus === "approved",
+      }
+    : null;
+  const previewVisibility = myProfile.data?.ownerVisibility ?? "after_match";
 
   const age = pet.data ? formatAge(pet.data.birthDate) : null;
   const facts = pet.data
@@ -85,6 +120,11 @@ export default function PetProfileScreen() {
         <Text className="ml-1 text-lg font-bold text-text-primary" numberOfLines={1}>
           {pet.data?.name ?? "Profil"}
         </Text>
+        {isPreview ? (
+          <View className="ml-2 rounded-full bg-accent/15 px-2.5 py-1">
+            <Text className="text-[11px] font-bold text-accent-dark">Önizleme</Text>
+          </View>
+        ) : null}
       </View>
 
       {pet.isLoading ? (
@@ -171,7 +211,35 @@ export default function PetProfileScreen() {
               </Section>
             ) : null}
 
-            {owner.data ? (
+            {isPreview && previewOwner ? (
+              <View className="mt-8 border-t border-border pt-6">
+                <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-text-tertiary">
+                  Sahibi
+                </Text>
+                {/*
+                  Önizlemenin ASIL işi bu satır. Kullanıcı görünürlük ayarını
+                  değiştiriyor ama sonucunu göremiyordu; sahip bloğunu
+                  "kendi bilgini kendine göstermenin anlamı yok" diye
+                  gizlemek de tam tersi bir mantıktı — önizlemenin tek
+                  amacı KARŞI TARAFIN ne gördüğü.
+                */}
+                <View className="mb-4 rounded-xl bg-bg-secondary px-3 py-2.5">
+                  <Text className="text-xs leading-4 text-text-secondary">
+                    {previewVisibility === "public"
+                      ? // Metinler pet adına EK ALMAYACAK şekilde kuruldu: "Luna'in"
+                        // gibi bir ek istemcide üretilemez (ünlü uyumu + kesme
+                        // işareti); i18n.md'deki Türkçe tuzak notu da bunu söylüyor.
+                        "Herkes görüyor: Keşfet kartında adın ve fotoğrafın da görünüyor."
+                      : previewVisibility === "after_match"
+                        ? `Yalnızca eşleştiklerin görüyor. Keşfet kartında yalnızca ${pet.data.name} çıkar; sen eşleşmeden sonra burada ve sohbette görünürsün.`
+                        : "Gizli: sahip bilgin ne Keşfet kartında ne burada görünüyor."}
+                  </Text>
+                </View>
+                {previewVisibility === "hidden" ? null : (
+                  <OwnerProfileSection owner={previewOwner} petName={pet.data.name} />
+                )}
+              </View>
+            ) : owner.data ? (
               <View className="mt-8 border-t border-border pt-6">
                 <Text className="mb-4 text-xs font-bold uppercase tracking-wide text-text-tertiary">
                   Sahibi

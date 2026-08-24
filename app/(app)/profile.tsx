@@ -21,7 +21,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { AppIcon, type AppIconName } from "../../components/ui/icon";
 
-import { ProfilePreviewModal } from "../../components/profile-preview-modal";
 import { AppPressable } from "../../components/ui/pressable";
 import { Row, RowSeparator, SectionCard, SectionTitle } from "../../components/ui/section";
 import {
@@ -144,7 +143,6 @@ export default function ProfileScreen() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [previewVisible, setPreviewVisible] = useState(false);
 
   // Kaydet düğmesi önceden formun en altındaydı, her zaman aynı görünümde —
   // kullanıcı bir şey değiştirip değiştirmediğini, kaydedip kaydetmediğini
@@ -405,10 +403,25 @@ export default function ProfileScreen() {
               {profile.data.displayName ? ` · ${profile.data.displayName}` : ""}
             </Text>
 
+            {/*
+              Önizleme artık modal değil, profil sayfasının kendisi
+              (`preview=1`). Modal yalnızca Keşfet KARTINI gösteriyordu ve
+              sahip bloğunu hiç render etmiyordu — yani görünürlük ayarını
+              açan kullanıcı sonucu göremiyordu. Sayfa hem petin tam
+              profilini hem sahip bloğunu "kim görüyor" etiketiyle veriyor.
+            */}
             <AppPressable
-              onPress={() => setPreviewVisible(true)}
+              onPress={() =>
+                profile.data?.pet.id
+                  ? router.push({
+                      pathname: "/pet/[petId]",
+                      params: { petId: profile.data.pet.id, preview: "1" },
+                    })
+                  : undefined
+              }
+              disabled={!profile.data?.pet.id}
               accessibilityRole="button"
-              accessibilityHint="Kartını karşı tarafın gördüğü haliyle açar"
+              accessibilityHint="Profilini karşı tarafın gördüğü haliyle açar"
               className="mt-4 flex-row items-center rounded-full border border-brand/30 bg-brand/5 px-5 py-2.5"
             >
               <AppIcon name="eye" color="#E0523F" size={17} />
@@ -648,11 +661,6 @@ export default function ProfileScreen() {
         ) : null}
       </KeyboardAvoidingView>
 
-      <ProfilePreviewModal
-        profile={profile.data}
-        visible={previewVisible}
-        onClose={() => setPreviewVisible(false)}
-      />
     </SafeAreaView>
   );
 }

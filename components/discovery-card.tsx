@@ -40,19 +40,11 @@ function OverlayChip({ children }: { children: ReactNode }) {
 export function DiscoveryCard({
   card,
   onOwnerPress,
-  variant = "discovery",
   fill = false,
 }: {
   card: DiscoveryDeckCard;
   /** Sahip teaser'ına dokunulduğunda; verilmezse blok tıklanamaz kalır. */
   onOwnerPress?: () => void;
-  /**
-   * "preview": kullanıcı KENDİ kartına bakıyor (Profil → Profilimi önizle).
-   * Uyum rozeti, mesafe ve sahip teaser'ı kendine göre anlamsız — bu yüzden
-   * gizleniyor. Geri kalan (foto, mizaç/bilgi çipleri) karşı tarafın
-   * gördüğüyle birebir aynı.
-   */
-  variant?: "discovery" | "preview";
   /**
    * Keşfet'te kart, başlık ile yüzen düğme şeridi arasındaki BOŞLUĞU
    * dolduruyor (sabit 3:4 değil). Sebep: 3:4'te kartın toplam yüksekliği
@@ -72,8 +64,6 @@ export function DiscoveryCard({
   const activity = activityLabel(card.activityBucket);
   const compatibility = Math.round(card.compatibility.total * 100);
   const details = [card.breed, age, sizeLabels[card.size]].filter(Boolean).join(" · ");
-  const showCompatibility = variant === "discovery";
-  const showDistance = variant === "discovery";
 
   /*
    * Kartın YÜZÜNE (fotoğrafın üstüne) taşınan "ilgi çekici bilgiler" —
@@ -118,12 +108,10 @@ export function DiscoveryCard({
     );
   }
 
-  // Sahip teaser'ı yalnızca `discovery` modunda: kendi kartını önizlerken
-  // kendi ilgi alanlarını kendine göstermenin anlamı yok. Sahip verisi zaten
-  // yalnızca `owner_visibility = 'public'` iken doluyor (RPC tarafında
-  // gated) — istemci burada ek bir görünürlük kontrolü YAPMIYOR, 0021'deki
-  // kuralı ikinci kez uygulamak yerine sunucuya güveniyor.
-  if (variant === "discovery" && card.owner) {
+  // Sahip verisi yalnızca `owner_visibility = 'public'` iken doluyor (RPC
+  // tarafında gated) — istemci burada ek bir görünürlük kontrolü YAPMIYOR,
+  // 0021'deki kuralı ikinci kez uygulamak yerine sunucuya güveniyor.
+  if (card.owner) {
     const owner = card.owner;
     const interestChips = owner.interests.slice(0, MAX_OWNER_INTEREST_CHIPS);
     extraBlocks.push(
@@ -251,7 +239,7 @@ export function DiscoveryCard({
         </View>
       ) : null}
 
-      {showCompatibility ? (
+      {(
         <View
           style={shadowSm}
           // top-16: `app/(app)/index.tsx` bu kartın ÜSTÜNE, aynı `right-3
@@ -263,7 +251,7 @@ export function DiscoveryCard({
           <DecisionIcons.compatibility size={13} color="#1E9384" strokeWidth={2.25} />
           <Text className="text-xs font-bold text-accent-dark">%{compatibility} uyum</Text>
         </View>
-      ) : null}
+      )}
 
       {/*
         `key`: fotoğraf sayfası değişince bu bloğun içeriği (hangi çipler/
@@ -296,9 +284,9 @@ export function DiscoveryCard({
           yer için yarışıyordu. Aynı cümlenin parçası: "Küçük · 2 km
           uzakta". Bir bilgi daha az kutu demek.
         */}
-        {details || (showDistance && distanceLabel(card.distanceBucket)) ? (
+        {details || distanceLabel(card.distanceBucket) ? (
           <Text className="mt-0.5 text-[13px] font-semibold text-white/85" numberOfLines={1}>
-            {[details, showDistance ? distanceLabel(card.distanceBucket) : null]
+            {[details, distanceLabel(card.distanceBucket)]
               .filter(Boolean)
               .join(" · ")}
           </Text>
