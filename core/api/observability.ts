@@ -49,6 +49,23 @@ export async function captureClientError(
   error: unknown,
   route?: string,
 ): Promise<void> {
+  /*
+   * GELİŞTİRME HATALARI CANLI KÜTÜĞE YAZILMAZ.
+   *
+   * Fast refresh, düzenleme ortasındaki ARA durumları da çalıştırıyor:
+   * bir bileşeni kullanıp import'unu bir saniye sonra eklediğinde
+   * "Property 'X' doesn't exist" hatası doğuyor ve anında kayboluyor.
+   * Bunlar üretimde hiç olmayacak hatalar, ama koşulsuz yazıldıkları için
+   * moderasyon panelindeki "İstemci hatası · 24s" sayacını şişiriyorlardı —
+   * yani yayın kapısı olan bir metrik (backlog 9), tam güvenilmesi gereken
+   * anda geliştirme gürültüsüyle doluyordu.
+   *
+   * Geliştirmede hata zaten Metro ve LogBox'ta görünüyor; ikinci bir kanala
+   * ihtiyaç yok. Hata YOLUNU denemek gerekirse bu kapı geçici olarak
+   * kaldırılır.
+   */
+  if (__DEV__) return;
+
   const sb = getSupabaseClient();
   if (!sb) return;
   const normalized = error instanceof Error ? error : new Error(String(error));

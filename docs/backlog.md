@@ -319,6 +319,20 @@ iOS bölümüne yazıldı.
       koştuğu doğrulanmalı; koşuyorsa bu çökme yalnız yerel makineleri
       etkiler, koşmuyorsa yayın kapıcısıdır.
 
+**2026-08-24 — Bulgu: geliştirme hataları canlı hata kütüğünü kirletiyordu.**
+İkon göçünü simülatörde doğrularken moderasyon panelini açtım ve "Son
+hatalar" listesinde o günkü düzenlemelerimin fast-refresh ara durumlarını
+buldum (`Property 'LinearGradient' doesn't exist` gibi). `captureClientError`
+koşulsuz yazıyordu; yani üretimde hiç oluşmayacak hatalar, yayın kapısı olan
+"İstemci hatası · 24s" metriğini (backlog 9) şişiriyordu.
+
+`__DEV__` kapısı eklendi: geliştirmede hata zaten Metro/LogBox'ta görünüyor,
+ikinci kanala gerek yok.
+
+- [ ] **Yayın öncesi:** `client_errors` tablosundaki geliştirme kaynaklı
+      satırlar temizlenmeli — aksi halde ilk gerçek hata, aylardır biriken
+      gürültünün içinde kaybolur.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız
