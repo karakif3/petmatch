@@ -235,6 +235,23 @@ export function DiscoveryCard({
         </View>
       ) : null}
 
+      {/*
+        Yeniden dolaşım (`0060`): deste tükendiği için geri gelen kart.
+        Söylenmezse kullanıcı aynı profilleri görüp ürünün bozulduğunu
+        sanar — etiket, tekrarı hata olmaktan çıkarıp bilinçli bir ikinci
+        şansa çeviriyor. Aktiflik hapı varsa onun altına iniyor.
+      */}
+      {card.previouslyPassed ? (
+        <View
+          className={`absolute left-3 ${
+            activity ? "top-14" : "top-3"
+          } flex-row items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5`}
+        >
+          <Ionicons name="refresh-outline" color="#FFFFFF" size={12} />
+          <Text className="text-[11px] font-bold text-white">Daha önce geçtin</Text>
+        </View>
+      ) : null}
+
       {showCompatibility ? (
         <View
           style={shadowSm}

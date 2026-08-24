@@ -674,9 +674,10 @@ export default function DiscoverScreen() {
               Bu ayarlarda yeni bir pet yok
             </Text>
             <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
-              Yalnızca seçtiğin bölgedeki petler destede. Beğendiğin/geçtiğin
-              petler çıkar. Aynı bölgede mesafeyi genişletebilir, filtreleri
-              temizleyebilir veya yeni aday bildirimi isteyebilirsin.
+              Yalnızca seçtiğin bölgedeki petler destede. Beğendiğin petler
+              çıkar; geçtiklerin bir hafta sonra, deste boşaldığında geri
+              gelir. Aynı bölgede filtreleri temizleyebilir veya yeni aday
+              bildirimi isteyebilirsin.
             </Text>
             {/*
               Öncesinde burada 4 düğme üst üste duruyordu (yarıçap/temizle/
@@ -684,12 +685,19 @@ export default function DiscoverScreen() {
               seçilemiyordu. Tek birincil kalıyor, geri kalanı metin
               bağlantısına iniyor.
             */}
-            {deck.data.filterSettings.maxDistanceKm < 100 ? (
+            {/*
+              Yarıçap önerisi 25 km'de duruyor. `0057`'den beri arama havuzu
+              BÖLGE; yarıçap yalnızca o havuzun içinde eliyor. Mahalle
+              ölçeğinde 25 km ile 100 km birebir aynı desteyi verir — düğmeyi
+              orada da göstermek, çalışıyormuş gibi görünüp hiçbir şey
+              değiştirmeyen bir birincil eylem demekti.
+            */}
+            {deck.data.filterSettings.maxDistanceKm < 25 ? (
               <AppPressable
                 onPress={() => {
                   const settings = deck.data!.filterSettings;
                   const nextDistance =
-                    [5, 10, 25, 50, 100].find((value) => value > settings.maxDistanceKm) ?? 100;
+                    [5, 10, 25].find((value) => value > settings.maxDistanceKm) ?? 25;
                   void applyFilters(
                     { ...settings, maxDistanceKm: nextDistance },
                     ownerFilters,

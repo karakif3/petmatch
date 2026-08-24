@@ -110,7 +110,15 @@ export function mapPetRow(row: PetRow, photoPaths: string[]): Pet {
   };
 }
 
-export function mapDiscoveryRow(row: DiscoveryRow): DiscoveryCandidate {
+/**
+ * Keşfet ve Beğeniler aynı kart tipini paylaşıyor ama iki farklı RPC'den
+ * besleniyor: `pending_likes` satırında `previously_passed` YOK — yeniden
+ * dolaşım (`0060`) yalnızca destenin kavramı. Bu yüzden alan opsiyonel
+ * okunuyor ve yokluğu `false` sayılıyor.
+ */
+export function mapDiscoveryRow(
+  row: Omit<DiscoveryRow, "previously_passed"> & { previously_passed?: boolean },
+): DiscoveryCandidate {
   return {
     id: row.id,
     ownerId: row.owner_id,
@@ -133,12 +141,13 @@ export function mapDiscoveryRow(row: DiscoveryRow): DiscoveryCandidate {
     city: row.city || null,
     distanceBucket: row.distance_bucket || null,
     activityBucket: row.activity_bucket || null,
+    previouslyPassed: row.previously_passed ?? false,
     ownerProfileShown: row.owner_profile_shown,
   };
 }
 
 export async function ownerSummary(
-  row: DiscoveryRow,
+  row: Omit<DiscoveryRow, "previously_passed">,
 ): Promise<DiscoveryDeckCard["owner"]> {
   // `owner_profile_shown` sunucuda zaten "bu satırda alanlar dolu mu" demek
   // (bkz. 0047) — burada ayrıca kalan boşluk kontrolü, sahibi `public` ama

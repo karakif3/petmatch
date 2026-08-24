@@ -41,6 +41,8 @@ function toPreviewCard(profile: EditableProfile): DiscoveryDeckCard {
     city: profile.city || null,
     distanceBucket: null,
     activityBucket: null,
+    // Kendi kartını önizliyorsun; yeniden dolaşım kavramı burada yok.
+    previouslyPassed: false,
     ownerProfileShown: profile.ownerVisibility !== "hidden",
     compatibility: NEUTRAL_COMPATIBILITY,
     owner:

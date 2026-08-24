@@ -181,6 +181,26 @@ Bu turdan açık kalanlar:
 **testlerin eski kodda düştüğü ayrıca doğrulandı** — 100 yakın doğrulanmamış
 aday + 1 uzak doğrulanmış aday kurulumunda eski yapı sıfır satır dönüyordu.
 
+**2026-08-24 — Tükenmiş desteye dönüş yolu (`0060`).** `0057` havuzu bölgeye
+kilitledi; doğru karar ama havuz artık sonlu. `swipes`'ta TTL olmadığı için
+"geç" kalıcıydı: bir seansta bölgeyi tüketen kullanıcı **kalıcı** boş desteye
+düşüyordu. Boş deste ekranındaki birincil eylem de yardımcı olmuyordu —
+yarıçap bölge sınırını aşamadığı için 25 km ile 100 km aynı havuzu veriyor.
+
+Karar: **taze arz varken kimse tekrar gösterilmez; deste boşalınca 7 günden
+eski "geç"ler `previously_passed` etiketiyle geri gelir.** Blanket TTL
+(herkesi 30 günde bir göster) yoğun bölgede taze adayın önünü keserdi.
+
+Yazma yolundaki tuzak ayrıca kapatıldı: `swipes` unique olduğu için eski satır
+güncellenmeli, ama UPDATE ile değil — eşleşmeyi `on_swipe_created` doğuruyor
+ve o yalnızca INSERT'te ateşleniyor. `swipe_pet` artık bayatlamış pass'i
+**siliyor**, insert normal yolundan gidiyor; test bunu doğrudan kanıtlıyor
+(`discovery-recirculation.test.sql`, 7 iddia). Aynı migration'da `swipe_pet`'in
+sahip filtresi kontrolleri de `0059`'un `public` kapısına hizalandı.
+
+Yan düzeltme: boş deste metni artık geçilen petlerin geri geleceğini söylüyor
+ve yarıçap önerisi 25 km'de duruyor.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız

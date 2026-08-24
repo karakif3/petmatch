@@ -118,6 +118,11 @@ export type DiscoveryCandidate = Pet & {
   city: string | null;
   distanceBucket: string | null;
   activityBucket: string | null;
+  /**
+   * Bu kart daha önce geçilmişti ve deste tükendiği için geri geldi (`0060`).
+   * Taze aday varken hiçbir zaman true olmaz.
+   */
+  previouslyPassed: boolean;
   /** Bu satırda sahip alanları (isim/foto/bio) gerçekten dolu mu — yalnızca `public` görünürlükte. */
   ownerProfileShown: boolean;
 };

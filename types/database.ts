@@ -1082,38 +1082,6 @@ export type Database = {
           verification_method: string
         }[]
       }
-      discover_pets: {
-        Args: {
-          p_limit?: number
-          p_owner_genders?: string[]
-          p_owner_max_age?: number
-          p_owner_min_age?: number
-          p_pet_id: string
-        }
-        Returns: {
-          activity_bucket: string
-          bio: string
-          birth_date: string
-          breed: string
-          city: string
-          distance_bucket: string
-          energy_level: number
-          gender: Database["public"]["Enums"]["pet_gender"]
-          goals: Database["public"]["Enums"]["match_goal"][]
-          good_with_cats: boolean
-          good_with_dogs: boolean
-          good_with_kids: boolean
-          id: string
-          is_neutered: boolean
-          name: string
-          owner_id: string
-          owner_visible: boolean
-          photo_paths: string[]
-          size: Database["public"]["Enums"]["pet_size"]
-          species: Database["public"]["Enums"]["species"]
-          temperaments: string[]
-        }[]
-      }
       discover_playdate_pets: {
         Args: {
           p_limit?: number
@@ -1149,6 +1117,7 @@ export type Database = {
           owner_social_open: boolean
           owner_verified: boolean
           photo_paths: string[]
+          previously_passed: boolean
           size: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
           temperaments: string[]
@@ -1290,6 +1259,7 @@ export type Database = {
       owner_meetup_rate: { Args: { p_user_id: string }; Returns: number }
       owner_response_rate: { Args: { p_owner_id: string }; Returns: number }
       owns_pet: { Args: { p_pet_id: string }; Returns: boolean }
+      passed_recirculation_cutoff: { Args: never; Returns: string }
       pause_stale_adoption_listings: {
         Args: { p_days?: number }
         Returns: number
