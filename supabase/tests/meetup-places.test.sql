@@ -17,12 +17,12 @@ select tests.assert(
 );
 
 select tests.assert(
-  (select count(*) from meetup_places where is_verified) = 0,
-  'adayların hiçbiri doğrulanmış değil'
+  (select count(*) from meetup_places where is_verified) = 4,
+  'resmi kaynağı bulunan dört aday doğrulanmış'
 );
 
 -- --------------------------------------------------------------------------
--- Doğrulanmamışken hiçbir şey görünmüyor
+-- Yalnız resmi kaynakla doğrulananlar görünüyor
 -- --------------------------------------------------------------------------
 
 set local role authenticated;
@@ -30,13 +30,24 @@ select tests.act_as('11111111-1111-1111-1111-111111111111');
 select set_my_region('kadikoy');
 
 select tests.assert(
-  (select count(*) from list_meetup_places()) = 0,
-  'doğrulanmamış yerler kullanıcıya GÖRÜNMÜYOR'
+  (select count(*) from list_meetup_places()) = 3,
+  'Kadıköyde resmi kaynaklı üç yer görünüyor'
 );
 
 select tests.assert(
-  (select count(*) from meetup_places) = 0,
-  'tablo doğrudan sorgulansa da RLS doğrulanmamışı vermiyor'
+  not exists (select 1 from meetup_places where name = 'Fenerbahçe Parkı'),
+  'RLS doğrulanmamış Kadıköy adayını gizliyor'
+);
+
+select tests.assert(
+  (select count(*) from meetup_places) = 4,
+  'RLS doğrulanmış yerleri bölgeden bağımsız gösterir — bölge süzmesi RPC''de'
+);
+
+select tests.assert(
+  (select count(*) from list_meetup_places()
+   where source_url is not null and verification_method = 'official_source') = 3,
+  'kullanıcıya doğrulama yöntemi ve resmi kaynak dönüyor'
 );
 
 reset role;
@@ -66,10 +77,10 @@ select tests.assert(
   'moderatör doğrulanmamışlar dahil hepsini görüyor'
 );
 
-select id as yogurtcu from list_meetup_place_candidates()
-where name = 'Yoğurtçu Parkı' \gset
+select id as fenerbahce from list_meetup_place_candidates()
+where name = 'Fenerbahçe Parkı' \gset
 
-select set_meetup_place_verification(:'yogurtcu', true, 'Tasmasız alan var');
+select set_meetup_place_verification(:'fenerbahce', true, 'Sahada hayvan girişi teyit edildi');
 reset role;
 
 -- --------------------------------------------------------------------------
@@ -80,24 +91,26 @@ set local role authenticated;
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 
 select tests.assert(
-  (select count(*) from list_meetup_places()) = 1,
-  'doğrulanan yer artık görünüyor'
+  (select count(*) from list_meetup_places()) = 4,
+  'sahada doğrulanan yer resmi kaynaklı yerlere ekleniyor'
 );
 
 select tests.assert(
-  (select note from list_meetup_places()) = 'Tasmasız alan var',
-  'moderatörün düştüğü not kullanıcıya gidiyor'
+  (select verification_method from list_meetup_places()
+   where name = 'Fenerbahçe Parkı') = 'field',
+  'moderatör kontrolü saha doğrulaması olarak işaretleniyor'
 );
 
 -- Kullanıcı Nişantaşı'na geçince Kadıköy yeri kaybolmalı.
 select set_my_region('nisantasi');
 select tests.assert(
-  (select count(*) from list_meetup_places()) = 0,
-  'başka bölgenin yeri gösterilmiyor'
+  (select count(*) from list_meetup_places()) = 1,
+  'Nişantaşı kullanıcısı yalnız kendi bölgesindeki Maçka Parkını görüyor'
 );
 
 -- "Diğer" için küratörlü liste yok; uydurma öneri vermiyoruz.
-select set_my_region('other');
+-- 0053'ten beri `other` talep konumu ister (2-80 karakter).
+select set_my_region('other', 'Üsküdar', true);
 select tests.assert(
   (select count(*) from list_meetup_places()) = 0,
   '"Diğer" bölgesinde öneri yok'
@@ -111,7 +124,7 @@ reset role;
 
 set local role authenticated;
 select tests.act_as('22222222-2222-2222-2222-222222222222');
-select set_meetup_place_verification(:'yogurtcu', false);
+select set_meetup_place_verification(:'fenerbahce', false);
 reset role;
 
 set local role authenticated;
@@ -119,8 +132,8 @@ select tests.act_as('11111111-1111-1111-1111-111111111111');
 select set_my_region('kadikoy');
 
 select tests.assert(
-  (select count(*) from list_meetup_places()) = 0,
-  'doğrulama geri alınınca yer tekrar gizleniyor'
+  (select count(*) from list_meetup_places()) = 3,
+  'saha doğrulaması geri alınınca aday tekrar gizleniyor'
 );
 
 reset role;

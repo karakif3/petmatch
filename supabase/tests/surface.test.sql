@@ -15,6 +15,20 @@ select tests.assert(
   'public şemadaki her tabloda RLS açık'
 );
 
+-- Uyumluluk sorularında "hayır" ile "cevaplanmadı" ayrışmalı (0050).
+select tests.assert(
+  (
+    select count(*)
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'pets'
+      and column_name in ('good_with_cats', 'good_with_dogs', 'good_with_kids')
+      and is_nullable = 'YES'
+      and column_default is null
+  ) = 3,
+  'pet uyumluluk alanları üç durumlu ve varsayılanı null'
+);
+
 -- Uygulama oturumsuz hiçbir şey yapmıyor; anon'un fonksiyon yüzeyi olmamalı.
 select tests.assert(
   (select count(*) from pg_proc p
@@ -56,6 +70,11 @@ select tests.assert(
   'keşfet sarmalayıcısı authenticated''a açık'
 );
 
+select tests.assert(
+  not has_function_privilege('authenticated', 'shares_discover_region(uuid,uuid)', 'execute'),
+  'bölge paylaşım yardımcısı istemciye kapalı'
+);
+
 -- Moderasyon yüzeyi yalnızca sunucu tarafında yetkilenmeli.
 select tests.assert(
   (select count(*) from pg_proc p
@@ -63,6 +82,37 @@ select tests.assert(
    where n.nspname = 'public' and p.proname = 'get_moderation_queue'
      and p.prosrc like '%is_moderator%') = 1,
   'moderasyon kuyruğu is_moderator() kontrolü içeriyor'
+);
+
+-- ---------------------------------------------------------------------------
+-- Politikadan çağrılan her fonksiyon authenticated'a açık olmalı
+--
+-- Bu iddia iki kez elle kaçırıldı ve ikisinde de canlıda 42501 çıktı:
+-- 0035 (`blocked_user_ids`, profiles politikası) ve 0039
+-- (`is_blocked_between`, storage.objects politikası).
+--
+-- RLS politikaları ÇAĞIRAN rolün bağlamında değerlendirilir; içeride
+-- çağrılan fonksiyon o role kapalıysa sorgu hata verir. Fonksiyonu
+-- "yalnızca SECURITY DEFINER içinden çağrılıyor" diye revoke etmek,
+-- politikalar taranmadan yapıldığında bu hatayı üretiyor.
+--
+-- 0039'un asıl dersi tarama sınırıydı: 0034 yalnızca `public` şemaya
+-- baktığı için `storage.objects` üzerindeki politikayı görmedi. Bu yüzden
+-- aşağıdaki tarama ŞEMA AYRIMI YAPMIYOR.
+select tests.assert(
+  (
+    select count(*)
+    from pg_policies pol
+    join pg_proc p on true
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and (
+        coalesce(pol.qual, '') like '%' || p.proname || '(%'
+        or coalesce(pol.with_check, '') like '%' || p.proname || '(%'
+      )
+      and not has_function_privilege('authenticated', p.oid, 'execute')
+  ) = 0,
+  'politikalardan çağrılan her fonksiyon authenticated''a açık'
 );
 
 rollback;

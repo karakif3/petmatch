@@ -77,6 +77,16 @@ begin
 end;
 $$;
 
+/** Test kullanıcısını bir pilot (veya `other`) bölgeye koyar. */
+create or replace function tests.assign_region(p_user uuid, p_slug text)
+returns void
+language plpgsql
+as $$
+begin
+  update profiles set region_slug = p_slug where id = p_user;
+end;
+$$;
+
 /** Aktif, konumu olan bir pet. */
 create or replace function tests.seed_pet(
   p_id uuid,

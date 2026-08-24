@@ -24,9 +24,9 @@ export type AdoptablePet = {
   isNeutered: boolean;
   size: "small" | "medium" | "large";
   temperaments: string[];
-  goodWithCats: boolean;
-  goodWithDogs: boolean;
-  goodWithKids: boolean;
+  goodWithCats: boolean | null;
+  goodWithDogs: boolean | null;
+  goodWithKids: boolean | null;
   bio: string | null;
   city: string | null;
   photoUrls: string[];

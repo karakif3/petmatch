@@ -2,6 +2,7 @@ import type { Database } from "../../types/database";
 import type {
   Coordinates,
   EnergyLevel,
+  OwnerInterest,
   OwnerVisibility,
   Size,
   Temperament,
@@ -22,12 +23,18 @@ export type EditableProfile = {
   ownerBirthDate: string;
   ownerGender: "female" | "male" | "other" | null;
   ownerSocialOpen: boolean;
+  ownerInterests: OwnerInterest[];
   ownerAvatar: {
     storagePath: string;
     url: string;
   } | null;
   verificationStatus: ProfileRow["verification_status"];
   verificationReviewNote: string | null;
+  verificationReview: {
+    itemId: string;
+    reasonCode: string | null;
+    appealText: string | null;
+  } | null;
   pet: {
     id: string;
     name: string;
@@ -39,9 +46,9 @@ export type EditableProfile = {
     energyLevel: EnergyLevel;
     isNeutered: boolean;
     temperaments: Temperament[];
-    goodWithCats: boolean;
-    goodWithDogs: boolean;
-    goodWithKids: boolean;
+    goodWithCats: boolean | null;
+    goodWithDogs: boolean | null;
+    goodWithKids: boolean | null;
     bio: string | null;
     photos: ProfilePhoto[];
     photoUrl: string | null;
@@ -78,9 +85,9 @@ export type PetProfileUpdate = {
   energyLevel: EnergyLevel;
   isNeutered: boolean;
   temperaments: Temperament[];
-  goodWithCats: boolean;
-  goodWithDogs: boolean;
-  goodWithKids: boolean;
+  goodWithCats: boolean | null;
+  goodWithDogs: boolean | null;
+  goodWithKids: boolean | null;
   bio: string;
 };
 
@@ -92,6 +99,7 @@ export type OwnerProfileUpdate = {
   gender: "female" | "male" | "other" | null;
   ownerVisibility: OwnerVisibility;
   ownerSocialOpen: boolean;
+  interests: OwnerInterest[];
   previousAvatarPath: string | null;
   avatar:
     | { kind: "remote"; storagePath: string }
@@ -126,7 +134,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
     sb
       .from("profiles")
       .select(
-        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,verification_status",
+        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,interests,verification_status",
       )
       .eq("id", userId)
       .single(),
@@ -147,7 +155,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       .single(),
     sb
       .from("moderation_items")
-      .select("note")
+      .select("id,note,rejection_reason_code,appeal_text")
       .eq("created_by", userId)
       .eq("kind", "verification")
       .eq("status", "rejected")
@@ -185,6 +193,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
     ownerBirthDate: profileResult.data.birth_date ?? "",
     ownerGender: profileResult.data.gender as EditableProfile["ownerGender"],
     ownerSocialOpen: profileResult.data.owner_social_open,
+    ownerInterests: profileResult.data.interests as OwnerInterest[],
     ownerAvatar:
       profileResult.data.avatar_url && avatarResult.data
         ? {
@@ -194,6 +203,13 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
         : null,
     verificationStatus: profileResult.data.verification_status,
     verificationReviewNote: verificationResult.data?.note ?? null,
+    verificationReview: verificationResult.data
+      ? {
+          itemId: verificationResult.data.id,
+          reasonCode: verificationResult.data.rejection_reason_code,
+          appealText: verificationResult.data.appeal_text,
+        }
+      : null,
     pet: {
       id: petResult.data.id,
       name: petResult.data.name,
@@ -224,6 +240,17 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
       requireVerified: preferencesResult.data.require_verified_owner,
     },
   };
+}
+
+export async function submitVerificationAppeal(
+  moderationItemId: string,
+  appealText: string,
+): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc("submit_verification_appeal", {
+    p_item_id: moderationItemId,
+    p_appeal_text: appealText.trim(),
+  });
+  if (error) throw error;
 }
 
 export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void> {
@@ -261,6 +288,7 @@ export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void>
       p_owner_visibility: input.ownerVisibility,
       p_avatar_path: avatarPath ?? (null as unknown as string),
       p_owner_social_open: input.ownerSocialOpen,
+      p_interests: input.interests,
     });
     if (error) throw error;
   } catch (error) {
@@ -334,6 +362,18 @@ export async function updateOwnerDiscoveryFilters(input: {
   requireSocial: boolean;
   requireVerified: boolean;
 }): Promise<void> {
+  if (input.requirePhoto) {
+    const { data: me, error: profileError } = await requireSupabaseClient()
+      .from("profiles")
+      .select("avatar_url,owner_visibility")
+      .single();
+    if (profileError) throw profileError;
+    if (!me.avatar_url || me.owner_visibility !== "public") {
+      throw new Error(
+        "Yalnızca fotoğraflı sahipleri görmek için kendi sahip fotoğrafını herkese açık paylaşmalısın.",
+      );
+    }
+  }
   const { error } = await requireSupabaseClient().rpc(
     "update_owner_discovery_filters",
     {
@@ -364,12 +404,24 @@ export async function updatePetProfile(input: PetProfileUpdate): Promise<string>
     p_energy_level: input.energyLevel,
     p_is_neutered: input.isNeutered,
     p_temperaments: input.temperaments,
-    p_good_with_cats: input.goodWithCats,
-    p_good_with_dogs: input.goodWithDogs,
-    p_good_with_kids: input.goodWithKids,
+    // Postgres function parameters accept null, but generated RPC types cannot
+    // express parameter nullability. Null is the domain value for "unknown".
+    p_good_with_cats: input.goodWithCats ?? (null as unknown as boolean),
+    p_good_with_dogs: input.goodWithDogs ?? (null as unknown as boolean),
+    p_good_with_kids: input.goodWithKids ?? (null as unknown as boolean),
     p_bio: bio || "",
   });
   if (error) throw error;
+
+  // Kullanıcı bu formu kaydettiyse boyut/enerji/kısırlaştırma artık
+  // varsayılan değil, seçilmiş sayılır — profil tamamlama kartı bu adımı
+  // eksik göstermeyi bıraksın (0040).
+  const { error: markError } = await requireSupabaseClient().rpc(
+    "mark_pet_details_completed",
+    { p_pet_id: input.petId },
+  );
+  if (markError) throw markError;
+
   return data;
 }
 
@@ -468,6 +520,34 @@ export async function updateEditableProfile(input: ProfileUpdate): Promise<strin
   });
   if (error) throw error;
   return data;
+}
+
+/**
+ * Yalnızca sahip görünürlüğünü değiştirir (Keşfet başlığındaki hızlı toggle).
+ *
+ * `update_my_profile` / `update_my_owner_details` RPC'leri formun TAMAMINI
+ * ister (ad, şehir, pet adı, doğum tarihi…); tek alanı çevirmek için o
+ * yükü taşımak, formda olmayan alanları istemci tarafında yeniden
+ * kurgulamak demekti. Tek alanlık yazma doğrudan tabloya gidiyor —
+ * `profiles_update_self` RLS politikası (0003) bunu zaten kendi satırıyla
+ * sınırlıyor.
+ *
+ * Rıza kaydı burada da alınıyor: "herkese açık" bir onay durumudur, hangi
+ * yüzeyden açıldığından bağımsız olarak kaydedilmeli.
+ */
+export async function updateOwnerVisibility(input: {
+  userId: string;
+  visibility: OwnerVisibility;
+}): Promise<void> {
+  await recordOptionalConsent(
+    "public_profile_consent",
+    input.visibility === "public",
+  );
+  const { error } = await requireSupabaseClient()
+    .from("profiles")
+    .update({ owner_visibility: input.visibility })
+    .eq("id", input.userId);
+  if (error) throw error;
 }
 
 export async function updateNotificationPreferences(input: {

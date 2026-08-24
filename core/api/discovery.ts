@@ -1,9 +1,11 @@
 import type { Database } from "../../types/database";
 import { rankCandidates, type CompatibilityBreakdown } from "../domain/matching";
 import {
+  OWNER_INTERESTS,
   TEMPERAMENTS,
   type DiscoveryCandidate,
   type EnergyLevel,
+  type OwnerInterest,
   type Pet,
   type SwipeDirection,
   type Temperament,
@@ -26,6 +28,7 @@ export type DiscoveryDeckCard = DiscoveryCandidate & {
     ageBucket: string | null;
     socialOpen: boolean;
     verified: boolean;
+    interests: OwnerInterest[];
   } | null;
 };
 
@@ -36,6 +39,7 @@ export type DiscoveryDeck = {
     visibility: "hidden" | "after_match" | "public";
     gender: "female" | "male" | "other" | null;
     socialOpen: boolean;
+    avatarUrl: string | null;
     /** Doğrulama istemini doğru anda gösterebilmek için. */
     verificationStatus: "pending" | "approved" | "rejected" | null;
     requirePhoto: boolean;
@@ -70,6 +74,12 @@ function energyLevel(value: number): EnergyLevel {
 function temperaments(values: string[]): Temperament[] {
   return values.filter((value): value is Temperament =>
     TEMPERAMENTS.includes(value as Temperament),
+  );
+}
+
+function ownerInterests(values: string[]): OwnerInterest[] {
+  return values.filter((value): value is OwnerInterest =>
+    OWNER_INTERESTS.includes(value as OwnerInterest),
   );
 }
 
@@ -123,15 +133,18 @@ export function mapDiscoveryRow(row: DiscoveryRow): DiscoveryCandidate {
     city: row.city || null,
     distanceBucket: row.distance_bucket || null,
     activityBucket: row.activity_bucket || null,
-    ownerVisible: row.owner_visible,
+    ownerProfileShown: row.owner_profile_shown,
   };
 }
 
-async function ownerSummary(
+export async function ownerSummary(
   row: DiscoveryRow,
 ): Promise<DiscoveryDeckCard["owner"]> {
+  // `owner_profile_shown` sunucuda zaten "bu satırda alanlar dolu mu" demek
+  // (bkz. 0047) — burada ayrıca kalan boşluk kontrolü, sahibi `public` ama
+  // isim/foto/bio'nun üçünü de doldurmamış farklı bir durumu kapatıyor.
   if (
-    !row.owner_visible ||
+    !row.owner_profile_shown ||
     (!row.owner_display_name && !row.owner_avatar_path && !row.owner_bio)
   ) {
     return null;
@@ -156,6 +169,7 @@ async function ownerSummary(
     ageBucket: row.owner_age_bucket || null,
     socialOpen: row.owner_social_open,
     verified: row.owner_verified,
+    interests: ownerInterests(row.owner_interests ?? []),
   };
 }
 
@@ -174,7 +188,7 @@ export async function loadDiscoveryDeck(
     sb
       .from("profiles")
       .select(
-        "owner_visibility,gender,owner_social_open,require_visible_owner,verification_status",
+        "owner_visibility,gender,owner_social_open,require_visible_owner,verification_status,avatar_url",
       )
       .eq("id", userId)
       .single(),
@@ -191,10 +205,22 @@ export async function loadDiscoveryDeck(
   if (profileResult.error) throw profileResult.error;
   if (preferencesResult.error) throw preferencesResult.error;
 
+  // Kendi fotoğrafımı kendime gösteriyorum — görünürlük ayarı BAŞKALARININ
+  // ne göreceğini kısıtlar, kendi eşleşme kutlamamda kendi avatarımı
+  // görmemi engellemez.
+  let ownerAvatarUrl: string | null = null;
+  if (profileResult.data.avatar_url) {
+    const { data: signed } = await sb.storage
+      .from(STORAGE_BUCKETS.ownerAvatars)
+      .createSignedUrl(profileResult.data.avatar_url, 60 * 30);
+    ownerAvatarUrl = signed?.signedUrl ?? null;
+  }
+
   const ownerSettings: DiscoveryDeck["ownerSettings"] = {
     visibility: profileResult.data.owner_visibility,
     gender: profileResult.data.gender as DiscoveryDeck["ownerSettings"]["gender"],
     socialOpen: profileResult.data.owner_social_open,
+    avatarUrl: ownerAvatarUrl,
     verificationStatus: profileResult.data.verification_status,
     requirePhoto: preferencesResult.data.require_owner_photo,
     requireSocial: preferencesResult.data.require_owner_social,
@@ -279,21 +305,34 @@ export async function swipePet(input: {
   fromPetId: string;
   toPetId: string;
   direction: SwipeDirection;
+  isSuper?: boolean;
 }): Promise<string | null> {
   const { data, error } = await requireSupabaseClient().rpc("swipe_pet", {
     p_from_pet_id: input.fromPetId,
     p_to_pet_id: input.toPetId,
     p_direction: input.direction,
+    p_is_super: input.isSuper ?? false,
   });
   if (error) throw error;
-  void trackProductEvent(input.direction === "like" ? "swipe_like" : "swipe_pass");
-  if (data) {
+  void trackProductEvent(
+    input.isSuper ? "swipe_super_like" : input.direction === "like" ? "swipe_like" : "swipe_pass",
+  );
+  const row = data?.[0];
+  if (row?.match_id) {
     void trackProductEvent("match_created");
-    void requestNotificationDelivery({ type: "match", matchId: data }).catch(
+    void requestNotificationDelivery({ type: "match", matchId: row.match_id }).catch(
       (notificationError) => {
         console.error("Eşleşme bildirimi gönderilemedi:", notificationError);
       },
     );
+  } else if (input.isSuper && row?.swipe_id) {
+    // Eşleşme henüz yoksa (tek taraflı süper beğeni) alıcıya yine de haber
+    // verilmeli — 0044'te bilerek kapsam dışı bırakılmıştı.
+    void requestNotificationDelivery({ type: "super_like", swipeId: row.swipe_id }).catch(
+      (notificationError) => {
+        console.error("Süper beğeni bildirimi gönderilemedi:", notificationError);
+      },
+    );
   }
-  return data ?? null;
+  return row?.match_id ?? null;
 }

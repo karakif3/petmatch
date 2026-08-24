@@ -3,15 +3,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { BrandMark } from "../../components/brand-mark";
+import { AppPressable } from "../../components/ui/pressable";
 import { translateAuthError } from "../../core/domain/auth-errors";
 import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
@@ -29,6 +30,7 @@ export default function SignInScreen() {
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -74,9 +76,9 @@ export default function SignInScreen() {
         </Text>
 
         {!configured ? (
-          <View className="bg-warning/10 border border-warning rounded-lg p-4 mb-6">
-            <Text className="text-text-primary font-medium mb-1">Supabase bağlı değil</Text>
-            <Text className="text-text-secondary text-sm">
+          <View className="mb-6 rounded-xl border border-warning bg-warning/10 p-4">
+            <Text className="mb-1 font-medium text-text-primary">Supabase bağlı değil</Text>
+            <Text className="text-sm text-text-secondary">
               .env dosyasına EXPO_PUBLIC_SUPABASE_URL ve EXPO_PUBLIC_SUPABASE_ANON_KEY ekleyip
               Metro’yu yeniden başlat.
             </Text>
@@ -89,18 +91,39 @@ export default function SignInScreen() {
           placeholder="E-posta"
           placeholderTextColor="#C4B7AE"
           autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
           keyboardType="email-address"
           autoComplete="email"
-          className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
+          textContentType="emailAddress"
+          className="mb-3 rounded-xl border border-border bg-surface px-4 py-3.5 text-text-primary"
         />
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Şifre"
-          placeholderTextColor="#C4B7AE"
-          secureTextEntry
-          className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-5"
-        />
+        <View className="mb-5 flex-row items-center rounded-xl border border-border bg-surface pr-2">
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Şifre"
+            placeholderTextColor="#C4B7AE"
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+            textContentType={mode === "sign-in" ? "password" : "newPassword"}
+            className="flex-1 px-4 py-3.5 text-text-primary"
+          />
+          <AppPressable
+            onPress={() => setShowPassword((value) => !value)}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+            className="h-11 w-11 items-center justify-center rounded-full"
+          >
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={19}
+              color="#6B5D55"
+            />
+          </AppPressable>
+        </View>
 
         {error || params.authError ? (
           <Text className="text-danger text-sm mb-3">{error ?? params.authError}</Text>
@@ -110,7 +133,7 @@ export default function SignInScreen() {
         ) : null}
 
         {emailUnconfirmed ? (
-          <Pressable
+          <AppPressable
             onPress={async () => {
               setBusy(true);
               setError(null);
@@ -128,10 +151,10 @@ export default function SignInScreen() {
             className="border border-brand rounded-xl py-3 items-center mb-3 disabled:opacity-50"
           >
             <Text className="text-brand font-semibold">Doğrulama e-postasını yeniden gönder</Text>
-          </Pressable>
+          </AppPressable>
         ) : null}
 
-        <Pressable
+        <AppPressable
           onPress={submit}
           disabled={busy || !configured || !email || !password}
           className="bg-brand rounded-xl py-4 items-center disabled:opacity-50"
@@ -143,15 +166,15 @@ export default function SignInScreen() {
               {mode === "sign-in" ? "Giriş yap" : "Hesap oluştur"}
             </Text>
           )}
-        </Pressable>
+        </AppPressable>
 
         {mode === "sign-in" ? (
-          <Pressable onPress={() => router.push("/(auth)/forgot-password")} className="py-4">
+          <AppPressable onPress={() => router.push("/(auth)/forgot-password")} className="py-4">
             <Text className="text-brand text-sm text-center font-semibold">Şifremi unuttum</Text>
-          </Pressable>
+          </AppPressable>
         ) : null}
 
-        <Pressable
+        <AppPressable
           onPress={() => {
             setMode(mode === "sign-in" ? "sign-up" : "sign-in");
             setError(null);
@@ -162,14 +185,14 @@ export default function SignInScreen() {
           <Text className="text-text-secondary text-sm">
             {mode === "sign-in" ? "Hesabın yok mu? Kayıt ol" : "Zaten hesabın var mı? Giriş yap"}
           </Text>
-        </Pressable>
+        </AppPressable>
 
-        <Pressable onPress={() => router.push("/(auth)/legal")} className="mt-5 px-3 py-2">
+        <AppPressable onPress={() => router.push("/(auth)/legal")} className="mt-5 px-3 py-2">
           <Text className="text-center text-xs leading-5 text-text-tertiary">
             Devam ederek Kullanım Koşulları, Gizlilik Politikası ve KVKK
             Aydınlatma Metni’ne erişebildiğini onaylarsın. Metinleri aç
           </Text>
-        </Pressable>
+        </AppPressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

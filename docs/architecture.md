@@ -43,6 +43,12 @@ Keşfet listesi `discover_playdate_pets()` (SECURITY DEFINER) üzerinden gelir;
 mesafe sunucuda hesaplanıp yalnızca kaba bir `distance_bucket` olarak döner.
 Böylece ham koordinat veya üçgenlemeye elverişli kesin mesafe ağa çıkmaz.
 
+Arama havuzu `profiles.region_slug`'dır (`0057`): Kadıköy kullanıcısı
+Nişantaşı / Beşiktaş / bekleme listesi petlerini görmez. Cihaz konumu yalnızca
+aynı bölge içinde mesafe filtresi ve sıralama içindir; iki taraftan biri
+koordinat vermediyse mesafe atlanır ve kova null döner. `swipe_pet` ile
+`pending_likes` aynı kuralı uygular.
+
 RPC önce bounding-box ile eler (`pets_discovery_idx`), sonra kalanlarda
 haversine çalıştırır. PostGIS'e bağımlılık yok — taşınabilirlik için bilinçli.
 

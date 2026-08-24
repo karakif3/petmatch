@@ -1,5 +1,8 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import type { ReactNode } from "react";
+import { ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+import { AppPressable } from "../ui/pressable";
 
 /**
  * Hazır açılışlar.
@@ -26,13 +29,22 @@ export const quickReplies = [
   },
 ];
 
-/** Yazma alanının üstündeki yatay öneri şeridi. */
+/**
+ * Yazma alanının üstündeki yatay öneri şeridi.
+ *
+ * `leading`: "Buluşma yeri" düğmesi önceden bu şeridin YANINDA, ayrı bir
+ * `flex-row` kardeşiydi — kendi genişliğini alıp şeridi sıkıştırıyordu.
+ * Aynı yatay kaydırılabilir şeridin İLK öğesi olarak veriliyor artık;
+ * ikisi de "hızlı eylem" kategorisinde, ayrı bir bölüm olmayı gerektirmiyor.
+ */
 export function QuickReplyBar({
   replies = quickReplies,
   onSelect,
+  leading,
 }: {
   replies?: typeof quickReplies;
   onSelect: (text: string) => void;
+  leading?: ReactNode;
 }) {
   return (
     <ScrollView
@@ -41,8 +53,9 @@ export function QuickReplyBar({
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{ paddingHorizontal: 12, gap: 8, paddingBottom: 8 }}
     >
+      {leading}
       {replies.map((reply) => (
-        <Pressable
+        <AppPressable
           key={reply.label}
           onPress={() => onSelect(reply.text)}
           accessibilityRole="button"
@@ -51,7 +64,7 @@ export function QuickReplyBar({
         >
           <Ionicons name={reply.icon} color="#E0523F" size={16} />
           <Text className="ml-1.5 text-xs font-semibold text-text-secondary">{reply.label}</Text>
-        </Pressable>
+        </AppPressable>
       ))}
     </ScrollView>
   );
@@ -62,7 +75,7 @@ export function QuickReplyStarters({ onSelect }: { onSelect: (text: string) => v
   return (
     <View className="mt-5 w-full gap-2">
       {quickReplies.map((reply) => (
-        <Pressable
+        <AppPressable
           key={reply.label}
           onPress={() => onSelect(reply.text)}
           accessibilityRole="button"
@@ -74,7 +87,7 @@ export function QuickReplyStarters({ onSelect }: { onSelect: (text: string) => v
             {reply.label}
           </Text>
           <Ionicons name="chevron-forward" color="#C4B7AE" size={16} />
-        </Pressable>
+        </AppPressable>
       ))}
     </View>
   );

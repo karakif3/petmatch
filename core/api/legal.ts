@@ -22,6 +22,14 @@ export async function recordLegalAcceptances(
   if (error) throw error;
 }
 
+export async function recordRequiredLegalAcceptances(): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc(
+    "record_required_legal_acceptances",
+    { p_document_version: LEGAL_DOCUMENT_VERSION },
+  );
+  if (error) throw error;
+}
+
 export async function recordOptionalConsent(
   consentType: "location_consent" | "public_profile_consent",
   accepted: boolean,

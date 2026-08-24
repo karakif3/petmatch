@@ -1,6 +1,8 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useState } from "react";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 
+import { ScreenHeader } from "../../components/ui/screen-header";
 import { getLegalConfig, LEGAL_DOCUMENT_VERSION } from "../../core/domain/legal";
 
 function Section({
@@ -20,20 +22,26 @@ function Section({
 
 export default function LegalScreen() {
   const config = getLegalConfig();
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const openDocument = async (url: string) => {
+    setLinkError(null);
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) throw new Error("unsupported-url");
+      await Linking.openURL(url);
+    } catch {
+      setLinkError("Belge şu anda açılamadı. Bağlantını kontrol edip tekrar dene.");
+    }
+  };
 
   return (
     <ScrollView className="flex-1 bg-bg-primary" contentContainerClassName="px-5 pb-12 pt-16">
-      <View className="mb-6 flex-row items-center">
-        <Pressable onPress={() => router.back()} className="mr-3 rounded-full bg-surface px-4 py-2">
-          <Text className="font-semibold text-text-primary">Geri</Text>
-        </Pressable>
-        <View className="flex-1">
-          <Text className="text-2xl font-bold text-text-primary">Yasal ve gizlilik</Text>
-          <Text className="mt-1 text-xs text-text-tertiary">
-            Sürüm {LEGAL_DOCUMENT_VERSION}
-          </Text>
-        </View>
-      </View>
+      <ScreenHeader
+        title="Yasal ve gizlilik"
+        subtitle={`Sürüm ${LEGAL_DOCUMENT_VERSION}`}
+        onBack={() => router.back()}
+      />
 
       {!config.readyForRelease ? (
         <View className="mb-5 rounded-xl border border-warning bg-warning/10 p-4">
@@ -43,6 +51,33 @@ export default function LegalScreen() {
             ortam değişkenlerine yazılmalı.
           </Text>
         </View>
+      ) : null}
+
+      {config.privacyUrl || config.termsUrl || config.accountDeletionUrl ? (
+        <View className="mb-5 rounded-xl border border-border bg-surface p-4">
+          <Text className="mb-2 font-bold text-text-primary">Herkese açık belgeler</Text>
+          {[
+            ["Gizlilik politikası", config.privacyUrl],
+            ["Kullanım koşulları", config.termsUrl],
+            ["Hesap silme talebi", config.accountDeletionUrl],
+          ].map(([label, url]) =>
+            url ? (
+              <Pressable
+                key={label}
+                accessibilityRole="link"
+                onPress={() => void openDocument(url)}
+                className="min-h-11 justify-center"
+              >
+                <Text className="font-semibold text-brand-dark">{label} ↗</Text>
+              </Pressable>
+            ) : null,
+          )}
+        </View>
+      ) : null}
+      {linkError ? (
+        <Text accessibilityRole="alert" className="mb-5 text-sm font-semibold text-danger">
+          {linkError}
+        </Text>
       ) : null}
 
       <Section title="Gizlilik politikası">

@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+  Inter_400/600/700 `app/_layout.tsx`'te yükleniyor ama Tailwind'in
+  `font-semibold`/`font-bold` sınıfları yalnızca CSS `font-weight` üretiyor —
+  React Native'de tek ağırlıklı özel bir yüz varken bu, gerçek Inter
+  SemiBold/Bold yerine iOS'un Inter_400'ü SENTETİK kalınlaştırmasına yol
+  açıyor (bulanık, "amatör" kalın görünüm). `@layer utilities` ile aynı
+  sınıf isimlerine gerçek `fontFamily` bindiriliyor; ~230 mevcut çağrı yeri
+  hiç değişmeden düzeliyor.
+*/
+@layer utilities {
+  .font-sans {
+    font-family: "Inter_400Regular";
+  }
+  .font-medium {
+    font-family: "Inter_600SemiBold";
+  }
+  .font-semibold {
+    font-family: "Inter_600SemiBold";
+  }
+  .font-bold {
+    font-family: "Inter_700Bold";
+  }
+  .font-extrabold {
+    font-family: "Inter_700Bold";
+  }
+}

@@ -47,8 +47,12 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": ["tr"],
-            "android": ["tr"]
+            "ios": [
+              "tr"
+            ],
+            "android": [
+              "tr"
+            ]
           }
         }
       ],
@@ -79,6 +83,13 @@
         {
           "color": "#F97362",
           "defaultChannel": "petmatch"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Onaylanmış buluşmaları takvimine ekleyebilmek için takvim izni gerekiyor."
         }
       ]
     ],

@@ -4,11 +4,14 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   Text,
   TextInput,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +25,7 @@ import {
 } from "../../core/api/adoption";
 import { trackProductEvent } from "../../core/api/observability";
 import { formatAge } from "../../core/domain/age";
+import { errorMessage } from "../../core/domain/error-message";
 
 /**
  * Sahiplendirme yüzeyi.
@@ -155,7 +159,7 @@ export default function AdoptionScreen() {
     onError: (error) => {
       Alert.alert(
         "Başvuru gönderilemedi",
-        error instanceof Error ? error.message : "Bir şeyler ters gitti.",
+        errorMessage(error, "Bir şeyler ters gitti."),
       );
     },
   });

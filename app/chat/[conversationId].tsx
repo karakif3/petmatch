@@ -7,12 +7,14 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
-  Pressable,
-  SafeAreaView,
   Text,
   TextInput,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -41,7 +43,9 @@ import {
 } from "../../core/api/conversations";
 import { DateSeparator } from "../../components/chat/date-separator";
 import { MeetupFeedbackPrompt } from "../../components/chat/meetup-feedback-prompt";
+import { MeetupCard } from "../../components/chat/meetup-card";
 import { MeetupPlacePicker } from "../../components/chat/meetup-place-picker";
+import { MeetupScheduleSheet } from "../../components/chat/meetup-schedule-sheet";
 import { MessageBubble } from "../../components/chat/message-bubble";
 import {
   QuickReplyBar,
@@ -52,18 +56,29 @@ import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
 import {
   listMeetupPlaces,
-  meetupProposalText,
 } from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
-import { useTranslation } from "../../core/i18n";
+import { captureClientError } from "../../core/api/observability";
+import { OwnerSheet } from "../../components/owner-sheet";
+import {
+  cancelMeetup,
+  loadConversationMeetup,
+  proposeMeetup,
+  respondToMeetup,
+  subscribeToMeetup,
+} from "../../core/api/meetups";
+import type { MeetupPlace } from "../../core/api/meetup-places";
+import { AppPressable } from "../../components/ui/pressable";
+import { errorMessage } from "../../core/domain/error-message";
+import { decisionHaptic, warningHaptic } from "../../core/ui/haptics";
+import { shadowSm } from "../../core/ui/shadow";
 import { useAuthStore } from "../../stores/auth";
 
 const TYPING_IDLE_MS = 2_500;
 const REMOTE_TYPING_STALE_MS = 4_000;
 
 export default function ChatScreen() {
-  const t = useTranslation();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
@@ -75,6 +90,7 @@ export default function ChatScreen() {
   const nearBottomRef = useRef(true);
   const [body, setBody] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [ownerSheet, setOwnerSheet] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const [remoteOnline, setRemoteOnline] = useState(false);
   const [remoteTyping, setRemoteTyping] = useState(false);
@@ -83,6 +99,7 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [placePickerVisible, setPlacePickerVisible] = useState(false);
+  const [pendingPlace, setPendingPlace] = useState<MeetupPlace | null>(null);
 
   const conversation = useQuery({
     queryKey: ["conversation", conversationId],
@@ -113,6 +130,45 @@ export default function ChatScreen() {
     enabled: Boolean(conversationId && conversation.data?.isActive),
   });
 
+  const meetup = useQuery({
+    queryKey: ["conversation-meetup", conversationId],
+    queryFn: () => loadConversationMeetup(conversationId),
+    enabled: Boolean(conversationId),
+  });
+
+  const meetupAction = useMutation({
+    mutationFn: async (
+      action:
+        | { kind: "propose"; placeId: string; when: Date }
+        | { kind: "respond"; meetupId: string; accept: boolean }
+        | { kind: "cancel"; meetupId: string },
+    ) => {
+      if (action.kind === "propose") {
+        await proposeMeetup({
+          conversationId,
+          placeId: action.placeId,
+          scheduledAt: action.when,
+        });
+        return;
+      }
+      if (action.kind === "respond") {
+        await respondToMeetup(action.meetupId, action.accept);
+        return;
+      }
+      await cancelMeetup(action.meetupId);
+    },
+    onSuccess: () => {
+      setPendingPlace(null);
+      void meetup.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: (error) => {
+      setPendingPlace(null);
+      setSendError(errorMessage(error, "Buluşma işlemi tamamlanamadı."));
+      void captureClientError(error, "chat/meetup");
+    },
+  });
+
   // Sayfalar yeniden eskiye gelir, her sayfa kendi içinde eskiden yeniye.
   // Ekranda tek bir artan liste isteniyor.
   const messageItems = useMemo(() => {
@@ -129,6 +185,14 @@ export default function ChatScreen() {
     if (!conversationId) return;
     return subscribeToConversation(conversationId, () => {
       void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+  }, [conversationId, queryClient]);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    return subscribeToMeetup(conversationId, () => {
+      void queryClient.invalidateQueries({ queryKey: ["conversation-meetup", conversationId] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     });
   }, [conversationId, queryClient]);
@@ -240,7 +304,11 @@ export default function ChatScreen() {
     onError: (error, text) => {
       setFailedMessage(text);
       setBody((current) => current || text);
-      setSendError(error instanceof Error ? error.message : "Mesaj gönderilemedi.");
+      // Supabase PostgrestError bir Error örneği DEĞİL; instanceof kontrolü
+      // her veritabanı hatasını yedek metne düşürüyordu ve gerçek sebep
+      // hiçbir yerde görünmüyordu.
+      setSendError(errorMessage(error, "Mesaj gönderilemedi."));
+      void captureClientError(error, "chat/send");
     },
   });
 
@@ -251,10 +319,20 @@ export default function ChatScreen() {
     latestMessageRef.current = latestMessage.id;
     const mine = latestMessage.senderId === user?.id;
     if (initial || mine || nearBottomRef.current) {
+      // Tek requestAnimationFrame'in içerik hâlâ ölçülürken (üstteki
+      // buluşma/sahip kartı, tarih ayracı) çağrılması yeterli olmuyordu —
+      // scrollToEnd o anki eksik yüksekliğe göre hesaplanıp son mesajı
+      // katlanmış görünüm dışında bırakıyordu. İkinci, biraz geciktirilmiş
+      // çağrı düzen kesinleştikten sonra pozisyonu düzeltiyor.
       requestAnimationFrame(() =>
         listRef.current?.scrollToEnd({ animated: !initial }),
       );
+      const settle = setTimeout(
+        () => listRef.current?.scrollToEnd({ animated: false }),
+        120,
+      );
       setNewMessageBelow(false);
+      return () => clearTimeout(settle);
     } else {
       setNewMessageBelow(true);
     }
@@ -314,7 +392,7 @@ export default function ChatScreen() {
       router.replace("/(app)/matches");
     } catch (actionError) {
       setSendError(
-        actionError instanceof Error ? actionError.message : "İşlem tamamlanamadı.",
+        errorMessage(actionError, "İşlem tamamlanamadı."),
       );
     } finally {
       setSafetyBusy(false);
@@ -323,6 +401,7 @@ export default function ChatScreen() {
 
   const confirmSafetyAction = (action: "block" | "unmatch") => {
     setSafetyVisible(false);
+    warningHaptic();
     const blocking = action === "block";
     Alert.alert(
       blocking ? "Kullanıcı engellensin mi?" : "Eşleşme kaldırılsın mı?",
@@ -346,106 +425,117 @@ export default function ChatScreen() {
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="flex-row items-center border-b border-border bg-surface px-3 py-2.5">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityLabel="Geri"
-            className="h-11 w-11 items-center justify-center rounded-full"
-          >
-            <Ionicons name="chevron-back" color="#1F1A17" size={27} />
-          </Pressable>
-          {conversation.data?.petPhotoUrl ? (
-            <Image
-              source={conversation.data.petPhotoUrl}
-              accessibilityLabel={`${title} profil fotoğrafı`}
-              contentFit="cover"
-              style={{ width: 42, height: 42, borderRadius: 14 }}
-            />
-          ) : (
-            <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
-              <Ionicons name="paw" color="#C4B7AE" size={20} />
-            </View>
-          )}
-          <View className="ml-3 flex-1">
-            <Text className="text-base font-bold text-text-primary" numberOfLines={1}>
-              {title}
-            </Text>
-            <View className="mt-0.5 flex-row items-center gap-1.5">
-              {remoteOnline && conversation.data?.isActive ? (
-                <View className="h-2 w-2 rounded-full bg-accent" />
-              ) : null}
-              <Text
-                className={`text-xs ${
-                  remoteTyping ? "font-semibold text-accent-dark" : "text-text-secondary"
-                }`}
-                accessibilityLiveRegion="polite"
-              >
-                {activityText}
+        {/*
+          Sahip bloğu önceden ayrı, tam genişlikte bir kart olarak her
+          açılışta yer kaplıyordu (avatar + isim/rozetler + bio + "profile
+          bak" satırı, ~120pt). O bilginin TAMAMI zaten `OwnerSheet`'te var
+          — burada tekrar etmenin tek gerekçesi keşfedilebilirlikti. Şimdi
+          header'ın ikinci satırına çökertildi: küçük bir rozet, dokununca
+          aynı sheet açılıyor. Mesaj listesi kazandığı alanı doğrudan alıyor.
+        */}
+        <View className="border-b border-border bg-surface px-3 py-2.5">
+          <View className="flex-row items-center">
+            <AppPressable
+              onPress={() => router.back()}
+              accessibilityLabel="Geri"
+              className="h-11 w-11 items-center justify-center rounded-full"
+            >
+              <Ionicons name="chevron-back" color="#1F1A17" size={27} />
+            </AppPressable>
+            {conversation.data?.petPhotoUrl ? (
+              <Image
+                source={conversation.data.petPhotoUrl}
+                accessibilityLabel={`${title} profil fotoğrafı`}
+                contentFit="cover"
+                style={{ width: 42, height: 42, borderRadius: 14 }}
+              />
+            ) : (
+              <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
+                <Ionicons name="paw" color="#C4B7AE" size={20} />
+              </View>
+            )}
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-bold text-text-primary" numberOfLines={1}>
+                {title}
               </Text>
+              <View className="mt-0.5 flex-row items-center gap-1.5">
+                {remoteOnline && conversation.data?.isActive ? (
+                  <View className="h-2 w-2 rounded-full bg-accent" />
+                ) : null}
+                <Text
+                  className={`text-xs ${
+                    remoteTyping ? "font-semibold text-accent-dark" : "text-text-secondary"
+                  }`}
+                  accessibilityLiveRegion="polite"
+                >
+                  {activityText}
+                </Text>
+              </View>
             </View>
+            <AppPressable
+              onPress={() => setSafetyVisible(true)}
+              disabled={safetyBusy || !conversation.data}
+              accessibilityLabel="Konuşma güvenliği"
+              accessibilityHint="Engelleme, şikâyet ve eşleşmeyi kaldırma seçeneklerini açar"
+              className="h-11 w-11 items-center justify-center rounded-full disabled:opacity-40"
+            >
+              <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
+            </AppPressable>
           </View>
-          <Pressable
-            onPress={() => setSafetyVisible(true)}
-            disabled={safetyBusy || !conversation.data}
-            accessibilityLabel="Konuşma güvenliği"
-            accessibilityHint="Engelleme, şikâyet ve eşleşmeyi kaldırma seçeneklerini açar"
-            className="h-11 w-11 items-center justify-center rounded-full disabled:opacity-40"
-          >
-            <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
-          </Pressable>
-        </View>
 
-        {ownerProfile.data ? (
-          <View className="border-b border-border bg-bg-secondary px-4 py-3">
-            <View className="flex-row items-center">
+          {ownerProfile.data ? (
+            <AppPressable
+              onPress={() => setOwnerSheet(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`${ownerProfile.data.displayName ?? "Pet sahibi"} profilini aç`}
+              className="ml-11 mt-1.5 flex-row items-center self-start rounded-full bg-bg-secondary py-1 pl-1 pr-2.5"
+            >
               {ownerProfile.data.photoUrl ? (
                 <Image
                   source={ownerProfile.data.photoUrl}
                   accessibilityLabel="Pet sahibinin profil fotoğrafı"
                   contentFit="cover"
-                  style={{ width: 44, height: 44, borderRadius: 22 }}
+                  style={{ width: 22, height: 22, borderRadius: 11 }}
                 />
               ) : (
-                <View className="h-11 w-11 items-center justify-center rounded-full bg-bg-tertiary">
-                  <Ionicons name="person-outline" color="#9A8B82" size={20} />
+                <View className="h-[22px] w-[22px] items-center justify-center rounded-full bg-bg-tertiary">
+                  <Ionicons name="person-outline" color="#9A8B82" size={12} />
                 </View>
               )}
-              <View className="ml-3 flex-1">
-                <View className="flex-row items-center gap-1.5">
-                  <Text className="font-bold text-text-primary">
-                    {ownerProfile.data.displayName ?? "Pet sahibi"}
-                  </Text>
-                  {ownerProfile.data.verified ? (
-                    <Ionicons
-                      name="shield-checkmark"
-                      accessibilityLabel="Doğrulanmış sahip"
-                      color="#2FB8A6"
-                      size={16}
-                    />
-                  ) : null}
-                </View>
-                <Text className="mt-0.5 text-xs text-text-secondary">
-                  {[
-                    ownerProfile.data.gender === "female"
-                      ? "Kadın"
-                      : ownerProfile.data.gender === "male"
-                        ? "Erkek"
-                        : ownerProfile.data.gender === "other"
-                          ? "Diğer"
-                          : null,
-                    ownerProfile.data.ageBucket,
-                    ownerProfile.data.socialOpen ? t("ownerConnection.badge") : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "Sahip profili eşleşmeyle açıldı"}
-                </Text>
-              </View>
-            </View>
-            {ownerProfile.data.bio ? (
-              <Text className="mt-2 text-xs leading-4 text-text-secondary" numberOfLines={2}>
-                {ownerProfile.data.bio}
+              <Text className="ml-1.5 text-xs font-semibold text-text-primary" numberOfLines={1}>
+                {ownerProfile.data.displayName ?? "Pet sahibi"}
               </Text>
-            ) : null}
+              {ownerProfile.data.verified ? (
+                <Ionicons
+                  name="shield-checkmark"
+                  accessibilityLabel="Doğrulanmış sahip"
+                  color="#2FB8A6"
+                  size={13}
+                  style={{ marginLeft: 4 }}
+                />
+              ) : null}
+              <Ionicons name="chevron-forward" color="#9A8B82" size={12} style={{ marginLeft: 2 }} />
+            </AppPressable>
+          ) : null}
+        </View>
+
+        {meetup.data ? (
+          <View className="pt-3">
+            <MeetupCard
+              meetup={meetup.data}
+              busy={meetupAction.isPending}
+              onRespond={(accept) => {
+                decisionHaptic();
+                meetupAction.mutate({
+                  kind: "respond",
+                  meetupId: meetup.data!.id,
+                  accept,
+                });
+              }}
+              onCancel={() =>
+                meetupAction.mutate({ kind: "cancel", meetupId: meetup.data!.id })
+              }
+            />
           </View>
         ) : null}
 
@@ -461,7 +551,7 @@ export default function ChatScreen() {
             <Text className="mt-4 text-center text-lg font-bold text-text-primary">
               Konuşma yüklenemedi
             </Text>
-            <Pressable
+            <AppPressable
               onPress={() => {
                 void conversation.refetch();
                 void messages.refetch();
@@ -470,7 +560,7 @@ export default function ChatScreen() {
               className="mt-5 min-h-11 justify-center rounded-xl bg-brand px-5 py-3"
             >
               <Text className="font-semibold text-white">Tekrar dene</Text>
-            </Pressable>
+            </AppPressable>
           </View>
         ) : null}
 
@@ -478,7 +568,20 @@ export default function ChatScreen() {
         !messages.isLoading &&
         !conversation.isError &&
         !messages.isError ? (
-          <View className="flex-1">
+          <View
+            className="flex-1"
+            onLayout={() => {
+              // Buluşma istemi/hata şeridi gibi ALTTAKİ kardeşler farklı bir
+              // anda mount olup bu View'a kalan yüksekliği değiştirdiğinde de
+              // tetiklenir — mesajlar hiç değişmese bile son mesajın hâlâ
+              // dışarıda kalmadığını garantiliyor.
+              if (nearBottomRef.current) {
+                requestAnimationFrame(() =>
+                  listRef.current?.scrollToEnd({ animated: false }),
+                );
+              }
+            }}
+          >
             <FlatList
               ref={listRef}
               data={chatItems}
@@ -502,13 +605,13 @@ export default function ChatScreen() {
                 flexGrow: 1,
                 justifyContent: "flex-end",
                 paddingTop: 10,
-                paddingBottom: 10,
+                paddingBottom: 20,
               }}
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
                 messages.hasNextPage ? (
                   <View className="items-center pb-2 pt-1">
-                    <Pressable
+                    <AppPressable
                       onPress={() => void messages.fetchNextPage()}
                       disabled={messages.isFetchingNextPage}
                       accessibilityLabel="Daha eski mesajları yükle"
@@ -522,7 +625,7 @@ export default function ChatScreen() {
                           ? " Yükleniyor…"
                           : "Daha eski mesajları göster"}
                       </Text>
-                    </Pressable>
+                    </AppPressable>
                   </View>
                 ) : null
               }
@@ -543,17 +646,18 @@ export default function ChatScreen() {
               }
             />
             {newMessageBelow ? (
-              <Pressable
+              <AppPressable
                 onPress={() => {
                   listRef.current?.scrollToEnd({ animated: true });
                   nearBottomRef.current = true;
                   setNewMessageBelow(false);
                 }}
                 accessibilityLabel="Yeni mesaja git"
-                className="absolute bottom-3 self-center rounded-full bg-text-primary px-4 py-2.5 shadow-sm"
+                style={shadowSm}
+                className="absolute bottom-3 self-center rounded-full bg-text-primary px-4 py-2.5"
               >
                 <Text className="text-xs font-bold text-white">Yeni mesaj ↓</Text>
-              </Pressable>
+              </AppPressable>
             ) : null}
           </View>
         ) : null}
@@ -566,13 +670,13 @@ export default function ChatScreen() {
             <Ionicons name="alert-circle-outline" color="#E5484D" size={18} />
             <Text className="ml-2 flex-1 text-xs text-danger">{sendError}</Text>
             {failedMessage ? (
-              <Pressable
+              <AppPressable
                 onPress={() => submitMessage(failedMessage)}
                 disabled={send.isPending}
                 className="min-h-11 justify-center px-2"
               >
                 <Text className="text-xs font-bold text-danger">Tekrar dene</Text>
-              </Pressable>
+              </AppPressable>
             ) : null}
           </View>
         ) : null}
@@ -580,6 +684,8 @@ export default function ChatScreen() {
         {conversation.data?.askMeetupFeedback ? (
           <MeetupFeedbackPrompt
             petName={conversation.data.petName}
+            meetupPlaceName={conversation.data.meetupPlaceName}
+            meetupScheduledAt={conversation.data.meetupScheduledAt}
             onAnswer={async (outcome) => {
               await recordMeetupFeedback(conversationId, outcome);
               await queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -593,24 +699,27 @@ export default function ChatScreen() {
         {conversation.data?.isActive ? (
           <View className="border-t border-border bg-surface pb-2 pt-2">
             {messageItems.length ? (
-              <View className="flex-row items-center">
-                {(meetupPlaces.data?.length ?? 0) > 0 ? (
-                  <Pressable
-                    onPress={() => setPlacePickerVisible(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Buluşma yeri öner"
-                    className="ml-3 min-h-11 flex-row items-center justify-center rounded-full border border-brand/40 bg-brand/10 px-3"
-                  >
-                    <Ionicons name="location-outline" color="#E0523F" size={16} />
-                    <Text className="ml-1.5 text-xs font-bold text-brand-dark">
-                      Buluşma yeri
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <View className="flex-1">
-                  <QuickReplyBar replies={quickReplies.slice(1)} onSelect={setBody} />
-                </View>
-              </View>
+              <QuickReplyBar
+                replies={quickReplies.slice(1)}
+                onSelect={setBody}
+                leading={
+                  // Canlı buluşma varken ikinci öneri açılamıyor (0043'teki
+                  // tek-canlı-buluşma kuralı); düğmeyi de göstermiyoruz.
+                  (meetupPlaces.data?.length ?? 0) > 0 && !meetup.data ? (
+                    <AppPressable
+                      onPress={() => setPlacePickerVisible(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Buluşma yeri öner"
+                      className="min-h-11 flex-row items-center justify-center rounded-full border border-brand/40 bg-brand/10 px-3"
+                    >
+                      <Ionicons name="location-outline" color="#E0523F" size={16} />
+                      <Text className="ml-1.5 text-xs font-bold text-brand-dark">
+                        Buluşma yeri
+                      </Text>
+                    </AppPressable>
+                  ) : null
+                }
+              />
             ) : null}
             <View className="flex-row items-end gap-2 px-3">
               <View className="flex-1">
@@ -631,7 +740,7 @@ export default function ChatScreen() {
                   </Text>
                 ) : null}
               </View>
-              <Pressable
+              <AppPressable
                 onPress={() => submitMessage()}
                 disabled={!body.trim() || send.isPending}
                 accessibilityLabel="Mesaj gönder"
@@ -643,7 +752,7 @@ export default function ChatScreen() {
                 ) : (
                   <Ionicons name="send" color="#FFFFFF" size={20} />
                 )}
-              </Pressable>
+              </AppPressable>
             </View>
           </View>
         ) : (
@@ -660,10 +769,30 @@ export default function ChatScreen() {
         onClose={() => setPlacePickerVisible(false)}
         onSelect={(place) => {
           setPlacePickerVisible(false);
-          // Metni doğrudan göndermek yerine yazma alanına koyuyoruz:
-          // kullanıcı gün/saat ekleyip kendi cümlesini kurabilsin.
-          setBody(meetupProposalText(place));
+          // Artık metin yazmıyoruz: buluşma bir KAYIT (0043). Yer seçildi,
+          // sırada zorunlu olan gün/saat adımı var.
+          setPendingPlace(place);
         }}
+      />
+
+      <MeetupScheduleSheet
+        place={pendingPlace}
+        busy={meetupAction.isPending}
+        onClose={() => setPendingPlace(null)}
+        onPropose={(when) =>
+          meetupAction.mutate({
+            kind: "propose",
+            placeId: pendingPlace!.id,
+            when,
+          })
+        }
+      />
+
+      <OwnerSheet
+        owner={ownerProfile.data ?? null}
+        petName={conversation.data?.petName ?? ""}
+        visible={ownerSheet && Boolean(ownerProfile.data)}
+        onClose={() => setOwnerSheet(false)}
       />
 
       <SafetyMenuModal

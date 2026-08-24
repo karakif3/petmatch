@@ -8,7 +8,9 @@ const corsHeaders = {
 type EventBody =
   | { type: "match"; matchId: string }
   | { type: "message"; messageId: string }
-  | { type: "new_candidate"; petId: string };
+  | { type: "new_candidate"; petId: string }
+  | { type: "super_like"; swipeId: string }
+  | { type: "verification"; moderationItemId: string };
 
 type PushContent = {
   title: string;
@@ -43,6 +45,12 @@ function eventBody(value: unknown): EventBody | null {
   }
   if (body.type === "new_candidate" && isUuid(body.petId)) {
     return { type: "new_candidate", petId: body.petId };
+  }
+  if (body.type === "super_like" && isUuid(body.swipeId)) {
+    return { type: "super_like", swipeId: body.swipeId };
+  }
+  if (body.type === "verification" && isUuid(body.moderationItemId)) {
+    return { type: "verification", moderationItemId: body.moderationItemId };
   }
   return null;
 }
@@ -80,22 +88,27 @@ async function claimAndSend(
     content: PushContent;
   },
 ): Promise<"sent" | "skipped" | "duplicate"> {
+  // super_like'ın kendi tercihi yok; "yeni eşleşme" ile aynı ilgi
+  // kategorisine giriyor (biri seninle ilgileniyor), ayrı bir ayar
+  // eklemek bu görevin kapsamı dışında.
   const preferenceColumn =
-    input.eventType === "match"
+    input.eventType === "match" || input.eventType === "super_like"
       ? "notify_on_match"
       : input.eventType === "message"
         ? "notify_on_message"
-        : "notify_on_new_candidates";
-  const { data: preferences, error: preferenceError } = await admin
-    .from("discovery_preferences")
-    .select("notify_on_match,notify_on_message,notify_on_new_candidates")
-    .eq("user_id", input.recipientId)
-    .single();
-  if (preferenceError) throw preferenceError;
-
-  const enabled = Boolean(
-    (preferences as Record<string, unknown>)[preferenceColumn],
-  );
+        : input.eventType === "new_candidate"
+          ? "notify_on_new_candidates"
+          : null;
+  let enabled = true;
+  if (preferenceColumn) {
+    const { data: preferences, error: preferenceError } = await admin
+      .from("discovery_preferences")
+      .select("notify_on_match,notify_on_message,notify_on_new_candidates")
+      .eq("user_id", input.recipientId)
+      .single();
+    if (preferenceError) throw preferenceError;
+    enabled = Boolean((preferences as Record<string, unknown>)[preferenceColumn]);
+  }
   const { data: tokens, error: tokenError } = await admin
     .from("push_tokens")
     .select("token")
@@ -228,6 +241,47 @@ Deno.serve(async (request) => {
   if (!body) return json({ error: "Invalid notification event" }, 400);
 
   try {
+    if (body.type === "verification") {
+      const [{ data: role }, { data: item, error: itemError }] = await Promise.all([
+        admin
+          .from("app_user_roles")
+          .select("role")
+          .eq("user_id", authData.user.id)
+          .maybeSingle(),
+        admin
+          .from("moderation_items")
+          .select("id,kind,status,subject_user_id,rejection_reason_code")
+          .eq("id", body.moderationItemId)
+          .single(),
+      ]);
+      if (!role || !["moderator", "admin"].includes(role.role)) {
+        return json({ error: "Moderator role required" }, 403);
+      }
+      if (
+        itemError ||
+        !item ||
+        item.kind !== "verification" ||
+        !["approved", "rejected"].includes(item.status) ||
+        !item.subject_user_id
+      ) {
+        return json({ error: "Verification decision not found" }, 404);
+      }
+      const approved = item.status === "approved";
+      const result = await claimAndSend(admin, {
+        eventType: "verification",
+        eventId: item.id,
+        recipientId: item.subject_user_id,
+        content: {
+          title: approved ? "Profilin doğrulandı" : "Doğrulama sonucunu incele",
+          body: approved
+            ? "Sahip + pet doğrulama rozetin artık aktif."
+            : "Başvurun için açıklama ve yeniden gönderim adımları hazır.",
+          data: { type: "verification" },
+        },
+      });
+      return json({ status: result });
+    }
+
     if (body.type === "match") {
       const { data: match, error: matchError } = await admin
         .from("matches")
@@ -262,6 +316,45 @@ Deno.serve(async (request) => {
       return json({ status: result });
     }
 
+    if (body.type === "super_like") {
+      const { data: swipe, error: swipeError } = await admin
+        .from("swipes")
+        .select("id,from_pet_id,to_pet_id,actor_id,direction,is_super")
+        .eq("id", body.swipeId)
+        .single();
+      if (
+        swipeError ||
+        !swipe ||
+        !swipe.is_super ||
+        swipe.direction !== "like" ||
+        swipe.actor_id !== authData.user.id
+      ) {
+        return json({ error: "Super like not found" }, 404);
+      }
+
+      const { data: pets, error: petsError } = await admin
+        .from("pets")
+        .select("id,owner_id,name")
+        .in("id", [swipe.from_pet_id, swipe.to_pet_id]);
+      if (petsError) throw petsError;
+
+      const fromPet = pets?.find((pet) => pet.id === swipe.from_pet_id);
+      const toPet = pets?.find((pet) => pet.id === swipe.to_pet_id);
+      if (!fromPet || !toPet) return json({ error: "Pet not found" }, 404);
+
+      const result = await claimAndSend(admin, {
+        eventType: "super_like",
+        eventId: swipe.id,
+        recipientId: toPet.owner_id,
+        content: {
+          title: "Süper beğeni! ⭐",
+          body: `${fromPet.name} seni süper beğendi.`,
+          data: { type: "super_like" },
+        },
+      });
+      return json({ status: result });
+    }
+
     if (body.type === "new_candidate") {
       const { data: newPet, error: petError } = await admin
         .from("pets")
@@ -284,7 +377,7 @@ Deno.serve(async (request) => {
           admin
             .from("profiles")
             .select(
-              "owner_visibility,avatar_url,owner_social_open,verification_status,require_visible_owner",
+              "owner_visibility,avatar_url,owner_social_open,verification_status,require_visible_owner,region_slug",
             )
             .eq("id", newPet.owner_id)
             .single(),
@@ -314,7 +407,7 @@ Deno.serve(async (request) => {
           .eq("is_active", true),
         admin
           .from("profiles")
-          .select("id,owner_visibility")
+          .select("id,owner_visibility,region_slug")
           .in("id", preferenceUserIds),
         admin
           .from("blocks")
@@ -343,6 +436,13 @@ Deno.serve(async (request) => {
         const viewerPet = viewerPetByOwner.get(preference.user_id);
         const viewerProfile = viewerProfileById.get(preference.user_id);
         if (!viewerPet || !viewerProfile || blockedIds.has(preference.user_id)) {
+          return false;
+        }
+        if (
+          !ownerProfile.region_slug ||
+          ownerProfile.region_slug === "other" ||
+          viewerProfile.region_slug !== ownerProfile.region_slug
+        ) {
           return false;
         }
         if (

@@ -4,12 +4,15 @@ import {
   Image,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+// SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
+// sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
+// yüksekliğe düşürüyor ve ekran boş render ediliyordu.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -17,7 +20,9 @@ import {
   loadModerationOperations,
   reviewModerationItem,
   type ModerationQueueItem,
+  type VerificationRejectionReason,
 } from "../../core/api/moderation";
+import { errorMessage } from "../../core/domain/error-message";
 
 export default function ModerationScreen() {
   const queryClient = useQueryClient();
@@ -26,6 +31,7 @@ export default function ModerationScreen() {
     queryFn: loadModerationOperations,
   });
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [reasons, setReasons] = useState<Record<string, VerificationRejectionReason>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,11 +46,12 @@ export default function ModerationScreen() {
         id: item.id,
         decision,
         note: notes[item.id] ?? "",
+        rejectionReason: decision === "rejected" ? reasons[item.id] ?? null : null,
         verificationPhotoPath: item.verificationPhotoPath,
       });
       await queryClient.invalidateQueries({ queryKey: ["moderation-operations"] });
     } catch (reviewError) {
-      setError(reviewError instanceof Error ? reviewError.message : "Karar kaydedilemedi.");
+      setError(errorMessage(reviewError, "Karar kaydedilemedi."));
     } finally {
       setBusyId(null);
     }
@@ -181,10 +188,39 @@ export default function ModerationScreen() {
               maxLength={1000}
               className="mt-3 min-h-20 rounded-xl border border-border bg-bg-primary px-3 py-3 text-text-primary"
             />
+            {item.kind === "verification" ? (
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                {([
+                  ["unclear_photo", "Fotoğraf net değil"],
+                  ["pet_not_visible", "Pet görünmüyor"],
+                  ["owner_not_visible", "Sahip görünmüyor"],
+                  ["multiple_people", "Birden fazla kişi"],
+                  ["edited_photo", "Düzenlenmiş fotoğraf"],
+                  ["other", "Diğer"],
+                ] as const).map(([value, label]) => {
+                  const active = reasons[item.id] === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      onPress={() => setReasons((current) => ({ ...current, [item.id]: value }))}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      className={`rounded-full border px-3 py-2 ${active ? "border-brand bg-brand/10" : "border-border"}`}
+                    >
+                      <Text className={`text-xs font-semibold ${active ? "text-brand-dark" : "text-text-secondary"}`}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
             <View className="mt-3 flex-row gap-2">
               <Pressable
                 onPress={() => void decide(item, "rejected")}
-                disabled={busyId !== null || !(notes[item.id] ?? "").trim()}
+                disabled={
+                  busyId !== null ||
+                  !(notes[item.id] ?? "").trim() ||
+                  (item.kind === "verification" && !reasons[item.id])
+                }
                 className="flex-1 items-center rounded-xl border border-danger py-3 disabled:opacity-40"
               >
                 <Text className="font-bold text-danger">Reddet</Text>

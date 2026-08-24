@@ -193,7 +193,7 @@ export function DiscoveryFilterModal({
             <Pressable
               onPress={onClose}
               disabled={busy}
-              className="h-10 w-10 items-center justify-center rounded-full bg-bg-secondary"
+              className="h-11 w-11 items-center justify-center rounded-full bg-bg-secondary"
             >
               <Ionicons name="close" color="#1F1A17" size={22} />
             </Pressable>
@@ -204,8 +204,11 @@ export function DiscoveryFilterModal({
             <Text className="mb-2 text-sm font-semibold text-text-primary">Tür</Text>
             <View className="mb-5 flex-row gap-2">
               {([
-                ["dog", "🐕 Köpek"],
-                ["cat", "🐈 Kedi"],
+                // Emoji YOK: uygulamanın global fontu Inter ve emoji glifi
+                // içermiyor; köpek/kedi emojileri cihazda "?" kutusu olarak
+                // render oluyordu.
+                ["dog", "Köpek"],
+                ["cat", "Kedi"],
               ] as const).map(([value, label]) => {
                 const active = species.includes(value);
                 return (
@@ -232,6 +235,11 @@ export function DiscoveryFilterModal({
 
             <Text className="mb-2 text-sm font-semibold text-text-primary">
               En uzak mesafe · {maxDistanceKm} km
+            </Text>
+            <Text className="mb-2 text-xs leading-4 text-text-tertiary">
+              Mesafe, seçtiğin bölgenin içinde uygulanır. Konum vermezsen veya
+              karşı taraf vermediyse bu filtre atlanır ve mesafe etiketi
+              görünmez.
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
               <View className="flex-row gap-2">

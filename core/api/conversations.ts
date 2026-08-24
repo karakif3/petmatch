@@ -26,6 +26,9 @@ export type ConversationSummary = {
   awaitingMyReply: boolean;
   /** Konuşma olgunlaştı ve henüz "buluştunuz mu?" sorusuna cevap vermedim. */
   askMeetupFeedback: boolean;
+  /** Kayıtlı, onaylanmış buluşmadan geliyorsa yeri — soruda adıyla anmak için. */
+  meetupPlaceName: string | null;
+  meetupScheduledAt: string | null;
 };
 
 /** "Buluştunuz mu?" cevabı. `declined` = sormayı bırak. */
@@ -93,6 +96,8 @@ function mapConversation(row: ConversationRow): ConversationSummary {
     unreadCount: Number(row.unread_count ?? 0),
     awaitingMyReply: Boolean(row.awaiting_my_reply),
     askMeetupFeedback: Boolean(row.ask_meetup_feedback),
+    meetupPlaceName: row.meetup_place_name || null,
+    meetupScheduledAt: row.meetup_scheduled_at || null,
   };
 }
 

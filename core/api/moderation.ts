@@ -1,5 +1,14 @@
 import { STORAGE_BUCKETS } from "./config";
 import { requireSupabaseClient } from "./supabase.client";
+import { requestNotificationDelivery } from "./notifications";
+
+export type VerificationRejectionReason =
+  | "unclear_photo"
+  | "pet_not_visible"
+  | "owner_not_visible"
+  | "multiple_people"
+  | "edited_photo"
+  | "other";
 
 export type ModerationQueueItem = {
   id: string;
@@ -91,6 +100,7 @@ export async function reviewModerationItem(input: {
   id: string;
   decision: "approved" | "rejected";
   note: string;
+  rejectionReason?: VerificationRejectionReason | null;
   verificationPhotoPath?: string | null;
 }): Promise<void> {
   const sb = requireSupabaseClient();
@@ -98,8 +108,17 @@ export async function reviewModerationItem(input: {
     p_item_id: input.id,
     p_decision: input.decision,
     p_note: input.note || undefined,
+    p_rejection_reason_code: input.rejectionReason ?? undefined,
   });
   if (error) throw error;
+  if (input.decision === "approved" || input.rejectionReason) {
+    void requestNotificationDelivery({
+      type: "verification",
+      moderationItemId: input.id,
+    }).catch((notificationError) => {
+      console.warn("Doğrulama sonucu bildirimi gönderilemedi:", notificationError);
+    });
+  }
   if (input.verificationPhotoPath) {
     const { error: cleanupError } = await sb.storage
       .from(STORAGE_BUCKETS.verificationPhotos)

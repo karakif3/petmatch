@@ -63,7 +63,10 @@ export default function ResetPasswordScreen() {
         placeholder="Yeni şifre"
         placeholderTextColor="#C4B7AE"
         secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
         autoComplete="new-password"
+        textContentType="newPassword"
         className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
       />
       <TextInput
@@ -72,7 +75,10 @@ export default function ResetPasswordScreen() {
         placeholder="Yeni şifreyi tekrar yaz"
         placeholderTextColor="#C4B7AE"
         secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
         autoComplete="new-password"
+        textContentType="newPassword"
         className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
       />
       {error ? <Text className="text-danger text-sm mb-3">{error}</Text> : null}

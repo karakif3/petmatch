@@ -17,6 +17,7 @@ import {
   reportContent,
   type ReportReason,
 } from "../core/api/safety";
+import { errorMessage } from "../core/domain/error-message";
 
 export function ReportModal({
   visible,
@@ -52,7 +53,7 @@ export function ReportModal({
       onClose();
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "Şikâyet gönderilemedi.",
+        errorMessage(submitError, "Şikâyet gönderilemedi."),
       );
     } finally {
       setBusy(false);
@@ -82,7 +83,7 @@ export function ReportModal({
               onPress={onClose}
               disabled={busy}
               accessibilityLabel="Kapat"
-              className="h-10 w-10 items-center justify-center rounded-full bg-bg-secondary"
+              className="h-11 w-11 items-center justify-center rounded-full bg-bg-secondary"
             >
               <Ionicons name="close" color="#1F1A17" size={22} />
             </Pressable>

@@ -61,8 +61,11 @@ export default function ForgotPasswordScreen() {
             placeholder="E-posta"
             placeholderTextColor="#C4B7AE"
             autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
             keyboardType="email-address"
             autoComplete="email"
+            textContentType="emailAddress"
             className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
           />
           {error ? <Text className="text-danger text-sm mb-3">{error}</Text> : null}
