@@ -89,7 +89,8 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "Onaylanmış buluşmaları takvimine ekleyebilmek için takvim izni gerekiyor."
+          "calendarPermission": "Onaylanmış buluşmaları takvimine ekleyebilmek için takvim izni gerekiyor.",
+          "remindersPermission": "PetMatch hatırlatıcılarını okumaz veya değiştirmez; sistem bu izni takvim erişimiyle birlikte soruyor."
         }
       ]
     ],

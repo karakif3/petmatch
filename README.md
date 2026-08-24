@@ -102,17 +102,51 @@ xcrun simctl install <udid> ios/build/Build/Products/Debug-iphonesimulator/PetMa
 Metro ayrıca başlatılır (`npx expo start --dev-client`). Bu makinede 8081
 başka bir projeye ait olabilir; çakışırsa `--port` ver.
 
-**İki tuzak:**
+**Üç tuzak:**
 
 - **`LANG` boşsa CocoaPods çöker.** Ruby `US-ASCII` moduna düşüyor ve
   `pod install` her çağrıda `Encoding::CompatibilityError` veriyor.
   `LANG=en_US.UTF-8` şart — yukarıdaki komutlarda o yüzden var.
+  (2026-08-24'te tekrar doğrulandı: `LANG` boştu, CocoaPods uyardı.)
+- **`/ios` git'te DEĞİL — yani config eklentileri geride kalabilir.**
+  Native proje üretiliyor; `app.json`'daki bir eklenti Info.plist'e anahtar
+  yazıyorsa, o anahtar ancak `expo prebuild` çalıştığında native projeye
+  giriyor. Başka bir makinede eklenen bir eklentiyi `git pull` ile alıp
+  prebuild'i atlarsan **uygulama açılışta çöker.**
+
+  Gerçek örnek (2026-08-24): `expo-calendar` 2026-08-07'de eklenmişti;
+  bu makinedeki `ios/` 30 Temmuz'dan kalma olduğu için Info.plist'te
+  ilgili anahtarların hiçbiri yoktu ve uygulama `MissingCalendarPListValue
+  Exception` ile hiç açılmadı. Çözüm ya `npx expo prebuild --platform ios`
+  ya da eksik anahtarları elle eklemek — **dördü birden**:
+
+  ```bash
+  P=ios/PetMatch/Info.plist
+  /usr/libexec/PlistBuddy -c "Add :NSCalendarsUsageDescription string <metin>" $P
+  /usr/libexec/PlistBuddy -c "Add :NSCalendarsFullAccessUsageDescription string <metin>" $P
+  /usr/libexec/PlistBuddy -c "Add :NSRemindersUsageDescription string <metin>" $P
+  /usr/libexec/PlistBuddy -c "Add :NSRemindersFullAccessUsageDescription string <metin>" $P
+  ```
+
+  **Hatırlatıcı anahtarları neden gerekiyor:** uygulama hatırlatıcı
+  kullanmıyor, ama `expo-calendar`'ın native modülü init sırasında hem
+  takvim hem hatırlatıcı izin isteyicisini kuruyor ve ikisinin de metni
+  yoksa fırlatıyor. Yalnız takvim anahtarlarını eklemek çökmeyi
+  **durdurmuyor** — ilk denemede tam olarak bu oldu.
+
+  **Kontrol yöntemi:** `app.json`'daki `ios.infoPlist` ve `plugins`
+  anahtarlarının karşılığı `ios/PetMatch/Info.plist`'te var mı — yoksa
+  yerel native proje bayat demektir.
 - **`ios/Podfile.properties.json` içinde `ios.useFrameworks: static`.**
   Kullanılmayan `@react-native-google-signin/google-signin` bağımlılığı
-  AppCheckCore → GoogleUtilities zincirini getiriyor ve static linkage
-  olmadan Swift pod'ları entegre olmuyor. **Bu dosya `expo prebuild` ile
-  sıfırlanır**; prebuild sonrası ayarı tekrar koymak ya da
-  `expo-build-properties` ile `app.json`'a taşımak gerekir.
+  AppCheckCore → GoogleUtilities zincirini getiriyor. **Bu dosya
+  `expo prebuild` ile sıfırlanır.**
+
+  > 2026-08-24 notu: bu tuzak o gün **tekrar üretilemedi** — dosyada
+  > `useFrameworks` yokken hem `pod install` (124 pod) hem `xcodebuild`
+  > sorunsuz tamamlandı. Not silinmedi çünkü koşulları farklı olabilir
+  > (temiz prebuild sonrası ilk kurulum); ama "her zaman şart" diye
+  > okunmamalı.
 
 ---
 

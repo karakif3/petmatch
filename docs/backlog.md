@@ -286,6 +286,39 @@ kaybolduğu için ayrım şekle taşındı (onaylı → `shield-check`, değil �
 `shield`). Kural olarak yazıldı: **dolgu yalnızca durum anlatan ve iç detayı
 yutmayan gliflerde.**
 
+**2026-08-24 — Bulgu: uygulama temiz bir dev-client derlemesinde AÇILIŞTA
+ÇÖKÜYORDU.** İkon göçünü simülatörde doğrulamak için bu makinede ilk kez
+dev-client derlendi (pod install + xcodebuild, ikisi de temiz) ve uygulama
+`ExpoCalendar.MissingCalendarPListValueException` ile hiç açılmadı.
+
+Kök neden ikon işiyle ilgisiz ve yapısal: **`/ios` git'te değil**, native
+proje üretiliyor. `expo-calendar` 2026-08-07'de eklendi ve `app.json`'daki
+eklenti Info.plist'e `NSCalendars*` anahtarlarını yazıyor — ama bu ancak
+`expo prebuild` çalışınca oluyor. Bu makinedeki `ios/` 30 Temmuz'dan kalma
+olduğu için anahtarlar hiç girmemişti.
+
+Bu yalnız bu makinenin sorunu değil: **aynı şey CI'da, yeni bir geliştirici
+makinesinde ve EAS build'inde de olur** — prebuild'i atlayan her yol aynı
+çökmeyi üretir. Yerelde eksik anahtarlar eklendi; tuzağın tarifi README'nin
+iOS bölümüne yazıldı.
+
+**Düzeltirken çıkan iki ayrıntı:**
+
+- Yalnız `NSCalendars*` eklemek **yetmedi** — uygulama aynı hatayla çökmeye
+  devam etti. Native modül init'te hem takvim hem **hatırlatıcı** izin
+  isteyicisini kuruyor; `NSReminders*` metinleri de zorunlu. Uygulama
+  hatırlatıcı kullanmıyor, ama izin metnini beyan etmek zorunda —
+  mağaza incelemesinde sorulabilecek bir şey, `legal-release-checklist`
+  kapsamına girebilir.
+- `app.json`'da `remindersPermission` verilmemişti; eklentinin varsayılanı
+  **İngilizce** (`"Allow $(PRODUCT_NAME) to access your reminders"`). Yani
+  prebuild çalışsaydı bile Türkçe bir uygulamada sistem dialogu İngilizce
+  çıkacaktı. Türkçe metin `app.json`'a eklendi.
+
+- [ ] **Yayın öncesi:** EAS build profillerinde prebuild'in gerçekten
+      koştuğu doğrulanmalı; koşuyorsa bu çökme yalnız yerel makineleri
+      etkiler, koşmuyorsa yayın kapıcısıdır.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız
