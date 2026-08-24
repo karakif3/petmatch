@@ -1,15 +1,18 @@
 /**
  * Uyum skoru ve keşfet elemesi — saf fonksiyonlar.
  *
- * Skor, keşfet listesini *sıralamak* için kullanılır; eleme (`isEligible`) ise
- * kullanıcının filtrelerini ve karşı tarafın görünürlük tercihlerini uygular.
- * İkisi ayrı tutuluyor: sıralama değişse bile eleme kuralları sabit kalmalı.
+ * SIRALAMA BURADA DEĞİL (`0061`). Destenin sırasını sunucu veriyor: mesafe
+ * kovası → aktiflik kovası → kullanıcıya ve saate bağlı karıştırma. Bu dosya
+ * eskiden desteyi uyum skoruna göre yeniden diziyordu ve sunucunun sırasını
+ * sessizce çöpe atıyordu — mesafe ile aktiflik kullanıcıya hiç yansımıyordu.
+ * Skor artık yalnızca kartın "%N uyum" rozetini besliyor.
  *
- * MESAFE BURADA YOK — bilerek. `discover_playdate_pets` ham koordinat döndürmüyor
- * (üçgenleme savunması, bkz. 0007). Arama havuzu seçilen `region_slug`'dır;
- * mesafe yalnızca o bölge içinde sıralayıp `max_distance_km` ile eler.
- * Skora mesafe bileşeni koymak, istemcide hiçbir zaman dolmayacak bir alana
- * ağırlık vermek olurdu — nitekim eski sürümde ağırlığın %30'u sessizce ölüydü.
+ * Eleme (`isEligible`) ise iyimser bir istemci filtresi olarak duruyor:
+ * bağlayıcı eleme sunucuda, ikisi ayrışırsa sunucu kazanır.
+ *
+ * MESAFE SKORDA YOK — bilerek. `discover_playdate_pets` ham koordinat
+ * döndürmüyor (üçgenleme savunması, bkz. 0007); istemcide hiçbir zaman
+ * dolmayacak bir alana ağırlık vermek olurdu. Mesafe zaten sıralamada.
  */
 import { ageInYears } from "./age";
 import type { DiscoveryPreferences, MatchGoal, Pet } from "./types";
@@ -159,15 +162,4 @@ export function isEligible(candidate: Pet, ctx: EligibilityContext): boolean {
   if (preferences.requireVerifiedOwner && !ctx.candidateOwnerVerified) return false;
 
   return true;
-}
-
-/** Uyum skoruna göre azalan sırada dizer. */
-export function rankCandidates(
-  viewer: Pet,
-  candidates: Pet[],
-  now = new Date(),
-): { pet: Pet; score: CompatibilityBreakdown }[] {
-  return candidates
-    .map((pet) => ({ pet, score: compatibilityScore(viewer, pet, now) }))
-    .sort((a, b) => b.score.total - a.score.total);
 }

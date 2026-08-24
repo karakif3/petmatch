@@ -11,7 +11,7 @@
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
 | Sahip profili | Opsiyonel ad, avatar, şehir, bio, yaş/cinsiyet açıklaması, görünürlük ve pet-first tanışma modu | ✅ tam düzenleme + private avatar + doğrulama başvurusu |
 | Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ tam düzenleme + fotoğraf ekleme/silme/sıralama |
-| Keşfet | Mesafe + pet filtreleri + karşılıklı sahip fotoğrafı/sosyal/verification/yaş/cinsiyet filtreleri | ✅ RPC + güvenli swipe + filtre ekranı |
+| Keşfet | Bölge havuzu + pet filtreleri + karşılıklı sahip fotoğrafı/sosyal/verification/yaş/cinsiyet filtreleri. Mesafe varsayılan olarak elemez, sıralar (`0061`) | ✅ RPC + güvenli swipe + filtre ekranı |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
 | Mesajlaşma | Eşleşme sonrası 1-1 metin | ✅ DB + Realtime sohbet ekranı |
 | Bildirim | Yeni eşleşme, yeni mesaj | ✅ istemci tercih/token akışı + Edge Function + EAS bağlantısı · ⏳ fiziksel cihaz build/test |

@@ -209,13 +209,17 @@ sabitleniyor:
 ## Sıralama artık bir tasarım problemi
 
 Faz 1 ile birlikte destede dört sinyal yarışıyor: **mesafe · son aktiflik ·
-uyum skoru · boost.** Şu anki `discover_playdate_pets` yalnızca mesafeye göre sıralıyor
-ve ilk 50'yi döndürüyor; uyum skoru istemcide o 50'yi yeniden diziyor.
+uyum skoru · boost.**
 
-Bu haliyle taşımaz. Ayrıca `core/domain/matching.ts`'teki mesafe bileşeni
-şu an **ölü** (RLS lat/lng vermiyor, skor sabit 0.5 alıyor) — sıralama
-tasarımı yapılırken birlikte ele alınmalı.
+`0061`'e kadar sıralama iki yerde birden kuruluyordu ve ikincisi birincisini
+siliyordu: sunucu mesafeye göre sıralayıp ilk 50'yi döndürüyor, istemci o 50'yi
+uyum skoruna göre yeniden diziyordu. Net sonuç, deste sırasına mesafenin ve
+aktifliğin **hiç** yansımamasıydı.
 
-Öneri: mesafe ve son aktiflik eleme/kaba sıralama katmanı, uyum skoru eşitlik
-bozucu, boost enjeksiyon. Ama bu, ekranlar yazılırken gerçek veriyle
-kararlaştırılmalı.
+Bugün sıra tek yerde — sunucuda: mesafe kovası → aktiflik kovası → kullanıcıya
+ve saate bağlı sabit karıştırma. İstemci yeniden dizmiyor; uyum skoru yalnızca
+kartın rozetini besliyor.
+
+Kalan iki iş: uyum skorunun sıralamaya **açıkça** girmesi (bugün girmiyor) ve
+boost enjeksiyonu. İkisi de aynı `order by` içinde, tek otoritede
+kararlaştırılmalı — ikinci bir sıralama katmanı açmak bu hatayı geri getirir.

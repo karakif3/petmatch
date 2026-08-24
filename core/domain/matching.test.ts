@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { compatibilityScore, goalsOverlap, isEligible, rankCandidates } from "./matching";
+import { compatibilityScore, goalsOverlap, isEligible } from "./matching";
 import type { DiscoveryPreferences, Pet } from "./types";
 import { DEFAULT_DISCOVERY_PREFERENCES } from "./types";
 
@@ -205,22 +205,5 @@ describe("isEligible", () => {
         candidateOwnerVerified: false,
       }),
     ).toBe(false);
-  });
-});
-
-describe("rankCandidates", () => {
-  it("skora göre azalan sıralar", () => {
-    const viewer = pet({ energyLevel: 3, temperaments: ["playful"] });
-    const ranked = rankCandidates(
-      viewer,
-      [
-        pet({ id: "uyumsuz", energyLevel: 5, temperaments: ["calm"] }),
-        pet({ id: "uyumlu", energyLevel: 3, temperaments: ["playful"] }),
-      ],
-      NOW,
-    );
-
-    expect(ranked[0].pet.id).toBe("uyumlu");
-    expect(ranked[0].score.total).toBeGreaterThanOrEqual(ranked[1].score.total);
   });
 });

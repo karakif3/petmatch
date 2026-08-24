@@ -1,5 +1,5 @@
 import type { Database } from "../../types/database";
-import { rankCandidates, type CompatibilityBreakdown } from "../domain/matching";
+import { compatibilityScore, type CompatibilityBreakdown } from "../domain/matching";
 import {
   OWNER_INTERESTS,
   TEMPERAMENTS,
@@ -51,7 +51,9 @@ export type DiscoveryDeck = {
 
 export type DiscoveryFilterSettings = {
   species: ("cat" | "dog")[];
+  /** Yalnızca `distanceFilterEnabled` açıkken eleme yapar (`0061`). */
   maxDistanceKm: number;
+  distanceFilterEnabled: boolean;
   minPetAgeYears: number | null;
   maxPetAgeYears: number | null;
   requireVisibleOwner: boolean;
@@ -204,7 +206,7 @@ export async function loadDiscoveryDeck(
     sb
       .from("discovery_preferences")
       .select(
-        "species,max_distance_km,min_age_years,max_age_years,require_owner_photo,require_owner_social,require_verified_owner,notify_on_new_candidates",
+        "species,max_distance_km,distance_filter_enabled,min_age_years,max_age_years,require_owner_photo,require_owner_social,require_verified_owner,notify_on_new_candidates",
       )
       .eq("user_id", userId)
       .single(),
@@ -238,6 +240,7 @@ export async function loadDiscoveryDeck(
   const filterSettings: DiscoveryFilterSettings = {
     species: preferencesResult.data.species,
     maxDistanceKm: preferencesResult.data.max_distance_km,
+    distanceFilterEnabled: preferencesResult.data.distance_filter_enabled,
     minPetAgeYears:
       preferencesResult.data.min_age_years === null
         ? null
@@ -277,14 +280,18 @@ export async function loadDiscoveryDeck(
 
   const candidates = (rows ?? []).map(mapDiscoveryRow);
   const owners = await Promise.all((rows ?? []).map(ownerSummary));
-  const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   const ownerById = new Map(
     (rows ?? []).map((row, index) => [row.id, owners[index]]),
   );
-  const cards = rankCandidates(viewer, candidates).map(({ pet, score }) => ({
-    ...(candidateById.get(pet.id) as DiscoveryCandidate),
-    compatibility: score,
-    owner: ownerById.get(pet.id) ?? null,
+  // SIRA SUNUCUNUN. `discover_playdate_pets` mesafe kovası → aktiflik kovası
+  // → kullanıcıya/saate bağlı karıştırma ile sıralıyor (`0061`). Burada
+  // uyum skoruna göre yeniden dizmek o sıralamayı SESSİZCE çöpe atıyordu:
+  // mesafe ve aktiflik desteye hiç yansımıyor, deste yalnızca uyum skoruna
+  // göre diziliyordu. Skor artık yalnızca kartın rozetini besliyor.
+  const cards = candidates.map((candidate) => ({
+    ...candidate,
+    compatibility: compatibilityScore(viewer, candidate),
+    owner: ownerById.get(candidate.id) ?? null,
   }));
 
   return { viewer, cards, ownerSettings, filterSettings };
@@ -298,6 +305,7 @@ export async function updateDiscoveryFilters(
     {
       p_species: input.species,
       p_max_distance_km: input.maxDistanceKm,
+      p_distance_filter_enabled: input.distanceFilterEnabled,
       p_min_age_years: input.minPetAgeYears ?? (null as unknown as number),
       p_max_age_years: input.maxPetAgeYears ?? (null as unknown as number),
       p_require_visible_owner: input.requireVisibleOwner,

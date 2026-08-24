@@ -105,12 +105,55 @@ select tests.assert(
   'koordinatsız adayda mesafe kovası yok'
 );
 
+-- `0061`: mesafe varsayılan olarak ELEMEZ. Bölgesini seçip başka şehirde
+-- olan kullanıcının destesi boş açılmasın diye kural tersine çevrildi;
+-- yakınlık isteyen filtreyi kendisi açar.
+select tests.assert(
+  exists (
+    select 1 from discover_playdate_pets('aaaa1111-0000-0000-0000-000000000001')
+    where id = 'bbbb8888-0000-0000-0000-000000000008'
+  ),
+  'mesafe filtresi kapalıyken uzak koordinatlı aday da destede'
+);
+
+reset role;
+update discovery_preferences
+set distance_filter_enabled = true
+where user_id = '11111111-1111-1111-1111-111111111111';
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+
 select tests.assert(
   not exists (
     select 1 from discover_playdate_pets('aaaa1111-0000-0000-0000-000000000001')
     where id = 'bbbb8888-0000-0000-0000-000000000008'
   ),
-  'aynı bölgede uzak koordinatlı aday mesafe filtresine takılır'
+  'filtre açılınca aynı bölgedeki uzak koordinatlı aday eleniyor'
+);
+
+select tests.assert_raises(
+  $$select swipe_pet(
+    'aaaa1111-0000-0000-0000-000000000001',
+    'bbbb8888-0000-0000-0000-000000000008',
+    'like'
+  )$$,
+  'filtre açıkken uzak pete swipe da yazılamaz — iki yüzey aynı kuralı söylüyor'
+);
+
+reset role;
+update discovery_preferences
+set distance_filter_enabled = false
+where user_id = '11111111-1111-1111-1111-111111111111';
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+
+select tests.assert(
+  (select count(*) from swipe_pet(
+     'aaaa1111-0000-0000-0000-000000000001',
+     'bbbb8888-0000-0000-0000-000000000008',
+     'pass'
+   )) = 1,
+  'filtre kapalıyken uzak pete swipe yazılabiliyor'
 );
 
 select tests.assert_raises(

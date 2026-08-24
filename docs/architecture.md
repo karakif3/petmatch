@@ -45,9 +45,19 @@ Böylece ham koordinat veya üçgenlemeye elverişli kesin mesafe ağa çıkmaz.
 
 Arama havuzu `profiles.region_slug`'dır (`0057`): Kadıköy kullanıcısı
 Nişantaşı / Beşiktaş / bekleme listesi petlerini görmez. Cihaz konumu yalnızca
-aynı bölge içinde mesafe filtresi ve sıralama içindir; iki taraftan biri
-koordinat vermediyse mesafe atlanır ve kova null döner. `swipe_pet` ile
-`pending_likes` aynı kuralı uygular.
+aynı bölge içinde anlamlıdır; iki taraftan biri koordinat vermediyse mesafe
+atlanır ve kova null döner. `swipe_pet` ile `pending_likes` aynı kuralı uygular.
+
+Mesafe **eleme değil sıralama sinyalidir** (`0061`). Bölge zaten mahalle
+ölçeğinde olduğu için ikinci bir yarıçap kapısı kazandırmıyor, buna karşılık
+bölgesini seçip başka şehirde olan kullanıcının destesini tamamen boşaltıyordu.
+Yakınlık isteyen `distance_filter_enabled` ile sert filtreyi kendisi açar.
+
+**Sıralamanın tek otoritesi sunucudur:** mesafe kovası → aktiflik kovası →
+kullanıcıya ve saate bağlı sabit karıştırma. İstemci desteyi yeniden dizmez;
+uyum skoru yalnızca kartın rozetini besler. Bu kural `0061` öncesinde
+çiğneniyordu — istemcinin skora göre yeniden dizmesi sunucunun sırasını
+sessizce çöpe atıyordu.
 
 RPC önce bounding-box ile eler (`pets_discovery_idx`), sonra kalanlarda
 haversine çalıştırır. PostGIS'e bağımlılık yok — taşınabilirlik için bilinçli.

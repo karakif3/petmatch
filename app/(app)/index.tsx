@@ -686,27 +686,25 @@ export default function DiscoverScreen() {
               bağlantısına iniyor.
             */}
             {/*
-              Yarıçap önerisi 25 km'de duruyor. `0057`'den beri arama havuzu
-              BÖLGE; yarıçap yalnızca o havuzun içinde eliyor. Mahalle
-              ölçeğinde 25 km ile 100 km birebir aynı desteyi verir — düğmeyi
-              orada da göstermek, çalışıyormuş gibi görünüp hiçbir şey
-              değiştirmeyen bir birincil eylem demekti.
+              Birincil eylem artık "yarıçapı genişlet" değil. `0061`'den beri
+              mesafe varsayılan olarak elemiyor; deste boşaldıysa ve mesafe
+              filtresi AÇIKSA gerçekten işe yarayan tek hamle onu kapatmak.
+              Kapalıysa geriye zaten yalnızca beklemek kalıyor — o yüzden
+              bildirim birincil oluyor.
             */}
-            {deck.data.filterSettings.maxDistanceKm < 25 ? (
+            {deck.data.filterSettings.distanceFilterEnabled ? (
               <AppPressable
                 onPress={() => {
                   const settings = deck.data!.filterSettings;
-                  const nextDistance =
-                    [5, 10, 25].find((value) => value > settings.maxDistanceKm) ?? 25;
                   void applyFilters(
-                    { ...settings, maxDistanceKm: nextDistance },
+                    { ...settings, distanceFilterEnabled: false },
                     ownerFilters,
                   );
                 }}
                 disabled={filterBusy}
                 className="mt-5 w-full items-center rounded-xl bg-brand px-5 py-3 disabled:opacity-50"
               >
-                <Text className="font-semibold text-white">Yarıçapı genişlet</Text>
+                <Text className="font-semibold text-white">Mesafe filtresini kapat</Text>
               </AppPressable>
             ) : (
               <AppPressable
@@ -728,6 +726,7 @@ export default function DiscoverScreen() {
                     {
                       species: ["cat", "dog"],
                       maxDistanceKm: 25,
+                      distanceFilterEnabled: false,
                       minPetAgeYears: null,
                       maxPetAgeYears: null,
                       requireVisibleOwner: false,

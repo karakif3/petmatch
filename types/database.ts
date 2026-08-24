@@ -209,6 +209,7 @@ export type Database = {
       }
       discovery_preferences: {
         Row: {
+          distance_filter_enabled: boolean
           language: string
           max_age_years: number | null
           max_distance_km: number
@@ -224,6 +225,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          distance_filter_enabled?: boolean
           language?: string
           max_age_years?: number | null
           max_distance_km?: number
@@ -239,6 +241,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          distance_filter_enabled?: boolean
           language?: string
           max_age_years?: number | null
           max_distance_km?: number
@@ -1448,6 +1451,7 @@ export type Database = {
       unregister_push_token: { Args: { p_token: string }; Returns: undefined }
       update_my_discovery_filters: {
         Args: {
+          p_distance_filter_enabled: boolean
           p_max_age_years: number
           p_max_distance_km: number
           p_min_age_years: number

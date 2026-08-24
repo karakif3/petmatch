@@ -198,8 +198,35 @@ ve o yalnızca INSERT'te ateşleniyor. `swipe_pet` artık bayatlamış pass'i
 (`discovery-recirculation.test.sql`, 7 iddia). Aynı migration'da `swipe_pet`'in
 sahip filtresi kontrolleri de `0059`'un `public` kapısına hizalandı.
 
-Yan düzeltme: boş deste metni artık geçilen petlerin geri geleceğini söylüyor
-ve yarıçap önerisi 25 km'de duruyor.
+Yan düzeltme: boş deste metni artık geçilen petlerin geri geleceğini söylüyor.
+
+**2026-08-24 — Mesafe eleme olmaktan çıkıp sıralama sinyali oldu (`0061`).**
+`0057` havuzu bölgeye kilitledikten sonra mesafenin havuz İÇİNDE ikinci bir
+sert filtre olması hiçbir şey kazandırmıyor, iki durumu bozuyordu: bölgesini
+seçip başka şehirde olan kullanıcının destesi **tamamen boş** açılıyordu
+(bütün adaylar 25 km dışında kalıyor), aynısı seyahatteki kullanıcı için de
+geçerliydi. Artık mesafe varsayılan olarak elemiyor; yakınlık isteyen
+`distance_filter_enabled` anahtarıyla sert filtreyi kendisi açıyor.
+
+**Yol üstünde çıkan daha büyük bulgu: sıralama iki yerde kuruluyordu ve
+ikincisi birincisini siliyordu.** Sunucu mesafeye göre sıralayıp ilk 50'yi
+döndürüyor, istemci (`rankCandidates`) o 50'yi uyum skoruna göre yeniden
+diziyordu — yani deste sırasına mesafe ve aktiflik **hiç** yansımıyordu.
+`monetization.md`'de "bu haliyle taşımaz" diye not edilen sorun buydu. Sıra
+artık tek otoritede, sunucuda: **mesafe kovası → aktiflik kovası →
+kullanıcıya ve saate bağlı sabit karıştırma.** `rankCandidates` kaldırıldı;
+uyum skoru yalnızca kartın rozetini besliyor. Kesin `order by km` yerine kova
+kullanmak `0007`'nin üçgenleme savunmasını da tamamlıyor: kesin mesafe
+SIRALAMASI, kovanın gizlediği çözünürlüğü geri veriyordu. Karıştırma
+`random()` değil `md5(id‖kullanıcı‖saat)` — rastgele sıralamada deste her
+yenilemede karışır ve kullanıcı kartların yer değiştirdiğini görür.
+
+Ayrıca `activity_bucket` `immutable` işaretliyken `now()` okuyordu; sıralama
+artık ona dayandığı için `stable`'a çekildi.
+
+Kalan: **uyum skorunun sıralamaya açıkça girmesi** ve boost enjeksiyonu — ikisi
+de aynı `order by` içinde kararlaştırılmalı, ikinci bir sıralama katmanı bu
+hatayı geri getirir.
 
 ### ⛔ Yayın kapıcıları — sırayla
 

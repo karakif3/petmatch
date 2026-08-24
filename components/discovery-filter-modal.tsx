@@ -89,6 +89,7 @@ export function DiscoveryFilterModal({
   const [requireVerified, setRequireVerified] = useState(false);
   const [species, setSpecies] = useState<("cat" | "dog")[]>([]);
   const [maxDistanceKm, setMaxDistanceKm] = useState(25);
+  const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(false);
   const [minPetAge, setMinPetAge] = useState("");
   const [maxPetAge, setMaxPetAge] = useState("");
   const [requireVisibleOwner, setRequireVisibleOwner] = useState(false);
@@ -106,6 +107,7 @@ export function DiscoveryFilterModal({
     setRequireVerified(ownerSettings.requireVerified);
     setSpecies(filterSettings.species);
     setMaxDistanceKm(filterSettings.maxDistanceKm);
+    setDistanceFilterEnabled(filterSettings.distanceFilterEnabled);
     setMinPetAge(filterSettings.minPetAgeYears?.toString() ?? "");
     setMaxPetAge(filterSettings.maxPetAgeYears?.toString() ?? "");
     setRequireVisibleOwner(filterSettings.requireVisibleOwner);
@@ -160,6 +162,7 @@ export function DiscoveryFilterModal({
       {
         species,
         maxDistanceKm,
+        distanceFilterEnabled,
         minPetAgeYears: parsedPetMin,
         maxPetAgeYears: parsedPetMax,
         requireVisibleOwner,
@@ -233,7 +236,27 @@ export function DiscoveryFilterModal({
               })}
             </View>
 
-            <Text className="mb-2 text-sm font-semibold text-text-primary">
+            {/*
+              `0061`: mesafe artık varsayılan olarak ELEMİYOR, sıralıyor —
+              yakındakiler zaten üstte. Bu anahtar açılmadıkça km seçimi
+              yalnızca kayıtlı bir tercih. Sert filtre varsayılan olsaydı,
+              bölgesini seçip başka şehirde olan kullanıcının destesi boş
+              açılırdı.
+            */}
+            <View className="mb-3 rounded-2xl border border-border bg-surface px-4">
+              <Toggle
+                label="Yalnızca bu mesafedekiler"
+                detail="Kapalıyken bölgendeki herkes destede kalır, yakındakiler yine üstte sıralanır."
+                value={distanceFilterEnabled}
+                onValueChange={setDistanceFilterEnabled}
+              />
+            </View>
+
+            <Text
+              className={`mb-2 text-sm font-semibold ${
+                distanceFilterEnabled ? "text-text-primary" : "text-text-tertiary"
+              }`}
+            >
               En uzak mesafe · {maxDistanceKm} km
             </Text>
             <Text className="mb-2 text-xs leading-4 text-text-tertiary">
@@ -241,7 +264,13 @@ export function DiscoveryFilterModal({
               karşı taraf vermediyse bu filtre atlanır ve mesafe etiketi
               görünmez.
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-5"
+              style={{ opacity: distanceFilterEnabled ? 1 : 0.45 }}
+              pointerEvents={distanceFilterEnabled ? "auto" : "none"}
+            >
               <View className="flex-row gap-2">
                 {distanceOptions.map((distance) => (
                   <Pressable
