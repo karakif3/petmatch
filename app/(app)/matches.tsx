@@ -110,7 +110,12 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
         {conversation.isActive && conversation.awaitingMyReply ? (
           <View className="mt-1.5 flex-row items-center">
             <View className="flex-row items-center rounded-full bg-accent/10 px-2 py-0.5">
-              <AppIcon name="undo-2" color="#1E9384" size={12} />
+              {/*
+                `reply`, `undo-2` değil: rozet "geri al" demiyor,
+                "yanıt sırası sende" diyor. Ionicons'taki `arrow-undo`
+                görsel olarak undo-2'ye denk düşüyordu ama anlamı bu.
+              */}
+              <AppIcon name="reply" color="#1E9384" size={12} />
               <Text className="ml-1 text-[11px] font-bold text-accent-dark">Sıra sende</Text>
             </View>
           </View>

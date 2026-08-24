@@ -15,6 +15,7 @@ import {
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
@@ -645,6 +646,20 @@ export default function ChatScreen() {
                 </View>
               }
             />
+            {/*
+              Mesajlar listenin üst sınırında SERT kesiliyordu: yukarı kayan
+              bir balonun harfleri ortadan bıçakla kesilmiş gibi duruyor ve
+              render hatası izlenimi veriyordu (canlı denemede önce hata
+              sanıldı). Liste zaten üstteki buluşma kartının altından
+              başlıyor; ince bir gradyan kesiği "alta kayıyor" hissine
+              çeviriyor. Dokunmayı engellememesi için pointerEvents none.
+            */}
+            <LinearGradient
+              pointerEvents="none"
+              colors={["#FFFBF7", "rgba(255,251,247,0)"]}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, height: 14 }}
+            />
+
             {newMessageBelow ? (
               <AppPressable
                 onPress={() => {
