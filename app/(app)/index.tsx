@@ -744,7 +744,13 @@ export default function DiscoverScreen() {
                   Filtreleri temizle
                 </Text>
               </AppPressable>
-              {deck.data.filterSettings.maxDistanceKm < 100 ? (
+              {/*
+                Bildirim bağlantısı YALNIZCA birincil düğme başka bir şeyse.
+                Koşul eskiden birincilin aynasıydı (`maxDistanceKm < 100`);
+                birincil "yarıçapı genişlet"ten "yeni pet gelince bildir"e
+                dönünce aynı eylem ekranda iki kez çıkmaya başladı.
+              */}
+              {deck.data.filterSettings.distanceFilterEnabled ? (
                 <AppPressable
                   onPress={() => void toggleNewCandidateNotification()}
                   disabled={filterBusy}
