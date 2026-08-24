@@ -1418,6 +1418,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      shares_discover_region: {
+        Args: { p_other_id: string; p_viewer_id: string }
+        Returns: boolean
+      }
       submit_verification: {
         Args: { p_pet_id: string; p_photo_path: string }
         Returns: string

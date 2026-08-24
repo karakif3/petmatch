@@ -228,6 +228,29 @@ Kalan: **uyum skorunun sıralamaya açıkça girmesi** ve boost enjeksiyonu — 
 de aynı `order by` içinde kararlaştırılmalı, ikinci bir sıralama katmanı bu
 hatayı geri getirir.
 
+**Bilerek YAPILMAYAN — konum tazeliği (`location_updated_at`).** Aynı denetimde
+çıktı: `pets.latitude/longitude` yalnızca kullanıcı profilden elle bastığında
+güncelleniyor, ne zaman yazıldığı hiçbir yerde tutulmuyor. `0061` öncesinde bu
+ciddiydi — bayat koordinat sert mesafe filtresiyle birleşince kullanıcıyı
+desteden **düşürebiliyordu**. Mesafe artık elemediği için bayat koordinatın tek
+etkisi mahalle içi sıralamada birkaç sıra kayma. Kolon + arka planda tazeleme
+eklemek, karşılığı bu kadar küçükken yeni bir konum-okuma yüzeyi (ve KVKK
+metninde karşılığı olması gereken yeni bir davranış) açmak olurdu.
+
+**Ne zaman gerekir:** mesafe tekrar eleme hâline gelirse, bölgeler mahalleden
+büyük bir ölçeğe çıkarsa ya da kullanıcıya "şu an X km uzakta" gibi anlık bir
+vaat verilirse. O gün önce bu kolon eklenmeli.
+
+**Canlıya uygulandı (2026-08-24).** `0057`–`0061` beş migration birlikte
+gitti; `0057`/`0058` de o güne kadar canlıya çıkmamıştı. `migration list
+--linked` farksız, `gen:types` tek satır fark üretti (`shares_discover_region`,
+`0057`'den). **Yol üstünde bulunan şey:** bu makine hâlâ silinmiş eski projeye
+(`qfsielylbshuruozsfzz`) bağlıydı — `.env` git'e girmediği için taşımadan sonra
+güncellenmemişti, yani buradan uygulama hiçbir şeye bağlanamıyordu. Yeni ref
+`ktlefybtankyywxuafvh`. **Ders:** birden fazla makinede çalışırken taşıma
+sonrası `.env` her makinede ayrı güncellenmeli; bunu hatırlatan tek şey
+`region-migration.md` §6 ve orada "her makine" yazmıyordu.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız
