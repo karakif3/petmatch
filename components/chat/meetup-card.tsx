@@ -17,6 +17,16 @@ function formatWhen(iso: string): string {
   });
 }
 
+/** Katlanmış satır için tek satıra sığan biçim. */
+function formatWhenShort(iso: string): string {
+  return new Date(iso).toLocaleString(getIntlLocale(), {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /**
  * Sohbetteki buluşma kartı.
  *
@@ -44,6 +54,21 @@ export function MeetupCard({
   const accepted = meetup.status === "accepted";
   const past = new Date(meetup.scheduledAt).getTime() < Date.now();
   const [addingToCalendar, setAddingToCalendar] = useState(false);
+
+  /**
+   * ONAYLANDIKTAN SONRA KATLANIR.
+   *
+   * Kart açıkken 874pt'lik ekranın ~218pt'sini (yaklaşık %25) kalıcı olarak
+   * tutuyordu; mesaj listesine %43 kalıyordu. Oysa karar verildikten sonra
+   * buradaki bilginin tamamı (açıklama, olanak çipleri, kaynak bağlantısı,
+   * takvime ekle) REFERANS bilgi — lazım olduğunda bakılır, sürekli
+   * görünmesi gerekmez. Katlanmış hâli yer + tarih/saat: ~56pt.
+   *
+   * Bekleyen öneri KATLANMAZ: orada karar düğmeleri var ve kullanıcıdan
+   * beklenen bir eylem duruyor. Katlamak o eylemi gizlemek olurdu.
+   */
+  const collapsible = accepted;
+  const [expanded, setExpanded] = useState(false);
 
   const addToCalendar = async () => {
     if (addingToCalendar) return;
@@ -73,26 +98,55 @@ export function MeetupCard({
     }
   };
 
+  if (collapsible && !expanded) {
+    return (
+      <Pressable
+        onPress={() => setExpanded(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`Onaylanmış buluşma: ${meetup.placeName}, ${formatWhen(
+          meetup.scheduledAt,
+        )}. Ayrıntıları aç.`}
+        className="mx-4 mb-3 flex-row items-center rounded-2xl border border-accent/40 bg-accent/5 px-3.5 py-3"
+      >
+        <AppIcon name="circle-check" color="#2FB8A6" size={17} />
+        <Text
+          className="ml-2 flex-1 text-[13px] font-semibold text-text-primary"
+          numberOfLines={1}
+        >
+          {meetup.placeName} · {formatWhenShort(meetup.scheduledAt)}
+        </Text>
+        <AppIcon name="chevron-down" color="#9A8B82" size={16} />
+      </Pressable>
+    );
+  }
+
   return (
     <View
       className={`mx-4 mb-3 rounded-2xl border p-4 ${
         accepted ? "border-accent/40 bg-accent/5" : "border-brand/30 bg-brand/5"
       }`}
     >
-      <View className="flex-row items-center">
+      <Pressable
+        onPress={collapsible ? () => setExpanded(false) : undefined}
+        disabled={!collapsible}
+        accessibilityRole={collapsible ? "button" : undefined}
+        accessibilityLabel={collapsible ? "Buluşma ayrıntılarını kapat" : undefined}
+        className="flex-row items-center"
+      >
         <AppIcon
           name={accepted ? "circle-check" : "calendar"}
           color={accepted ? "#2FB8A6" : "#F97362"}
           size={19}
         />
         <Text
-          className={`ml-2 text-sm font-bold ${
+          className={`ml-2 flex-1 text-sm font-bold ${
             accepted ? "text-accent-dark" : "text-brand-dark"
           }`}
         >
           {accepted ? "Buluşma onaylandı" : "Buluşma önerisi"}
         </Text>
-      </View>
+        {collapsible ? <AppIcon name="chevron-up" color="#9A8B82" size={16} /> : null}
+      </Pressable>
 
       <Text className="mt-2.5 text-base font-bold text-text-primary">
         {meetup.placeName}

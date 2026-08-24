@@ -427,12 +427,16 @@ export default function ChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/*
-          Sahip bloğu önceden ayrı, tam genişlikte bir kart olarak her
-          açılışta yer kaplıyordu (avatar + isim/rozetler + bio + "profile
-          bak" satırı, ~120pt). O bilginin TAMAMI zaten `OwnerSheet`'te var
-          — burada tekrar etmenin tek gerekçesi keşfedilebilirlikti. Şimdi
-          header'ın ikinci satırına çökertildi: küçük bir rozet, dokununca
-          aynı sheet açılıyor. Mesaj listesi kazandığı alanı doğrudan alıyor.
+          Sahip bloğunun küçülme geçmişi: önce ayrı tam genişlikte bir kart
+          (~120pt), sonra header'ın İKİNCİ SATIRINDA ad taşıyan bir hap
+          (~36pt), şimdi başlık satırının içinde yalnızca avatar.
+          
+          Adı da düşürmenin gerekçesi: ad, fotoğraf, yaş kovası ve bio'nun
+          TAMAMI zaten `OwnerSheet`'te. Header'da adı tekrar etmek ikinci
+          bir satır maliyetine değmiyordu — üstelik uzun Türkçe adlar pet
+          adını sıkıştırıyordu. Avatar aksan renginde halkayla çevrili
+          (dokunulabilir olduğunu söyleyen tek işaret) ve doğrulanmışsa
+          köşesinde kalkan duruyor, yani güven sinyali kaybolmuyor.
         */}
         <View className="border-b border-border bg-surface px-3 py-2.5">
           <View className="flex-row items-center">
@@ -473,6 +477,46 @@ export default function ChatScreen() {
                 </Text>
               </View>
             </View>
+            {ownerProfile.data ? (
+              <AppPressable
+                onPress={() => setOwnerSheet(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`${
+                  ownerProfile.data.displayName ?? "Pet sahibi"
+                } profilini aç`}
+                className="h-11 w-11 items-center justify-center rounded-full"
+              >
+                <View>
+                  {ownerProfile.data.photoUrl ? (
+                    <Image
+                      source={ownerProfile.data.photoUrl}
+                      contentFit="cover"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        borderWidth: 1.5,
+                        borderColor: "#2FB8A6",
+                      }}
+                    />
+                  ) : (
+                    <View className="h-7 w-7 items-center justify-center rounded-full border-[1.5px] border-accent bg-bg-tertiary">
+                      <AppIcon name="user" color="#9A8B82" size={14} />
+                    </View>
+                  )}
+                  {ownerProfile.data.verified ? (
+                    <View className="absolute -bottom-0.5 -right-0.5 rounded-full bg-surface p-[1px]">
+                      <AppIcon
+                        name="shield-check"
+                        accessibilityLabel="Doğrulanmış sahip"
+                        color="#2FB8A6"
+                        size={11}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              </AppPressable>
+            ) : null}
             <AppPressable
               onPress={() => setSafetyVisible(true)}
               disabled={safetyBusy || !conversation.data}
@@ -484,40 +528,6 @@ export default function ChatScreen() {
             </AppPressable>
           </View>
 
-          {ownerProfile.data ? (
-            <AppPressable
-              onPress={() => setOwnerSheet(true)}
-              accessibilityRole="button"
-              accessibilityLabel={`${ownerProfile.data.displayName ?? "Pet sahibi"} profilini aç`}
-              className="ml-11 mt-1.5 flex-row items-center self-start rounded-full bg-bg-secondary py-1 pl-1 pr-2.5"
-            >
-              {ownerProfile.data.photoUrl ? (
-                <Image
-                  source={ownerProfile.data.photoUrl}
-                  accessibilityLabel="Pet sahibinin profil fotoğrafı"
-                  contentFit="cover"
-                  style={{ width: 22, height: 22, borderRadius: 11 }}
-                />
-              ) : (
-                <View className="h-[22px] w-[22px] items-center justify-center rounded-full bg-bg-tertiary">
-                  <AppIcon name="user" color="#9A8B82" size={12} />
-                </View>
-              )}
-              <Text className="ml-1.5 text-xs font-semibold text-text-primary" numberOfLines={1}>
-                {ownerProfile.data.displayName ?? "Pet sahibi"}
-              </Text>
-              {ownerProfile.data.verified ? (
-                <AppIcon
-                  name="shield-check"
-                  accessibilityLabel="Doğrulanmış sahip"
-                  color="#2FB8A6"
-                  size={13}
-                  style={{ marginLeft: 4 }}
-                />
-              ) : null}
-              <AppIcon name="chevron-right" color="#9A8B82" size={12} style={{ marginLeft: 2 }} />
-            </AppPressable>
-          ) : null}
         </View>
 
         {meetup.data ? (

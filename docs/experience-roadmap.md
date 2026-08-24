@@ -934,6 +934,37 @@ Dürüst özet: saf teknik değerlendirmede Tabler ile Lucide başa baş; Lucide
   transitively duruyor). Karışık ailenin geri sızmasını engelleyen tek
   yapısal önlem bu.
 
+## 15b. Sohbette dikey alan (2026-08-24)
+
+Simülatörde ölçüldü: 874pt'lik ekranda mesaj listesine **378pt (%43)** kalıyordu.
+
+| Blok | Önce | Sonra |
+|---|---|---|
+| Başlık (pet satırı + sahip hapı) | ~100pt | **~62pt** |
+| Buluşma kartı (onaylanmış) | ~218pt | **~48pt** |
+| **Mesaj listesi** | **378pt (%43)** | **~559pt (%64)** |
+
+**Onaylanmış buluşma kartı katlanıyor.** Karar verildikten sonra karttaki
+bilginin tamamı (açıklama, olanak çipleri, kaynak bağlantısı, takvime ekle)
+referans bilgi — lazım olunca bakılır. Katlanmış hâli yer + tarih/saat tek
+satır; dokununca açılıyor. **Bekleyen öneri katlanmıyor:** orada karar
+düğmeleri var, katlamak kullanıcıdan beklenen eylemi gizlemek olurdu.
+
+**Sahip bloğu başlık satırının içine girdi ve adını bıraktı.** Küçülme
+geçmişi: ayrı tam genişlikte kart (~120pt) → header'ın ikinci satırında ad
+taşıyan hap (~36pt) → başlık satırında yalnız avatar. Ad, fotoğraf, yaş
+kovası ve bio'nun tamamı zaten `OwnerSheet`'te; header'da adı tekrar etmek
+ikinci satır maliyetine değmiyordu ve uzun Türkçe adlar pet adını
+sıkıştırıyordu. Avatar aksan renginde halkayla çevrili (dokunulabilirlik
+işareti) ve doğrulanmış sahipte köşesinde kalkan duruyor — güven sinyali
+kaybolmadı.
+
+**Sırada bekleyen üçüncü kazanç:** hızlı yanıt şeridi (~43pt) kalıcı
+duruyor. "Buluşma planla / Uyumluluk sor" bir başlangıç aracı; karşılıklı
+ilk mesajlaşmadan sonra yazma satırının yanındaki bir `+` düğmesine
+alınabilir. Bu turda bilerek yapılmadı — kullanımını ölçmeden gizlemek
+riskli.
+
 ---
 
 ## 16. Profil ekranı: gruplu liste diline geçiş (2026-08-09)
