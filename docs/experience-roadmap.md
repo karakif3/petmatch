@@ -998,10 +998,27 @@ olarak ayrıştırıldı; sohbetteki hızlı bakış paneli ile profil sayfasın
 bölüm **aynı bileşen**. Panel "kiminle konuşuyorum"u sohbetten çıkmadan
 gösteriyor, sayfa tam resmi veriyor.
 
-**Sıradaki giriş noktaları:** bugün yalnızca sohbet başlığından giriliyor.
-Keşfet kartı, Beğeniler ve Mesajlar satırı da aynı rotaya bağlanmalı; deste
-satırı sahip alanlarını zaten taşıdığı için oradan gelindiğinde
-`conversationId` olmadan da sahip bölümü doldurulabilir.
+**Giriş noktaları — üçü değerlendirildi, biri bağlandı:**
+
+- ✅ **Mesajlar satırı.** Avatar profile, satırın kalanı sohbete gidiyor
+  (WhatsApp/Instagram kalıbı). Burada bir işe de yarıyor: eşleştikten sonra
+  petin bilgisi yalnızca profil sayfasında; sohbete girip başlıktan dönmek
+  gereksiz bir adım olurdu.
+- ❌ **Keşfet kartı — bilerek bağlanmadı.** İki sebep: (1) `owner-sheet.tsx`
+  başındaki karar zaten "tam ekran değil panel; tam ekran bir profil keşfet
+  akışını kesip geri dönmeyi iş haline getirir" diyor — kart için de aynı
+  gerekçe geçerli. (2) `PhotoCarousel` sol/sağ **dokunma bölgeleriyle**
+  çalışıyor; kart üstü "profili aç" dokunuşu doğrudan onunla çakışırdı.
+  Destede kart zaten profilin kendisi: fotoğraf sayfaları ilerledikçe
+  mizaç → bio → sahip teaser'ı sırayla açılıyor.
+- ❌ **Beğeniler — teknik olarak mümkün değil ve olmamalı.** `pending_likes`
+  SECURITY DEFINER olduğu için henüz eşleşmediğin birinin petini
+  döndürebiliyor; ama profil sayfası doğrudan tablo okuyor ve
+  `pets_select_matched` eşleşmemiş peti vermiyor. Sayfa açılsa "bu profil
+  artık görünmüyor" derdi. Bu bir eksiklik değil sınır: kilit, eşleşmeden
+  önce tam profili göstermemek üzerine kurulu (`0042` Beğeniler + ödeme
+  duvarı). Açmak istenirse doğru yol istemciden zorlamak değil, RPC'ye
+  "beğeni kilidi açıksa profil" yolu eklemek.
 
 ### Görünürlük önizlemesi (aynı gün)
 

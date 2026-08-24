@@ -59,21 +59,45 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
       }
       className="mx-5 mb-3 flex-row items-center rounded-2xl border border-border bg-surface p-3.5"
     >
-      {conversation.petPhotoUrl ? (
-        <Image
-          source={conversation.petPhotoUrl}
-          contentFit="cover"
-          style={{ width: 62, height: 62, borderRadius: 18 }}
-        />
-      ) : (
-        <View className="h-[62px] w-[62px] items-center justify-center rounded-[18px] bg-bg-tertiary">
-          <AppIcon
-            name={conversation.kind === "adoption" ? "house" : "paw-print"}
-            color="#C4B7AE"
-            size={28}
+      {/*
+        Avatar SOHBETE değil PROFİLE gidiyor; satırın kalanı sohbete.
+        Yaygın liste kalıbı (WhatsApp/Instagram) ve burada bir işe yarıyor:
+        eşleştikten sonra petin ırkı/enerjisi/mizacı yalnızca profil
+        sayfasında duruyor, sohbete girip başlıktan dönmek gereksiz bir
+        adım olurdu.
+      */}
+      <AppPressable
+        onPress={() =>
+          conversation.petId
+            ? router.push({
+                pathname: "/pet/[petId]",
+                params: {
+                  petId: conversation.petId,
+                  conversationId: conversation.id,
+                },
+              })
+            : undefined
+        }
+        disabled={!conversation.petId}
+        accessibilityRole="button"
+        accessibilityLabel={`${title} profilini aç`}
+      >
+        {conversation.petPhotoUrl ? (
+          <Image
+            source={conversation.petPhotoUrl}
+            contentFit="cover"
+            style={{ width: 62, height: 62, borderRadius: 18 }}
           />
-        </View>
-      )}
+        ) : (
+          <View className="h-[62px] w-[62px] items-center justify-center rounded-[18px] bg-bg-tertiary">
+            <AppIcon
+              name={conversation.kind === "adoption" ? "house" : "paw-print"}
+              color="#C4B7AE"
+              size={28}
+            />
+          </View>
+        )}
+      </AppPressable>
 
       <View className="ml-3 min-w-0 flex-1">
         <View className="flex-row items-center justify-between gap-3">
