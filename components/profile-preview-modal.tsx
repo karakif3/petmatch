@@ -1,5 +1,5 @@
 import { Modal, ScrollView, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 import type { DiscoveryDeckCard } from "../core/api/discovery";
 import type { EditableProfile } from "../core/api/profile";
@@ -106,7 +106,7 @@ export function ProfilePreviewModal({
             accessibilityLabel="Kapat"
             className="h-11 w-11 items-center justify-center rounded-full bg-bg-tertiary"
           >
-            <Ionicons name="close" size={18} color="#6B5D55" />
+            <AppIcon name="x" size={18} color="#6B5D55" />
           </AppPressable>
         </View>
         <ScrollView contentContainerClassName="px-5 pb-10 pt-5">

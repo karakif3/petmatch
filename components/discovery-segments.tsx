@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon, type AppIconName } from "./ui/icon";
 
 /**
  * Keşfet içi segment — ayrı tab DEĞİL.
@@ -43,14 +43,14 @@ export function DiscoverySegments({
     key: DiscoverySegment;
     label: string;
     count: number;
-    icon: React.ComponentProps<typeof Ionicons>["name"];
+    icon: AppIconName;
   }[] = [
-    { key: "all", label: "Tüm petler", count: totalCount, icon: "paw-outline" },
+    { key: "all", label: "Tüm petler", count: totalCount, icon: "paw-print" },
     {
       key: "owner_visible",
       label: "Sahibi görünenler",
       count: ownerVisibleCount,
-      icon: "person-outline",
+      icon: "user",
     },
   ];
 
@@ -70,7 +70,7 @@ export function DiscoverySegments({
             }`}
           >
             <View className="flex-row items-center gap-1.5">
-              <Ionicons
+              <AppIcon
                 name={segment.icon}
                 size={14}
                 color={active ? "#E0523F" : "#9A8B82"}

@@ -1,5 +1,5 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import type { MeetupPlace } from "../../core/api/meetup-places";
 import { AppPressable } from "../ui/pressable";
@@ -53,7 +53,7 @@ export function MeetupPlacePicker({
                   accessibilityLabel={`${place.name} için buluşma öner`}
                   className="min-h-11 flex-row items-center"
                 >
-                  <Ionicons name="location-outline" size={18} color="#F97362" />
+                  <AppIcon name="map-pin" size={18} color="#F97362" />
                   <View className="ml-3 flex-1">
                     <Text className="text-sm font-bold text-text-primary">{place.name}</Text>
                     {place.note ? (
@@ -62,7 +62,7 @@ export function MeetupPlacePicker({
                       </Text>
                     ) : null}
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#C4B7AE" />
+                  <AppIcon name="chevron-right" size={16} color="#C4B7AE" />
                 </AppPressable>
                 <MeetupPlaceTrust
                   verificationMethod={place.verificationMethod}

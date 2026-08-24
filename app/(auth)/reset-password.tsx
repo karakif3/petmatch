@@ -8,8 +8,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { AppIcon } from "../../components/ui/icon";
 
 import { translateAuthError } from "../../core/domain/auth-errors";
 import {
@@ -90,8 +90,8 @@ export default function ResetPasswordScreen() {
         <View className="mb-3 gap-1">
           {rules.map((rule) => (
             <View key={rule.id} className="flex-row items-center gap-2">
-              <Ionicons
-                name={rule.passed ? "checkmark-circle" : "ellipse-outline"}
+              <AppIcon
+                name={rule.passed ? "circle-check" : "circle"}
                 size={14}
                 color={rule.passed ? "#2FB8A6" : "#C4B7AE"}
               />

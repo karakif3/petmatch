@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import type { MeetupOutcome } from "../../core/api/conversations";
 import { getIntlLocale } from "../../core/i18n";
@@ -67,7 +67,7 @@ export function MeetupFeedbackPrompt({
       accessibilityRole="summary"
     >
       <View className="flex-row items-center">
-        <Ionicons name="paw-outline" color="#F97362" size={18} />
+        <AppIcon name="paw-print" color="#F97362" size={18} />
         <Text className="ml-2 flex-1 text-sm font-bold text-text-primary">{question}</Text>
       </View>
 
@@ -88,7 +88,7 @@ export function MeetupFeedbackPrompt({
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" color="#FFFFFF" size={16} />
+              <AppIcon name="circle-check" color="#FFFFFF" size={16} />
               <Text className="ml-1.5 text-sm font-bold text-white">Buluştuk</Text>
             </>
           )}

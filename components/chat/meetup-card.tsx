@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import type { ConversationMeetup } from "../../core/api/meetups";
 import { addMeetupToCalendar } from "../../core/calendar";
@@ -80,8 +80,8 @@ export function MeetupCard({
       }`}
     >
       <View className="flex-row items-center">
-        <Ionicons
-          name={accepted ? "checkmark-circle" : "calendar-outline"}
+        <AppIcon
+          name={accepted ? "circle-check" : "calendar"}
           color={accepted ? "#2FB8A6" : "#F97362"}
           size={19}
         />
@@ -157,7 +157,7 @@ export function MeetupCard({
                 <ActivityIndicator color="#F97362" size="small" />
               ) : (
                 <>
-                  <Ionicons name="calendar-outline" color="#F97362" size={14} />
+                  <AppIcon name="calendar" color="#F97362" size={14} />
                   <Text className="ml-1.5 text-xs font-semibold text-text-primary">
                     Takvime ekle
                   </Text>

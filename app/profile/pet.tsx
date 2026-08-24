@@ -14,10 +14,10 @@ import {
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppIcon } from "../../components/ui/icon";
 
 import { PetAgePicker } from "../../components/pet-age-picker";
 import { PetPhotoEditor } from "../../components/pet-photo-editor";
@@ -453,7 +453,7 @@ export default function PetProfileScreen() {
             accessibilityLabel="Geri"
             className="h-11 w-11 items-center justify-center rounded-full"
           >
-            <Ionicons name="chevron-back" color="#1F1A17" size={27} />
+            <AppIcon name="chevron-left" color="#1F1A17" size={27} />
           </AppPressable>
           <View className="ml-2 flex-1">
             <Text className="text-lg font-bold text-text-primary">Pet profilini düzenle</Text>

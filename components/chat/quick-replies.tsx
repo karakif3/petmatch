@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import { AppPressable } from "../ui/pressable";
 
@@ -15,17 +15,17 @@ export const quickReplies = [
   {
     label: "Tanışma mesajı",
     text: "Merhaba! 🐾 Petin en çok nasıl oyun oynamayı seviyor?",
-    icon: "sparkles-outline" as const,
+    icon: "sparkles" as const,
   },
   {
     label: "Buluşma planla",
     text: "Bir pet buluşması planlayalım mı? Uygun olduğun gün ve saat nedir? İlk buluşma için halka açık bir yer seçebiliriz. 🐾",
-    icon: "calendar-outline" as const,
+    icon: "calendar" as const,
   },
   {
     label: "Uyumluluk sor",
     text: "Buluşmadan önce aşı, enerji seviyesi ve diğer petlerle iletişimi hakkında paylaşmak istediğin bir şey var mı?",
-    icon: "paw-outline" as const,
+    icon: "paw-print" as const,
   },
 ];
 
@@ -62,7 +62,7 @@ export function QuickReplyBar({
           accessibilityLabel={`Hazır mesaj: ${reply.label}`}
           className="min-h-11 flex-row items-center justify-center rounded-full border border-border bg-bg-secondary px-3"
         >
-          <Ionicons name={reply.icon} color="#E0523F" size={16} />
+          <AppIcon name={reply.icon} color="#E0523F" size={16} />
           <Text className="ml-1.5 text-xs font-semibold text-text-secondary">{reply.label}</Text>
         </AppPressable>
       ))}
@@ -82,11 +82,11 @@ export function QuickReplyStarters({ onSelect }: { onSelect: (text: string) => v
           accessibilityLabel={`Hazır mesaj: ${reply.label}`}
           className="min-h-12 flex-row items-center rounded-2xl border border-border bg-surface px-4 py-3"
         >
-          <Ionicons name={reply.icon} color="#F97362" size={18} />
+          <AppIcon name={reply.icon} color="#F97362" size={18} />
           <Text className="ml-2.5 flex-1 text-sm font-semibold text-text-primary">
             {reply.label}
           </Text>
-          <Ionicons name="chevron-forward" color="#C4B7AE" size={16} />
+          <AppIcon name="chevron-right" color="#C4B7AE" size={16} />
         </AppPressable>
       ))}
     </View>

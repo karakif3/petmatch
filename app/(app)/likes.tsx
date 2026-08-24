@@ -1,10 +1,10 @@
 import { useCallback } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { AppIcon } from "../../components/ui/icon";
 // SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { CloudOff, Heart } from "lucide-react-native";
 import { useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -106,7 +106,7 @@ export default function LikesScreen() {
           ) : (
             <>
               <View className="mb-4 flex-row items-center rounded-2xl border border-brand/25 bg-brand/5 p-3.5">
-                <Ionicons name="heart" color="#F97362" size={20} />
+                <AppIcon name="heart" color="#F97362" size={20} />
                 <Text className="ml-2.5 flex-1 text-sm font-semibold text-text-primary">
                   {count.data} kişi petini beğendi
                 </Text>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import DraggableFlatList, {
   ScaleDecorator,
   type RenderItemParams,
@@ -9,6 +8,7 @@ import DraggableFlatList, {
 
 import { lightHaptic } from "../core/ui/haptics";
 import { AppPressable } from "./ui/pressable";
+import { AppIcon } from "./ui/icon";
 
 export type EditablePhoto = { id: string; uri: string };
 
@@ -31,7 +31,7 @@ function PhotoImage({ uri, compact = false }: { uri: string; compact?: boolean }
   if (failed) {
     return (
       <View className="h-full w-full items-center justify-center bg-bg-tertiary px-3">
-        <Ionicons name="image-outline" color="#9A8B82" size={compact ? 20 : 30} />
+        <AppIcon name="image" color="#9A8B82" size={compact ? 20 : 30} />
         {!compact ? (
           <Text className="mt-2 text-center text-xs leading-4 text-text-secondary">
             Bu fotoğraf görüntülenemiyor. Yeniden yüklemeyi dene.
@@ -137,7 +137,7 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
         hitSlop={8}
         className="absolute right-1 top-1 h-6 w-6 items-center justify-center rounded-full bg-black/60"
       >
-        <Ionicons name="close" color="#FFFFFF" size={13} />
+        <AppIcon name="x" color="#FFFFFF" size={13} />
       </AppPressable>
     </AppPressable>
   );
@@ -150,7 +150,7 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
       accessibilityLabel="Fotoğraf ekle"
       className="h-[72px] w-[72px] items-center justify-center rounded-2xl border border-dashed border-brand bg-brand/5"
     >
-      <Ionicons name="add" color="#F97362" size={22} />
+      <AppIcon name="plus" color="#F97362" size={22} />
     </AppPressable>
   );
 
@@ -164,7 +164,7 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
         style={{ height: HERO_HEIGHT }}
         className="w-full items-center justify-center rounded-3xl border border-dashed border-brand bg-brand/5"
       >
-        <Ionicons name="camera-outline" color="#F97362" size={34} />
+        <AppIcon name="camera" color="#F97362" size={34} />
         <Text className="mt-2.5 font-bold text-brand-dark">Fotoğraf ekle</Text>
         <Text className="mt-1 text-xs text-text-tertiary">
           İlk fotoğraf kapak olur
@@ -191,7 +191,7 @@ export function PetPhotoEditor({ photos, max, busy, onChange, onAdd }: Props) {
             hitSlop={8}
             className="absolute right-2.5 top-2.5 h-8 w-8 items-center justify-center rounded-full bg-black/55"
           >
-            <Ionicons name="trash-outline" color="#FFFFFF" size={15} />
+            <AppIcon name="trash-2" color="#FFFFFF" size={15} />
           </AppPressable>
       </View>
 

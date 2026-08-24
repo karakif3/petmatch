@@ -816,11 +816,15 @@ burada değil. Yani **soru kalmalı.** Üç uygulama sorunu vardı:
 
 ---
 
-## 15. İkon ailesi karşılaştırması (2026-08-09, karar bekliyor)
+## 15. İkon ailesi — **KARAR: Lucide** (2026-08-24)
 
 Bugün karışık bir durum var: karar şeridi + uyum rozeti **Lucide**, geri
 kalan her şey **Ionicons**. Kalıcı hedef tek aile. Adaylar, bu ürünün
 ihtiyaçlarına göre:
+
+> **Karar 2026-08-24: Lucide.** Aşağısı 2026-08-09'daki değerlendirmenin
+> kaydı; kararın gerekçesi ve onu değiştiren yeni ölçümler bölümün sonunda.
+> 111 çağrı yerinin tamamı çevrildi, Ionicons projeden kaldırıldı.
 
 **İhtiyaç listesi** (aday seçerken ölçüt bunlar):
 1. **Ağırlık ekseni** — sekme çubuğunda "seçili dolu / seçili olmayan
@@ -880,6 +884,55 @@ Geçiş maliyeti şu an en düşük seviyede: yalnızca 4 ikon çevrildi ve
 `react-native-svg` zaten kurulu. Karar verilince geçiş yüzey yüzey
 yapılacak (önce sekme çubuğu + karar şeridi, sonra ekranlar), kural:
 **aktif/seçili dolu, geri kalan çizgi; boyut skalası 16/20/24.**
+
+### 2026-08-24 — kararı değiştiren üç ölçüm
+
+Paketler indirilip **sayıldı** (tahmin değil), kapsam da kodda gerçekten
+kullanılan gliflerle test edildi.
+
+| | Lucide | Phosphor | Heroicons | Tabler |
+|---|---|---|---|---|
+| Tekil ikon | 1.765 | 1.512 × 6 ağırlık | 297 × 2 | 6.185 (930 dolu) |
+| Kullanılan 40 glif | 40/40 | 40/40 | **37/40** | 40/40 |
+| Yol haritası 19 kavram | 19/19 | 19/19 | 18/19 | 19/19 |
+| Sekme çubuğunda dolu varyant | ✗ (`fill` prop) | ✓ | ✓ ama pati yok | ✓ pati dahil |
+
+Üç bulgu §15'in Phosphor önerisini geçersiz kıldı:
+
+1. **Maliyet öncülü bayatlamıştı.** "Yalnızca 4 ikon çevrildi" notu yazıldıktan
+   sonra `components/ui/` katmanının tamamı (`button`, `icon-button`,
+   `empty-state`, `screen-header`) Lucide üzerine kuruldu. Aile değiştirmek
+   artık 111 çağrı değil, **önce kendi tasarım sistemini sökmek** demekti.
+2. **Ağırlık ekseni argümanı dört glife iniyor.** Dolgu yalnızca sekme
+   çubuğunda gerekiyor ve o dördü de (`paw-print · heart · message-circle ·
+   user`) kapalı şekil — Lucide'ın `fill` prop'unun sorunsuz çalıştığı sınıf.
+   Üstelik sekme çubuğu zaten hap arka planı + renk kullanıyor; dolgu tek
+   sinyal değil.
+3. **§15'te olmayan aday: Tabler.** Phosphor'un tek avantajını daha iyi
+   veriyor (dolu pati dahil 930 dolu varyant). Ama **6.185 ikon içinde
+   `rabbit`, `bird`, `turtle` yok** — Lucide'da üçü de var. Tür genişletmesi
+   (`species` enum'u) düşünülüyorsa bu doğrudan alan kaybı.
+
+Dürüst özet: saf teknik değerlendirmede Tabler ile Lucide başa baş; Lucide'ı
+öne çıkaran şey kod tabanının bugün nerede durduğu ve pet alanındaki kapsam.
+
+### Göç (2026-08-24)
+
+- **Tek kayıt defteri:** `components/ui/icon.tsx` → `ICONS` sözlüğü +
+  `AppIcon` bileşeni + `AppIconName` tipi. 50 glif.
+- **Adlandırma Lucide'ın kendi sözlüğü** (`paw-print`, `chevron-right`,
+  `circle-check`). Ionicons adlarını korumak bir çeviri katmanı olurdu.
+- **`-outline` kavramı kalktı.** Dolgu ayrı bir isim değil `filled` prop'u ve
+  **yalnızca durum anlatan yerlerde** kullanılıyor (seçili sekme, karar
+  şeridi). Süsleme dolgusu yok — Ionicons'tan kaçış sebebi zaten oydu.
+- **Dolgunun sınırı:** `filled`, iç detayı yutmayan gliflerde çalışır. Göç
+  sırasında tek gerçek çakışma buydu: sahip doğrulama rozeti Ionicons'ta
+  dolu/outline ile durum anlatıyordu, ama `shield-check` doldurulunca
+  içindeki çek kayboluyor. Ayrım şekil düzeyine taşındı — onaylıysa
+  `shield-check`, değilse düz `shield`.
+- `@expo/vector-icons` **doğrudan bağımlılıktan çıkarıldı** (expo üzerinden
+  transitively duruyor). Karışık ailenin geri sızmasını engelleyen tek
+  yapısal önlem bu.
 
 ---
 

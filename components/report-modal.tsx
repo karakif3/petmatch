@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 import {
   REPORT_REASONS,
@@ -85,7 +85,7 @@ export function ReportModal({
               accessibilityLabel="Kapat"
               className="h-11 w-11 items-center justify-center rounded-full bg-bg-secondary"
             >
-              <Ionicons name="close" color="#1F1A17" size={22} />
+              <AppIcon name="x" color="#1F1A17" size={22} />
             </Pressable>
           </View>
 
@@ -101,8 +101,8 @@ export function ReportModal({
                       : "border-border bg-surface"
                   }`}
                 >
-                  <Ionicons
-                    name={reason === option.value ? "radio-button-on" : "radio-button-off"}
+                  <AppIcon
+                    name={reason === option.value ? "circle-dot" : "circle"}
                     color={reason === option.value ? "#F97362" : "#9A8B82"}
                     size={20}
                   />

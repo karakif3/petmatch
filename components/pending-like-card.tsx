@@ -1,6 +1,6 @@
 import { Alert, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 import type { PendingLikeCard as PendingLikeCardData } from "../core/api/likes";
 import { lightHaptic } from "../core/ui/haptics";
@@ -34,7 +34,7 @@ import { AppPressable } from "./ui/pressable";
 function SuperBadge() {
   return (
     <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1 rounded-full bg-warning px-2 py-1">
-      <Ionicons name="star" size={11} color="#FFFFFF" />
+      <AppIcon name="star" size={11} color="#FFFFFF" />
       <Text className="text-[10px] font-bold text-white">Süper</Text>
     </View>
   );
@@ -51,7 +51,7 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
           <Image source={photoUrl} contentFit="cover" style={{ width: "100%", height: "100%" }} />
         ) : (
           <View className="h-full w-full items-center justify-center">
-            <Ionicons name="paw" color="#C4B7AE" size={40} />
+            <AppIcon name="paw-print" color="#C4B7AE" size={40} />
           </View>
         )}
         {card.owner?.photoUrl ? (
@@ -101,7 +101,7 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
       ) : null}
       <View className="absolute inset-0 items-center justify-center bg-black/70">
         <View className="h-11 w-11 items-center justify-center rounded-full bg-white/90">
-          <Ionicons name="lock-closed" size={19} color="#1F1A17" />
+          <AppIcon name="lock" size={19} color="#1F1A17" />
         </View>
         <Text className="mt-2 text-xs font-bold text-white">
           {card.species === "cat" ? "Bir kedi" : "Bir köpek"}

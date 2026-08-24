@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { AppIcon } from "../../components/ui/icon";
 
 import { listConversations } from "../../core/api/conversations";
 import { loadPendingLikesCount } from "../../core/api/likes";
@@ -22,7 +22,7 @@ function TabIcon({
   color,
   focused,
 }: {
-  name: "paw" | "heart" | "chatbubble" | "person";
+  name: "paw-print" | "heart" | "message-circle" | "user";
   color: string;
   focused: boolean;
 }) {
@@ -32,7 +32,13 @@ function TabIcon({
         focused ? "bg-brand/10" : ""
       }`}
     >
-      <Ionicons name={focused ? name : `${name}-outline`} color={color} size={22} />
+      {/*
+        Seçili sekme DOLU. Lucide'da dolgu ayrı bir isim değil `filled`
+        prop'u; dördü de (pati, kalp, konuşma balonu, kullanıcı) kapalı
+        şekil olduğu için dolgu iç detayı yutmuyor. Hap arka planı + renk
+        zaten ikinci ve üçüncü sinyal — dolgu tek başına taşımıyor.
+      */}
+      <AppIcon name={name} filled={focused} color={color} size={22} />
     </View>
   );
 }
@@ -91,7 +97,7 @@ export default function AppLayout() {
         options={{
           title: "Keşfet",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="paw" color={color} focused={focused} />
+            <TabIcon name="paw-print" color={color} focused={focused} />
           ),
         }}
       />
@@ -114,7 +120,7 @@ export default function AppLayout() {
           title: "Mesajlar",
           tabBarBadge: unreadTotal ? unreadTotal : undefined,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="chatbubble" color={color} focused={focused} />
+            <TabIcon name="message-circle" color={color} focused={focused} />
           ),
         }}
       />
@@ -123,7 +129,7 @@ export default function AppLayout() {
         options={{
           title: "Profil",
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="person" color={color} focused={focused} />
+            <TabIcon name="user" color={color} focused={focused} />
           ),
         }}
       />

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon, type AppIconName } from "./icon";
 
 import { AppPressable } from "./pressable";
 
@@ -40,7 +40,7 @@ export function RowSeparator({ inset = true }: { inset?: boolean }) {
 }
 
 type RowProps = {
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: AppIconName;
   iconColor?: string;
   iconBackground?: string;
   title: string;
@@ -88,7 +88,7 @@ export function Row({
         <View
           className={`mr-3 h-9 w-9 items-center justify-center rounded-[10px] ${iconBackground}`}
         >
-          <Ionicons name={icon} color={iconColor} size={18} />
+          <AppIcon name={icon} color={iconColor} size={18} />
         </View>
       ) : null}
       <View className="flex-1 pr-3">
@@ -110,7 +110,7 @@ export function Row({
       ) : null}
       {accessory}
       {onPress && !accessory && !hideChevron ? (
-        <Ionicons name="chevron-forward" color="#C4B7AE" size={18} />
+        <AppIcon name="chevron-right" color="#C4B7AE" size={18} />
       ) : null}
     </View>
   );

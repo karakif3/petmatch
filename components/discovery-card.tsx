@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
 
 import type { DiscoveryDeckCard } from "../core/api/discovery";
@@ -9,7 +8,7 @@ import { formatAge } from "../core/domain/age";
 import { ownerInterestLabels, sizeLabels, temperamentLabels } from "../core/domain/labels";
 import { shadowSm } from "../core/ui/shadow";
 import { PhotoCarousel } from "./photo-carousel";
-import { DecisionIcons } from "./ui/icon";
+import { AppIcon, DecisionIcons } from "./ui/icon";
 import { AppPressable } from "./ui/pressable";
 
 const CARD_ASPECT = 3 / 4;
@@ -150,14 +149,14 @@ export function DiscoveryCard({
           />
         ) : (
           <View className="h-8 w-8 items-center justify-center rounded-full bg-white/20">
-            <Ionicons name="person-outline" color="#FFFFFF" size={16} />
+            <AppIcon name="user" color="#FFFFFF" size={16} />
           </View>
         )}
         <Text className="text-xs font-bold text-white" numberOfLines={1}>
           {owner.displayName ?? "Pet sahibi"}
         </Text>
         {owner.verified ? (
-          <Ionicons name="shield-checkmark" color="#5ED3C3" size={14} />
+          <AppIcon name="shield-check" color="#5ED3C3" size={14} />
         ) : null}
         {interestChips.map((interest) => (
           <View key={interest} className="rounded-full bg-white/20 px-2 py-0.5">
@@ -177,7 +176,7 @@ export function DiscoveryCard({
           <Text className="text-[10px] font-semibold text-white/70">Sahibini gör</Text>
         ) : null}
         {onOwnerPress ? (
-          <Ionicons name="chevron-forward" color="#FFFFFFB3" size={13} />
+          <AppIcon name="chevron-right" color="#FFFFFFB3" size={13} />
         ) : null}
       </AppPressable>,
     );
@@ -247,7 +246,7 @@ export function DiscoveryCard({
             activity ? "top-14" : "top-3"
           } flex-row items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5`}
         >
-          <Ionicons name="refresh-outline" color="#FFFFFF" size={12} />
+          <AppIcon name="refresh-cw" color="#FFFFFF" size={12} />
           <Text className="text-[11px] font-bold text-white">Daha önce geçtin</Text>
         </View>
       ) : null}
@@ -286,8 +285,8 @@ export function DiscoveryCard({
           <Text className="text-[28px] font-bold leading-9 text-white" numberOfLines={1}>
             {card.name}
           </Text>
-          <Ionicons
-            name={card.gender === "female" ? "female" : "male"}
+          <AppIcon
+            name={card.gender === "female" ? "venus" : "mars"}
             color={card.gender === "female" ? "#FFB6D0" : "#AFC9F2"}
             size={19}
           />

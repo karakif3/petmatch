@@ -1,5 +1,5 @@
 import { Alert, Linking, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import { AppPressable } from "../ui/pressable";
 
@@ -42,7 +42,7 @@ export function MeetupPlaceTrust({
     <View>
       <View className="mt-2 flex-row flex-wrap gap-1.5">
         <View className="flex-row items-center rounded-full bg-accent/10 px-2 py-1">
-          <Ionicons name="shield-checkmark-outline" size={12} color="#1E9384" />
+          <AppIcon name="shield-check" size={12} color="#1E9384" />
           <Text className="ml-1 text-[11px] font-semibold text-accent-dark">
             {verificationLabel}
           </Text>
@@ -63,7 +63,7 @@ export function MeetupPlaceTrust({
           accessibilityLabel={`${sourceName} kaynağını aç`}
           className="mt-2 min-h-8 flex-row items-center self-start"
         >
-          <Ionicons name="open-outline" size={13} color="#E0523F" />
+          <AppIcon name="external-link" size={13} color="#E0523F" />
           <Text className="ml-1.5 text-xs font-semibold text-brand-dark">{sourceName}</Text>
         </AppPressable>
       ) : null}

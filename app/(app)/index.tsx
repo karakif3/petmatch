@@ -11,7 +11,6 @@ import {
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -52,7 +51,7 @@ import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
 import { decisionHaptic } from "../../core/ui/haptics";
 import { shadowLg } from "../../core/ui/shadow";
-import { DECISION_STROKE, DecisionIcons } from "../../components/ui/icon";
+import { AppIcon, DECISION_STROKE, DecisionIcons } from "../../components/ui/icon";
 
 export default function DiscoverScreen() {
   const user = useAuthStore((state) => state.user);
@@ -510,8 +509,8 @@ export default function DiscoverScreen() {
                 {visibilityBusy ? (
                   <ActivityIndicator size="small" color="#6B5D55" />
                 ) : (
-                  <Ionicons
-                    name={ownerPublic ? "eye" : "eye-off-outline"}
+                  <AppIcon
+                    name={ownerPublic ? "eye" : "eye-off"}
                     color={ownerPublic ? "#F97362" : "#6B5D55"}
                     size={20}
                   />
@@ -524,7 +523,7 @@ export default function DiscoverScreen() {
               accessibilityLabel="Keşfet filtreleri"
               className="relative h-11 w-11 items-center justify-center rounded-full border border-border bg-surface disabled:opacity-40"
             >
-              <Ionicons name="options-outline" color="#6B5D55" size={20} />
+              <AppIcon name="sliders-horizontal" color="#6B5D55" size={20} />
               {activeFilterCount > 0 ? (
                 <View className="absolute -right-1 -top-1 h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1">
                   <Text className="text-[10px] font-bold text-white">{activeFilterCount}</Text>
@@ -535,7 +534,7 @@ export default function DiscoverScreen() {
               // Üçüncü öğe eklendi (görünürlük anahtarı); uzun pet adı
               // artık satırı taşırabilir, bu yüzden çip kısalıyor.
               <View className="max-w-[120px] shrink flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
-                <Ionicons name="paw" color="#F97362" size={16} />
+                <AppIcon name="paw-print" color="#F97362" size={16} />
                 <Text
                   numberOfLines={1}
                   className="shrink text-xs font-semibold text-text-primary"
@@ -559,7 +558,7 @@ export default function DiscoverScreen() {
 
         {deck.isError ? (
           <View className="flex-1 items-center justify-center rounded-3xl border border-danger/20 bg-danger/5 px-8 py-16">
-            <Ionicons name="cloud-offline-outline" color="#E5484D" size={42} />
+            <AppIcon name="cloud-off" color="#E5484D" size={42} />
             <Text className="mt-4 text-center text-lg font-bold text-text-primary">
               Keşfet yüklenemedi
             </Text>
@@ -579,7 +578,7 @@ export default function DiscoverScreen() {
         */}
         {!deck.isLoading && !deck.isError && !deck.data?.viewer ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
-            <Ionicons name="home-outline" color="#F97362" size={54} />
+            <AppIcon name="house" color="#F97362" size={54} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
               Henüz bir petin yok
             </Text>
@@ -594,7 +593,7 @@ export default function DiscoverScreen() {
                 accessibilityRole="button"
                 className="mt-5 min-h-12 flex-row items-center justify-center rounded-xl bg-brand px-5"
               >
-                <Ionicons name="home" size={17} color="#FFFFFF" />
+                <AppIcon name="house" size={17} color="#FFFFFF" />
                 <Text className="ml-2 text-sm font-bold text-white">Yuva arayanlar</Text>
               </AppPressable>
             ) : null}
@@ -653,7 +652,7 @@ export default function DiscoverScreen() {
             className="mb-4 flex-row items-center rounded-2xl border border-border bg-bg-secondary px-4 py-3"
           >
             <View className="h-9 w-9 items-center justify-center rounded-full bg-brand/10">
-              <Ionicons name="home" size={18} color="#F97362" />
+              <AppIcon name="house" size={18} color="#F97362" />
             </View>
             <View className="ml-3 flex-1">
               <Text className="text-sm font-bold text-text-primary">
@@ -663,13 +662,13 @@ export default function DiscoverScreen() {
                 Sahiplendirme ilanlarına göz at
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#C4B7AE" />
+            <AppIcon name="chevron-right" size={18} color="#C4B7AE" />
           </AppPressable>
         ) : null}
 
         {!deck.isLoading && !deck.isError && deck.data?.viewer && !currentCard ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
-            <Ionicons name="search-outline" color="#2FB8A6" size={56} />
+            <AppIcon name="search" color="#2FB8A6" size={56} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
               Bu ayarlarda yeni bir pet yok
             </Text>
@@ -812,7 +811,7 @@ export default function DiscoverScreen() {
                 accessibilityLabel="Profil güvenliği"
                 className="absolute right-3 top-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
               >
-                <Ionicons name="ellipsis-horizontal" color="#FFFFFF" size={23} />
+                <AppIcon name="ellipsis" color="#FFFFFF" size={23} />
               </AppPressable>
             </View>
 
@@ -827,12 +826,12 @@ export default function DiscoverScreen() {
 
       {showSwipeHint && currentCard ? (
         <View className="flex-row items-center gap-2 border-t border-border bg-bg-secondary px-4 py-2.5">
-          <Ionicons name="hand-left-outline" color="#6B5D55" size={16} />
+          <AppIcon name="hand" color="#6B5D55" size={16} />
           <Text className="flex-1 text-xs text-text-secondary">
             Kartı sağa/sola sürükle ya da alttaki düğmelere dokun
           </Text>
           <AppPressable onPress={dismissSwipeHint} accessibilityLabel="İpucunu kapat" hitSlop={8}>
-            <Ionicons name="close" color="#9A8B82" size={16} />
+            <AppIcon name="x" color="#9A8B82" size={16} />
           </AppPressable>
         </View>
       ) : null}

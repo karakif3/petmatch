@@ -1,5 +1,5 @@
 import { Modal, Pressable, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 export function SafetyMenuModal({
   visible,
@@ -38,7 +38,7 @@ export function SafetyMenuModal({
               accessibilityLabel="Kapat"
               className="h-11 w-11 items-center justify-center rounded-full bg-bg-secondary"
             >
-              <Ionicons name="close" color="#1F1A17" size={22} />
+              <AppIcon name="x" color="#1F1A17" size={22} />
             </Pressable>
           </View>
 
@@ -47,7 +47,7 @@ export function SafetyMenuModal({
             disabled={busy}
             className="mt-2 flex-row items-center rounded-xl border border-border bg-surface px-4 py-4 disabled:opacity-50"
           >
-            <Ionicons name="flag-outline" color="#E5484D" size={22} />
+            <AppIcon name="flag" color="#E5484D" size={22} />
             <View className="ml-3 flex-1">
               <Text className="font-bold text-text-primary">Şikâyet et</Text>
               <Text className="mt-1 text-xs text-text-secondary">
@@ -62,7 +62,7 @@ export function SafetyMenuModal({
               disabled={busy}
               className="mt-2 flex-row items-center rounded-xl border border-border bg-surface px-4 py-4 disabled:opacity-50"
             >
-              <Ionicons name="heart-dislike-outline" color="#6B5D55" size={22} />
+              <AppIcon name="heart-crack" color="#6B5D55" size={22} />
               <View className="ml-3 flex-1">
                 <Text className="font-bold text-text-primary">Eşleşmeyi kaldır</Text>
                 <Text className="mt-1 text-xs text-text-secondary">
@@ -77,7 +77,7 @@ export function SafetyMenuModal({
             disabled={busy}
             className="mt-2 flex-row items-center rounded-xl border border-danger/30 bg-danger/5 px-4 py-4 disabled:opacity-50"
           >
-            <Ionicons name="ban-outline" color="#E5484D" size={22} />
+            <AppIcon name="ban" color="#E5484D" size={22} />
             <View className="ml-3 flex-1">
               <Text className="font-bold text-danger">Kullanıcıyı engelle</Text>
               <Text className="mt-1 text-xs text-text-secondary">

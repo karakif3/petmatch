@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 export type OwnerDisclosure = {
   displayName: string | null;
@@ -80,7 +80,7 @@ export function OwnerSheet({
                 />
               ) : (
                 <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-bg-tertiary">
-                  <Ionicons name="person-outline" color="#9A8B82" size={32} />
+                  <AppIcon name="user" color="#9A8B82" size={32} />
                 </View>
               )}
               <View className="ml-4 flex-1">
@@ -89,7 +89,7 @@ export function OwnerSheet({
                     {owner.displayName ?? "Pet sahibi"}
                   </Text>
                   {owner.verified ? (
-                    <Ionicons name="shield-checkmark" color="#2FB8A6" size={19} />
+                    <AppIcon name="shield-check" color="#2FB8A6" size={19} />
                   ) : null}
                 </View>
                 <Text className="mt-1 text-sm text-text-secondary">
@@ -103,13 +103,13 @@ export function OwnerSheet({
                 hitSlop={10}
                 className="h-9 w-9 items-center justify-center rounded-full bg-bg-tertiary"
               >
-                <Ionicons name="close" size={18} color="#6B5D55" />
+                <AppIcon name="x" size={18} color="#6B5D55" />
               </Pressable>
             </View>
 
             {owner.socialOpen ? (
               <View className="mt-5 flex-row items-start rounded-2xl border border-brand/25 bg-brand/5 p-3.5">
-                <Ionicons name="people-outline" color="#F97362" size={18} />
+                <AppIcon name="users" color="#F97362" size={18} />
                 <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
                   Sahip olarak da tanışmaya açık. Sohbet, petlerin yanı sıra
                   sizin de tanışmanıza açık demek.
@@ -130,7 +130,7 @@ export function OwnerSheet({
 
             {owner.verified ? (
               <View className="mt-5 flex-row items-start rounded-2xl border border-accent/25 bg-accent/5 p-3.5">
-                <Ionicons name="shield-checkmark" color="#2FB8A6" size={18} />
+                <AppIcon name="shield-check" color="#2FB8A6" size={18} />
                 <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
                   Bu profil, sahip ve peti birlikte gösteren bir fotoğrafla
                   doğrulandı.

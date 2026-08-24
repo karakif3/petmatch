@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { RefreshControl, Text, View } from "react-native";
+import { AppIcon } from "../../components/ui/icon";
 // SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
@@ -10,7 +11,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // o prop'u desteklemiyor.
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
@@ -67,8 +67,8 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
         />
       ) : (
         <View className="h-[62px] w-[62px] items-center justify-center rounded-[18px] bg-bg-tertiary">
-          <Ionicons
-            name={conversation.kind === "adoption" ? "home" : "paw"}
+          <AppIcon
+            name={conversation.kind === "adoption" ? "house" : "paw-print"}
             color="#C4B7AE"
             size={28}
           />
@@ -110,7 +110,7 @@ function ConversationRow({ conversation }: { conversation: ConversationSummary }
         {conversation.isActive && conversation.awaitingMyReply ? (
           <View className="mt-1.5 flex-row items-center">
             <View className="flex-row items-center rounded-full bg-accent/10 px-2 py-0.5">
-              <Ionicons name="arrow-undo-outline" color="#1E9384" size={12} />
+              <AppIcon name="undo-2" color="#1E9384" size={12} />
               <Text className="ml-1 text-[11px] font-bold text-accent-dark">Sıra sende</Text>
             </View>
           </View>
@@ -163,7 +163,7 @@ export default function MatchesScreen() {
 
       {conversations.isError ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="cloud-offline-outline" color="#E5484D" size={44} />
+          <AppIcon name="cloud-off" color="#E5484D" size={44} />
           <Text className="mt-4 text-lg font-bold text-text-primary">
             Konuşmalar yüklenemedi
           </Text>
@@ -203,7 +203,7 @@ export default function MatchesScreen() {
           }
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center px-10">
-              <Ionicons name="chatbubbles-outline" color="#C4B7AE" size={54} />
+              <AppIcon name="messages-square" color="#C4B7AE" size={54} />
               <Text className="mt-4 text-center text-xl font-bold text-text-primary">
                 Henüz konuşma yok
               </Text>

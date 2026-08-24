@@ -8,8 +8,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+import { AppIcon } from "../../components/ui/icon";
 
 import { BrandMark } from "../../components/brand-mark";
 import { AppPressable } from "../../components/ui/pressable";
@@ -148,8 +148,8 @@ export default function SignInScreen() {
             accessibilityLabel={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
             className="h-11 w-11 items-center justify-center rounded-full"
           >
-            <Ionicons
-              name={showPassword ? "eye-off-outline" : "eye-outline"}
+            <AppIcon
+              name={showPassword ? "eye-off" : "eye"}
               size={19}
               color="#6B5D55"
             />
@@ -160,8 +160,8 @@ export default function SignInScreen() {
           <View className="-mt-2 mb-5 gap-1">
             {rules.map((rule) => (
               <View key={rule.id} className="flex-row items-center gap-2">
-                <Ionicons
-                  name={rule.passed ? "checkmark-circle" : "ellipse-outline"}
+                <AppIcon
+                  name={rule.passed ? "circle-check" : "circle"}
                   size={14}
                   color={rule.passed ? "#2FB8A6" : "#C4B7AE"}
                 />

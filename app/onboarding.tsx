@@ -19,7 +19,7 @@ import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../components/ui/icon";
 
 import { BirthDateField } from "../components/birth-date-field";
 import { BrandMark } from "../components/brand-mark";
@@ -439,7 +439,7 @@ export default function OnboardingScreen() {
               accessibilityHint="Mevcut oturumu kapatır"
               className="mt-1 h-10 w-10 items-center justify-center rounded-full"
             >
-              <Ionicons name="log-out-outline" size={20} color="#6F625B" />
+              <AppIcon name="log-out" size={20} color="#6F625B" />
             </AppPressable>
           </View>
         </View>
@@ -560,7 +560,7 @@ export default function OnboardingScreen() {
             {needsManualCity ? (
               <View className="-mt-1 mb-5 rounded-xl border border-accent/30 bg-accent/10 p-4">
                 <View className="mb-3 flex-row items-start">
-                  <Ionicons name="information-circle-outline" size={19} color="#1E9384" />
+                  <AppIcon name="info" size={19} color="#1E9384" />
                   <Text className="ml-2 flex-1 text-xs leading-5 text-text-secondary">
                     Bu bölgede keşfet henüz açılmadı. Kaydını tamamlayabilirsin;
                     talebin sıradaki bölgeleri belirlememize yardımcı olur.

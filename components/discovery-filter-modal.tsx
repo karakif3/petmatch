@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 import type {
   DiscoveryDeck,
@@ -198,7 +198,7 @@ export function DiscoveryFilterModal({
               disabled={busy}
               className="h-11 w-11 items-center justify-center rounded-full bg-bg-secondary"
             >
-              <Ionicons name="close" color="#1F1A17" size={22} />
+              <AppIcon name="x" color="#1F1A17" size={22} />
             </Pressable>
           </View>
 
@@ -354,11 +354,11 @@ export function DiscoveryFilterModal({
                 onPress={onConfigureOwner}
                 className="mt-3 flex-row items-center rounded-xl bg-brand/10 px-4 py-3"
               >
-                <Ionicons name="information-circle-outline" color="#E0523F" size={21} />
+                <AppIcon name="info" color="#E0523F" size={21} />
                 <Text className="ml-2 flex-1 text-xs font-semibold leading-4 text-brand-dark">
                   Sosyalleşme filtresi karşılıklıdır. Önce kendi sahip profilini etkinleştir.
                 </Text>
-                <Ionicons name="chevron-forward" color="#E0523F" size={18} />
+                <AppIcon name="chevron-right" color="#E0523F" size={18} />
               </Pressable>
             ) : null}
 

@@ -14,10 +14,10 @@ import {
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppIcon } from "../../components/ui/icon";
 
 import {
   loadEditableProfile,
@@ -451,7 +451,7 @@ export default function OwnerProfileScreen() {
             accessibilityLabel="Geri"
             className="h-11 w-11 items-center justify-center rounded-full"
           >
-            <Ionicons name="chevron-back" color="#1F1A17" size={27} />
+            <AppIcon name="chevron-left" color="#1F1A17" size={27} />
           </AppPressable>
           <View className="ml-2 flex-1">
             <Text className="text-lg font-bold text-text-primary">Sahip profili</Text>
@@ -471,11 +471,11 @@ export default function OwnerProfileScreen() {
                 <Image source={avatar.uri} contentFit="cover" style={{ width: 124, height: 124, borderRadius: 62 }} />
               ) : (
                 <View className="h-[124px] w-[124px] items-center justify-center rounded-full border border-dashed border-brand bg-brand/5">
-                  <Ionicons name="person-add-outline" color="#F97362" size={38} />
+                  <AppIcon name="user-plus" color="#F97362" size={38} />
                 </View>
               )}
               <View className="absolute bottom-0 right-0 h-10 w-10 items-center justify-center rounded-full border-2 border-bg-primary bg-brand">
-                <Ionicons name="camera" color="#FFFFFF" size={19} />
+                <AppIcon name="camera" color="#FFFFFF" size={19} />
               </View>
             </AppPressable>
             <Text className="mt-3 text-sm font-bold text-text-primary">
@@ -606,8 +606,8 @@ export default function OwnerProfileScreen() {
                     active ? "border-brand bg-brand/10" : "border-border bg-surface"
                   }`}
                 >
-                  <Ionicons
-                    name={active ? "radio-button-on" : "radio-button-off"}
+                  <AppIcon
+                    name={active ? "circle-dot" : "circle"}
                     color={active ? "#E0523F" : "#B9A99F"}
                     size={20}
                   />
@@ -635,12 +635,12 @@ export default function OwnerProfileScreen() {
               className={`rounded-2xl border p-4 ${!socialOpen ? "border-accent bg-accent/10" : "border-border bg-surface"}`}
             >
               <View className="flex-row items-center">
-                <Ionicons name="paw-outline" color={!socialOpen ? "#1E9384" : "#6B5D55"} size={24} />
+                <AppIcon name="paw-print" color={!socialOpen ? "#1E9384" : "#6B5D55"} size={24} />
                 <Text className="ml-3 flex-1 font-bold text-text-primary">
                   {t("ownerConnection.petOnlyTitle")}
                 </Text>
                 {!socialOpen ? (
-                  <Ionicons name="checkmark-circle" color="#1E9384" size={20} />
+                  <AppIcon name="circle-check" color="#1E9384" size={20} />
                 ) : null}
               </View>
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
@@ -657,12 +657,12 @@ export default function OwnerProfileScreen() {
               className={`rounded-2xl border p-4 ${socialOpen ? "border-brand bg-brand/10" : "border-border bg-surface"}`}
             >
               <View className="flex-row items-center">
-                <Ionicons name="people-outline" color={socialOpen ? "#E0523F" : "#6B5D55"} size={24} />
+                <AppIcon name="users" color={socialOpen ? "#E0523F" : "#6B5D55"} size={24} />
                 <Text className="ml-3 flex-1 font-bold text-text-primary">
                   {t("ownerConnection.openTitle")}
                 </Text>
                 {socialOpen ? (
-                  <Ionicons name="checkmark-circle" color="#E0523F" size={20} />
+                  <AppIcon name="circle-check" color="#E0523F" size={20} />
                 ) : null}
               </View>
               <Text className="mt-2 text-xs leading-5 text-text-secondary">
@@ -684,7 +684,7 @@ export default function OwnerProfileScreen() {
                   </Text>
                   {missingConnectionRequirements.map((requirement) => (
                     <View key={requirement} className="flex-row items-center gap-1.5">
-                      <Ionicons name="ellipse-outline" color="#9A8B82" size={11} />
+                      <AppIcon name="circle" color="#9A8B82" size={11} />
                       <Text className="text-[11px] text-text-secondary">{requirement}</Text>
                     </View>
                   ))}
@@ -699,8 +699,11 @@ export default function OwnerProfileScreen() {
               <View className={`h-11 w-11 items-center justify-center rounded-full ${
                 verificationStatus === "approved" ? "bg-accent/10" : "bg-bg-secondary"
               }`}>
-                <Ionicons
-                  name={verificationStatus === "approved" ? "shield-checkmark" : "shield-checkmark-outline"}
+                <AppIcon
+                  // Ionicons'ta bu ayrım dolu/outline ile yapılıyordu. Lucide'da
+                  // `shield-check`'i doldurmak içindeki çeki görünmez yapar; ayrım
+                  // şekil düzeyine taşındı: onaylıysa çekli kalkan, değilse düz.
+                  name={verificationStatus === "approved" ? "shield-check" : "shield"}
                   color={verificationStatus === "approved" ? "#2FB8A6" : "#9A8B82"}
                   size={24}
                 />
@@ -758,7 +761,7 @@ export default function OwnerProfileScreen() {
                     "Fotoğraf yalnız moderasyon için kullanılır ve karardan sonra silinir.",
                   ].map((item) => (
                     <View key={item} className="mb-2 flex-row items-start last:mb-0">
-                      <Ionicons name="checkmark-circle" color="#2FB8A6" size={17} />
+                      <AppIcon name="circle-check" color="#2FB8A6" size={17} />
                       <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
                         {item}
                       </Text>
@@ -789,8 +792,8 @@ export default function OwnerProfileScreen() {
                       accessibilityState={{ checked: verificationAcknowledged }}
                       className="mt-3 min-h-11 flex-row items-center"
                     >
-                      <Ionicons
-                        name={verificationAcknowledged ? "checkbox" : "square-outline"}
+                      <AppIcon
+                        name={verificationAcknowledged ? "square-check-big" : "square"}
                         color={verificationAcknowledged ? "#2FB8A6" : "#9A8B82"}
                         size={24}
                       />
@@ -826,7 +829,7 @@ export default function OwnerProfileScreen() {
             ) : null}
             {verificationStatus === "approved" ? (
               <View className="mt-3 flex-row items-start rounded-xl bg-accent/5 p-3">
-                <Ionicons name="information-circle-outline" color="#1E9384" size={18} />
+                <AppIcon name="info" color="#1E9384" size={18} />
                 <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
                   Sahip fotoğrafını değiştirirsen rozet güvenlik nedeniyle kaldırılır ve yeniden doğrulama gerekir.
                 </Text>

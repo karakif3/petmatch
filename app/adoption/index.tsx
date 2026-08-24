@@ -14,9 +14,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppIcon } from "../../components/ui/icon";
 
 import {
   expressAdoptionInterest,
@@ -63,7 +63,7 @@ function AdoptionCard({
           />
         ) : (
           <View className="h-full w-full items-center justify-center">
-            <Ionicons name="home-outline" size={40} color="#C4B7AE" />
+            <AppIcon name="house" size={40} color="#C4B7AE" />
           </View>
         )}
       </View>
@@ -75,7 +75,7 @@ function AdoptionCard({
           </Text>
           {pet.ownerVerified ? (
             <View className="flex-row items-center rounded-full bg-accent/10 px-2 py-0.5">
-              <Ionicons name="shield-checkmark" size={12} color="#1E9384" />
+              <AppIcon name="shield-check" size={12} color="#1E9384" />
               <Text className="ml-1 text-[11px] font-bold text-accent-dark">Doğrulanmış</Text>
             </View>
           ) : null}
@@ -110,8 +110,8 @@ function AdoptionCard({
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <>
-              <Ionicons
-                name={pet.alreadyApplied ? "checkmark-circle-outline" : "heart-outline"}
+              <AppIcon
+                name={pet.alreadyApplied ? "circle-check" : "heart"}
                 size={17}
                 color={pet.alreadyApplied ? "#6B5D55" : "#FFFFFF"}
               />
@@ -174,7 +174,7 @@ export default function AdoptionScreen() {
           accessibilityLabel="Geri"
           className="min-h-11 min-w-11 items-center justify-center"
         >
-          <Ionicons name="chevron-back" size={24} color="#1F1A17" />
+          <AppIcon name="chevron-left" size={24} color="#1F1A17" />
         </Pressable>
         <View className="flex-1">
           <Text className="text-lg font-bold text-text-primary">Yuva arayanlar</Text>
@@ -192,7 +192,7 @@ export default function AdoptionScreen() {
 
       {listings.isError ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="cloud-offline-outline" size={42} color="#E5484D" />
+          <AppIcon name="cloud-off" size={42} color="#E5484D" />
           <Text className="mt-3 text-center text-sm text-text-secondary">
             İlanlar yüklenemedi.
           </Text>
@@ -229,7 +229,7 @@ export default function AdoptionScreen() {
           }
           ListEmptyComponent={
             <View className="items-center px-8 py-20">
-              <Ionicons name="home-outline" size={52} color="#C4B7AE" />
+              <AppIcon name="house" size={52} color="#C4B7AE" />
               <Text className="mt-4 text-center text-lg font-bold text-text-primary">
                 Şu an yuva arayan yok
               </Text>

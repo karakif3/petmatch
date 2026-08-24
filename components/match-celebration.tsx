@@ -11,8 +11,8 @@ import Animated, {
   cancelAnimation,
 } from "react-native-reanimated";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { AppIcon } from "./ui/icon";
 
 /**
  * Eşleşme kutlaması.
@@ -76,7 +76,7 @@ function FloatingPaw({
       pointerEvents="none"
       style={[{ position: "absolute", bottom: 0, left: left as never }, style]}
     >
-      <Ionicons name="paw" size={size} color="rgba(255,255,255,0.55)" />
+      <AppIcon name="paw-print" size={size} color="rgba(255,255,255,0.55)" />
     </Animated.View>
   );
 }
@@ -134,7 +134,7 @@ function PetAvatar({
             />
           ) : (
             <View className="h-full w-full items-center justify-center">
-              <Ionicons name="paw" size={34} color="#C4B7AE" />
+              <AppIcon name="paw-print" size={34} color="#C4B7AE" />
             </View>
           )}
         </View>
@@ -237,10 +237,11 @@ export function MatchCelebration({
           Emoji DEĞİL: uygulamanın global fontu Inter ve emoji glifi
           içermiyor — 🎉 cihazda "?" kutusu olarak çıkıyordu. Eşleşme
           kutlaması ürünün en yüksek duygulu anı; orada tofu göstermek
-          anın tamamını bozar. Ionicons zaten her yerde kullanılıyor.
+          anın tamamını bozar. İkon ailesi (Lucide) zaten her yerde
+          kullanılıyor ve font'tan bağımsız.
         */}
         <View className="items-center">
-          <Ionicons name="sparkles" size={40} color="#FFFFFF" />
+          <AppIcon name="sparkles" size={40} color="#FFFFFF" />
         </View>
         <Text
           className="mt-3 text-center text-3xl font-bold text-white"
@@ -263,7 +264,7 @@ export function MatchCelebration({
           />
           <View className="h-28 items-center justify-center">
             <View className="h-10 w-10 items-center justify-center rounded-full bg-white">
-              <Ionicons name="heart" size={20} color="#F97362" />
+              <AppIcon name="heart" size={20} color="#F97362" />
             </View>
           </View>
           <PetAvatar
@@ -286,7 +287,7 @@ export function MatchCelebration({
             }
             className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 disabled:opacity-60"
           >
-            <Ionicons name="chatbubble-ellipses" size={18} color="#F97362" />
+            <AppIcon name="message-circle" size={18} color="#F97362" />
             <Text className="text-base font-bold text-brand">
               {chatError
                 ? "Tekrar dene"

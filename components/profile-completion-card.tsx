@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { AppIcon, type AppIconName } from "./ui/icon";
 
 import {
   completionRatio,
@@ -18,7 +18,7 @@ type Props = {
 type Group = {
   route: CompletionItem["route"];
   label: string;
-  icon: "paw" | "person";
+  icon: AppIconName;
   count: number;
 };
 
@@ -54,13 +54,13 @@ export function ProfileCompletionCard({ data }: Props) {
     {
       route: "/profile/pet",
       label: "Pet profili",
-      icon: "paw",
+      icon: "paw-print",
       count: missing.filter((item) => item.route === "/profile/pet").length,
     },
     {
       route: "/profile/owner",
       label: "Sahip profili",
-      icon: "person",
+      icon: "user",
       count: missing.filter((item) => item.route === "/profile/owner").length,
     },
   ] satisfies Group[]).filter((group) => group.count > 0);
@@ -81,7 +81,7 @@ export function ProfileCompletionCard({ data }: Props) {
           hitSlop={10}
           className="h-7 w-7 items-center justify-center rounded-full bg-bg-tertiary"
         >
-          <Ionicons name="close" size={14} color="#9A8B82" />
+          <AppIcon name="x" size={14} color="#9A8B82" />
         </AppPressable>
       </View>
 
@@ -101,7 +101,7 @@ export function ProfileCompletionCard({ data }: Props) {
             accessibilityLabel={`${group.label}: ${group.count} madde eksik`}
             className="min-h-11 flex-1 flex-row items-center justify-center rounded-xl border border-brand/30 bg-brand/10 px-3"
           >
-            <Ionicons name={group.icon} size={14} color="#F97362" />
+            <AppIcon name={group.icon} size={14} color="#F97362" />
             <Text
               numberOfLines={1}
               className="ml-1.5 text-xs font-semibold text-brand-dark"

@@ -271,6 +271,21 @@ geçmişti; doğrulama mevcut ekranlara bağlandı.
   yayından önce Dashboard'dan 8'e çekilmeli, kayıt
   [`auth-release-checklist.md`](auth-release-checklist.md)'de.
 
+**2026-08-24 — Tek ikon ailesi: Lucide (`components/ui/icon.tsx`).** Karışık
+aile kapandı: 111 çağrı yerinin tamamı çevrildi, `@expo/vector-icons`
+doğrudan bağımlılıktan çıkarıldı. Karar gerekçesi ve onu değiştiren ölçümler
+[`experience-roadmap.md`](experience-roadmap.md) §15'te — özetle §15'in
+Phosphor önerisi üç yeni veriyle düştü: maliyet öncülü bayatlamıştı (UI kit
+bu arada Lucide üzerine kuruldu), ağırlık ekseni argümanı dört kapalı-şekil
+glifine iniyor, ve yeni ölçülen Tabler 6.185 ikonuna rağmen `rabbit`/`bird`/
+`turtle` taşımıyor.
+
+Göçte çıkan tek gerçek çakışma: sahip doğrulama rozeti Ionicons'ta
+dolu/outline ile durum anlatıyordu; `shield-check` doldurulunca içindeki çek
+kaybolduğu için ayrım şekle taşındı (onaylı → `shield-check`, değil →
+`shield`). Kural olarak yazıldı: **dolgu yalnızca durum anlatan ve iç detayı
+yutmayan gliflerde.**
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız
@@ -346,11 +361,6 @@ karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
   mı yoksa `connection_mode`'a mı geçilmeli. Değerlendirmenin tamamı
   [`experience-roadmap.md`](experience-roadmap.md) §14'te; karar
   verilmeden yeni kod yazılmayacak.
-- **İkon ailesi: tek aileye karar ver.** Bugün karışık — karar şeridi +
-  uyum rozeti Lucide, geri kalan Ionicons. Değerlendirilen adaylar ve
-  gerekçeleri `experience-roadmap.md` §15'te (Phosphor · Hugeicons ·
-  Heroicons · Remix · Lucide). Şu an geçiş maliyeti en düşük an: yalnızca
-  4 ikon çevrildi ve `react-native-svg` zaten kurulu.
 - **Mama/ekipman ortaklığı: hangi sağlayıcı.** Yeri ve deseni artık belli
   (sahiplendirme sohbetine gömülü "yeni pet sahibi kontrol listesi" kartı,
   `MeetupCard` deseniyle; gerekçe ve kapsam dışı bırakılanlar

@@ -16,7 +16,6 @@ import {
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import {
@@ -74,6 +73,7 @@ import { errorMessage } from "../../core/domain/error-message";
 import { decisionHaptic, warningHaptic } from "../../core/ui/haptics";
 import { shadowSm } from "../../core/ui/shadow";
 import { useAuthStore } from "../../stores/auth";
+import { AppIcon } from "../../components/ui/icon";
 
 const TYPING_IDLE_MS = 2_500;
 const REMOTE_TYPING_STALE_MS = 4_000;
@@ -440,7 +440,7 @@ export default function ChatScreen() {
               accessibilityLabel="Geri"
               className="h-11 w-11 items-center justify-center rounded-full"
             >
-              <Ionicons name="chevron-back" color="#1F1A17" size={27} />
+              <AppIcon name="chevron-left" color="#1F1A17" size={27} />
             </AppPressable>
             {conversation.data?.petPhotoUrl ? (
               <Image
@@ -451,7 +451,7 @@ export default function ChatScreen() {
               />
             ) : (
               <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
-                <Ionicons name="paw" color="#C4B7AE" size={20} />
+                <AppIcon name="paw-print" color="#C4B7AE" size={20} />
               </View>
             )}
             <View className="ml-3 flex-1">
@@ -479,7 +479,7 @@ export default function ChatScreen() {
               accessibilityHint="Engelleme, şikâyet ve eşleşmeyi kaldırma seçeneklerini açar"
               className="h-11 w-11 items-center justify-center rounded-full disabled:opacity-40"
             >
-              <Ionicons name="ellipsis-horizontal" color="#1F1A17" size={24} />
+              <AppIcon name="ellipsis" color="#1F1A17" size={24} />
             </AppPressable>
           </View>
 
@@ -499,22 +499,22 @@ export default function ChatScreen() {
                 />
               ) : (
                 <View className="h-[22px] w-[22px] items-center justify-center rounded-full bg-bg-tertiary">
-                  <Ionicons name="person-outline" color="#9A8B82" size={12} />
+                  <AppIcon name="user" color="#9A8B82" size={12} />
                 </View>
               )}
               <Text className="ml-1.5 text-xs font-semibold text-text-primary" numberOfLines={1}>
                 {ownerProfile.data.displayName ?? "Pet sahibi"}
               </Text>
               {ownerProfile.data.verified ? (
-                <Ionicons
-                  name="shield-checkmark"
+                <AppIcon
+                  name="shield-check"
                   accessibilityLabel="Doğrulanmış sahip"
                   color="#2FB8A6"
                   size={13}
                   style={{ marginLeft: 4 }}
                 />
               ) : null}
-              <Ionicons name="chevron-forward" color="#9A8B82" size={12} style={{ marginLeft: 2 }} />
+              <AppIcon name="chevron-right" color="#9A8B82" size={12} style={{ marginLeft: 2 }} />
             </AppPressable>
           ) : null}
         </View>
@@ -547,7 +547,7 @@ export default function ChatScreen() {
 
         {conversation.isError || messages.isError ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Ionicons name="alert-circle-outline" color="#E5484D" size={44} />
+            <AppIcon name="circle-alert" color="#E5484D" size={44} />
             <Text className="mt-4 text-center text-lg font-bold text-text-primary">
               Konuşma yüklenemedi
             </Text>
@@ -632,7 +632,7 @@ export default function ChatScreen() {
               ListEmptyComponent={
                 <View className="flex-1 items-center justify-center px-7 py-12">
                   <View className="h-16 w-16 items-center justify-center rounded-full bg-brand/10">
-                    <Ionicons name="chatbubble-ellipses-outline" color="#F97362" size={32} />
+                    <AppIcon name="message-circle" color="#F97362" size={32} />
                   </View>
                   <Text className="mt-4 text-center text-lg font-bold text-text-primary">
                     Güzel bir başlangıç yap
@@ -667,7 +667,7 @@ export default function ChatScreen() {
             className="mx-3 mb-2 flex-row items-center rounded-xl border border-danger/30 bg-danger/10 px-3 py-2"
             accessibilityRole="alert"
           >
-            <Ionicons name="alert-circle-outline" color="#E5484D" size={18} />
+            <AppIcon name="circle-alert" color="#E5484D" size={18} />
             <Text className="ml-2 flex-1 text-xs text-danger">{sendError}</Text>
             {failedMessage ? (
               <AppPressable
@@ -712,7 +712,7 @@ export default function ChatScreen() {
                       accessibilityLabel="Buluşma yeri öner"
                       className="min-h-11 flex-row items-center justify-center rounded-full border border-brand/40 bg-brand/10 px-3"
                     >
-                      <Ionicons name="location-outline" color="#E0523F" size={16} />
+                      <AppIcon name="map-pin" color="#E0523F" size={16} />
                       <Text className="ml-1.5 text-xs font-bold text-brand-dark">
                         Buluşma yeri
                       </Text>
@@ -750,7 +750,7 @@ export default function ChatScreen() {
                 {send.isPending ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="send" color="#FFFFFF" size={20} />
+                  <AppIcon name="send" color="#FFFFFF" size={20} />
                 )}
               </AppPressable>
             </View>

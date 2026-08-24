@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./ui/icon";
 
 import { AppPressable } from "./ui/pressable";
 
@@ -46,7 +46,7 @@ export function PhotoCarousel({
   if (count === 0) {
     return (
       <View className="w-full items-center justify-center bg-bg-tertiary" style={frameStyle}>
-        <Ionicons name="paw" color="#C4B7AE" size={72} />
+        <AppIcon name="paw-print" color="#C4B7AE" size={72} />
       </View>
     );
   }

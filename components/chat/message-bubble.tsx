@@ -6,7 +6,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import type { ChatMessage } from "../../core/api/conversations";
 import { getIntlLocale } from "../../core/i18n";
@@ -112,8 +112,8 @@ export function MessageBubble({
             ikon kalıyor — WhatsApp/iMessage'daki gibi tek çift tik.
           */}
           {latestMine ? (
-            <Ionicons
-              name={message.readAt ? "checkmark-done" : "checkmark"}
+            <AppIcon
+              name={message.readAt ? "check-check" : "check"}
               color={mine ? "rgba(255,255,255,0.8)" : "#9A8B82"}
               size={14}
             />

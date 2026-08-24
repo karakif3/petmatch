@@ -3,7 +3,7 @@ import { Modal, Platform, Pressable, Text, View } from "react-native";
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "../ui/icon";
 
 import type { MeetupPlace } from "../../core/api/meetup-places";
 import { MeetupPlaceTrust } from "./meetup-place-trust";
@@ -59,7 +59,7 @@ export function MeetupScheduleSheet({
           </View>
 
           <View className="flex-row items-center">
-            <Ionicons name="location-outline" color="#F97362" size={20} />
+            <AppIcon name="map-pin" color="#F97362" size={20} />
             <Text className="ml-2 flex-1 text-lg font-bold text-text-primary">
               {place.name}
             </Text>

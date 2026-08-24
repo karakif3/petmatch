@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AppIcon } from "./icon";
 
 import { AppPressable } from "./pressable";
 
@@ -30,7 +30,7 @@ export function Checkbox({
           checked ? "border-brand bg-brand" : "border-border bg-surface"
         }`}
       >
-        {checked ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
+        {checked ? <AppIcon name="check" size={16} color="#FFFFFF" /> : null}
       </View>
       <View className="flex-1">{children}</View>
     </AppPressable>

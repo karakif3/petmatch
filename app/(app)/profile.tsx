@@ -16,10 +16,10 @@ import {
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { AppIcon, type AppIconName } from "../../components/ui/icon";
 
 import { ProfilePreviewModal } from "../../components/profile-preview-modal";
 import { AppPressable } from "../../components/ui/pressable";
@@ -94,7 +94,7 @@ function NotificationToggle({
   value,
   onValueChange,
 }: {
-  icon: "heart" | "chatbubble-ellipses";
+  icon: AppIconName;
   label: string;
   detail: string;
   value: boolean;
@@ -323,7 +323,7 @@ export default function ProfileScreen() {
   if (profile.isError || !profile.data) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-bg-primary px-8">
-        <Ionicons name="cloud-offline-outline" color="#E5484D" size={46} />
+        <AppIcon name="cloud-off" color="#E5484D" size={46} />
         <Text className="mt-4 text-xl font-bold text-text-primary">Profil yüklenemedi</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
           {errorMessage(profile.error, "Bağlantını kontrol edip tekrar dene.")}
@@ -374,7 +374,7 @@ export default function ProfileScreen() {
                 />
               ) : (
                 <View className="h-[92px] w-[92px] items-center justify-center rounded-full bg-bg-tertiary">
-                  <Ionicons name="paw" color="#C4B7AE" size={38} />
+                  <AppIcon name="paw-print" color="#C4B7AE" size={38} />
                 </View>
               )}
               <View className="-ml-5">
@@ -392,7 +392,7 @@ export default function ProfileScreen() {
                   />
                 ) : (
                   <View className="h-[46px] w-[46px] items-center justify-center rounded-full border-[3px] border-bg-primary bg-bg-tertiary">
-                    <Ionicons name="person" color="#B9A99F" size={20} />
+                    <AppIcon name="user" color="#B9A99F" size={20} />
                   </View>
                 )}
               </View>
@@ -411,7 +411,7 @@ export default function ProfileScreen() {
               accessibilityHint="Kartını karşı tarafın gördüğü haliyle açar"
               className="mt-4 flex-row items-center rounded-full border border-brand/30 bg-brand/5 px-5 py-2.5"
             >
-              <Ionicons name="eye-outline" color="#E0523F" size={17} />
+              <AppIcon name="eye" color="#E0523F" size={17} />
               <Text className="ml-2 text-[13px] font-bold text-brand-dark">
                 Profilimi önizle
               </Text>
@@ -422,7 +422,7 @@ export default function ProfileScreen() {
             <SectionTitle>Profiller</SectionTitle>
             <SectionCard>
               <Row
-                icon="paw"
+                icon="paw-print"
                 iconColor="#E0523F"
                 iconBackground="bg-brand/10"
                 title="Pet profili"
@@ -431,7 +431,7 @@ export default function ProfileScreen() {
               />
               <RowSeparator />
               <Row
-                icon="person"
+                icon="user"
                 iconColor="#1E9384"
                 iconBackground="bg-accent/10"
                 title="Sahip profili"
@@ -471,7 +471,7 @@ export default function ProfileScreen() {
           <SectionTitle>Yaklaşık konum</SectionTitle>
           <SectionCard>
             <Row
-              icon="location"
+              icon="map-pin"
               iconColor="#1E9384"
               iconBackground="bg-accent/10"
               title={
@@ -519,7 +519,7 @@ export default function ProfileScreen() {
             />
             <RowSeparator />
             <NotificationToggle
-              icon="chatbubble-ellipses"
+              icon="message-circle"
               label="Yeni mesajlar"
               detail="Eşleşmelerinden yeni mesaj geldiğinde haber ver."
               value={notifyOnMessage}
