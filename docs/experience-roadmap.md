@@ -965,6 +965,44 @@ ilk mesajlaşmadan sonra yazma satırının yanındaki bir `+` düğmesine
 alınabilir. Bu turda bilerek yapılmadı — kullanımını ölçmeden gizlemek
 riskli.
 
+## 15c. Profil yüzeyi: pet taban, sahip bölüm (2026-08-24)
+
+**Bulgu:** eşleştikten sonra petin profiline hiçbir yerden ulaşılamıyordu.
+Irk, enerji, mizaç, uyumluluk — yani sağa kaydırma sebebinin tamamı —
+yalnızca keşfet destesinde vardı ve kart kaydırıldığı an kayboluyordu.
+Sohbette kalan tek şey ad + aktiflik. Sahip için panel vardı, **pet için
+hiçbir şey yoktu.**
+
+**Karar: tek profil rotası (`/pet/[petId]`), tabanı pet, sahip onun içinde
+bir bölüm.** Üç gerekçe:
+
+1. **Sahip görünürlüğü değişken, pet değişmez.** Tabanı değişken olan bir
+   ekran boş durumlar üretmek zorunda kalır; dahası "sahip profili yok"
+   boşluğu, o kişinin gizlenmeyi SEÇTİĞİNİ ele verir. Pet tabanlı sayfada
+   sahip bölümü ya vardır ya hiç yoktur.
+2. **Görünürlük kuralı tek yerde kalır.** Sayfa kuralı yeniden uygulamıyor;
+   `get_conversation_owner_profile` ne döndürürse onu gösteriyor. Sahip
+   tabanlı bir sayfa "bu ekran açılabilir mi" diye kuralın ikinci kopyasını
+   taşımak zorunda kalırdı — bu deponun tekrar tekrar temizlediği hata sınıfı.
+3. **Dating'e evrilme yeniden yazım değil, sıralama değişikliği.**
+   `connection_mode` (P0-6) geldiğinde sahip bölümü petin üstüne çıkar ve
+   hero olur: aynı rota, aynı veri, farklı bölüm sırası.
+
+**Migration gerekmedi.** Sohbet zaten `petId` taşıyor; `pets_select_matched`
+ve `pet_photos_select` (`0006`, `visible_pet_ids()`) eşleşilen sahibin
+petlerini okutuyor. Eşleşme kalkarsa sorgu boş döner ve ekran "artık
+görünmüyor" der — yetki kontrolü istemcide tekrarlanmıyor.
+
+**Ayrışmaya karşı önlem:** sahip bilgisinin gövdesi `OwnerProfileSection`
+olarak ayrıştırıldı; sohbetteki hızlı bakış paneli ile profil sayfasındaki
+bölüm **aynı bileşen**. Panel "kiminle konuşuyorum"u sohbetten çıkmadan
+gösteriyor, sayfa tam resmi veriyor.
+
+**Sıradaki giriş noktaları:** bugün yalnızca sohbet başlığından giriliyor.
+Keşfet kartı, Beğeniler ve Mesajlar satırı da aynı rotaya bağlanmalı; deste
+satırı sahip alanlarını zaten taşıdığı için oradan gelindiğinde
+`conversationId` olmadan da sahip bölümü doldurulabilir.
+
 ---
 
 ## 16. Profil ekranı: gruplu liste diline geçiş (2026-08-09)

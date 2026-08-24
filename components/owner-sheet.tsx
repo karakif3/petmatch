@@ -37,6 +37,91 @@ function genderLabel(gender: OwnerDisclosure["gender"]): string | null {
  *    görünürlüğü `hidden` ya da `after_match` ise RPC `owner` alanını zaten
  *    `null` veriyor ve panel hiç açılmıyor.
  */
+/**
+ * Sahip bilgisinin GÖVDESİ — panelden de tam profil sayfasından da aynısı.
+ *
+ * Ayrı bir bileşen olmasının sebebi ayrışmayı engellemek: sahip bilgisi iki
+ * yüzeyde birden görünüyor (sohbetteki hızlı bakış paneli ve pet profil
+ * sayfasındaki bölüm). İki yerde ayrı ayrı yazılsaydı biri güncellenip
+ * diğeri unutulurdu — bu depoda tam da o hata sınıfı ("iki yerde aynı
+ * kural") defalarca temizlendi.
+ *
+ * Görünürlük kararı BURADA verilmiyor: `owner` null ise çağıran hiç render
+ * etmiyor. Kim ne görebilir sorusunun tek yanıtı sunucuda (`0021`, `0047`).
+ */
+export function OwnerProfileSection({
+  owner,
+  petName,
+}: {
+  owner: OwnerDisclosure;
+  petName: string;
+}) {
+  const gender = genderLabel(owner.gender);
+  const facts = [gender, owner.ageBucket].filter(Boolean).join(" · ");
+
+  return (
+    <>
+      <View className="flex-row items-center">
+        {owner.photoUrl ? (
+          <Image
+            source={owner.photoUrl}
+            contentFit="cover"
+            style={{ width: 76, height: 76, borderRadius: 38 }}
+          />
+        ) : (
+          <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-bg-tertiary">
+            <AppIcon name="user" color="#9A8B82" size={32} />
+          </View>
+        )}
+        <View className="ml-4 flex-1">
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="text-xl font-bold text-text-primary">
+              {owner.displayName ?? "Pet sahibi"}
+            </Text>
+            {owner.verified ? (
+              <AppIcon name="shield-check" color="#2FB8A6" size={19} />
+            ) : null}
+          </View>
+          <Text className="mt-1 text-sm text-text-secondary">
+            {facts || `${petName} ile birlikte`}
+          </Text>
+        </View>
+      </View>
+
+      {owner.socialOpen ? (
+        <View className="mt-5 flex-row items-start rounded-2xl border border-brand/25 bg-brand/5 p-3.5">
+          <AppIcon name="users" color="#F97362" size={18} />
+          <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
+            Sahip olarak da tanışmaya açık. Sohbet, petlerin yanı sıra sizin de
+            tanışmanıza açık demek.
+          </Text>
+        </View>
+      ) : null}
+
+      {owner.bio ? (
+        <View className="mt-5">
+          <Text className="mb-2 text-sm font-semibold text-text-primary">Hakkında</Text>
+          <Text className="text-sm leading-6 text-text-secondary">{owner.bio}</Text>
+        </View>
+      ) : null}
+
+      {owner.verified ? (
+        <View className="mt-5 flex-row items-start rounded-2xl border border-accent/25 bg-accent/5 p-3.5">
+          <AppIcon name="shield-check" color="#2FB8A6" size={18} />
+          <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
+            Bu profil, sahip ve peti birlikte gösteren bir fotoğrafla doğrulandı.
+          </Text>
+        </View>
+      ) : null}
+
+      <Text className="mt-6 text-[11px] leading-4 text-text-tertiary">
+        Burada yalnızca sahibin paylaşmayı seçtiği bilgiler görünür. Tam konum,
+        iletişim bilgisi ve soyadı hiçbir zaman paylaşılmaz.
+      </Text>
+    </>
+  );
+}
+
 export function OwnerSheet({
   owner,
   petName,
@@ -49,9 +134,6 @@ export function OwnerSheet({
   onClose: () => void;
 }) {
   if (!owner) return null;
-
-  const gender = genderLabel(owner.gender);
-  const facts = [gender, owner.ageBucket].filter(Boolean).join(" · ");
 
   return (
     <Modal
@@ -71,31 +153,7 @@ export function OwnerSheet({
           </View>
 
           <ScrollView contentContainerClassName="px-6 pb-10 pt-3">
-            <View className="flex-row items-center">
-              {owner.photoUrl ? (
-                <Image
-                  source={owner.photoUrl}
-                  contentFit="cover"
-                  style={{ width: 76, height: 76, borderRadius: 38 }}
-                />
-              ) : (
-                <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-bg-tertiary">
-                  <AppIcon name="user" color="#9A8B82" size={32} />
-                </View>
-              )}
-              <View className="ml-4 flex-1">
-                <View className="flex-row flex-wrap items-center gap-2">
-                  <Text className="text-xl font-bold text-text-primary">
-                    {owner.displayName ?? "Pet sahibi"}
-                  </Text>
-                  {owner.verified ? (
-                    <AppIcon name="shield-check" color="#2FB8A6" size={19} />
-                  ) : null}
-                </View>
-                <Text className="mt-1 text-sm text-text-secondary">
-                  {facts || `${petName} ile birlikte`}
-                </Text>
-              </View>
+            <View className="mb-1 flex-row justify-end">
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
@@ -106,42 +164,7 @@ export function OwnerSheet({
                 <AppIcon name="x" size={18} color="#6B5D55" />
               </Pressable>
             </View>
-
-            {owner.socialOpen ? (
-              <View className="mt-5 flex-row items-start rounded-2xl border border-brand/25 bg-brand/5 p-3.5">
-                <AppIcon name="users" color="#F97362" size={18} />
-                <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
-                  Sahip olarak da tanışmaya açık. Sohbet, petlerin yanı sıra
-                  sizin de tanışmanıza açık demek.
-                </Text>
-              </View>
-            ) : null}
-
-            {owner.bio ? (
-              <View className="mt-5">
-                <Text className="mb-2 text-sm font-semibold text-text-primary">
-                  Hakkında
-                </Text>
-                <Text className="text-sm leading-6 text-text-secondary">
-                  {owner.bio}
-                </Text>
-              </View>
-            ) : null}
-
-            {owner.verified ? (
-              <View className="mt-5 flex-row items-start rounded-2xl border border-accent/25 bg-accent/5 p-3.5">
-                <AppIcon name="shield-check" color="#2FB8A6" size={18} />
-                <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
-                  Bu profil, sahip ve peti birlikte gösteren bir fotoğrafla
-                  doğrulandı.
-                </Text>
-              </View>
-            ) : null}
-
-            <Text className="mt-6 text-[11px] leading-4 text-text-tertiary">
-              Burada yalnızca sahibin paylaşmayı seçtiği bilgiler görünür.
-              Tam konum, iletişim bilgisi ve soyadı hiçbir zaman paylaşılmaz.
-            </Text>
+            <OwnerProfileSection owner={owner} petName={petName} />
           </ScrollView>
         </Pressable>
       </Pressable>

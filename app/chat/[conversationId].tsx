@@ -447,19 +447,39 @@ export default function ChatScreen() {
             >
               <AppIcon name="chevron-left" color="#1F1A17" size={27} />
             </AppPressable>
-            {conversation.data?.petPhotoUrl ? (
-              <Image
-                source={conversation.data.petPhotoUrl}
-                accessibilityLabel={`${title} profil fotoğrafı`}
-                contentFit="cover"
-                style={{ width: 42, height: 42, borderRadius: 14 }}
-              />
-            ) : (
-              <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
-                <AppIcon name="paw-print" color="#C4B7AE" size={20} />
-              </View>
-            )}
-            <View className="ml-3 flex-1">
+            {/*
+              Petin adı ve fotoğrafı artık PROFİLE GÖTÜRÜYOR. Eşleştikten
+              sonra petin ırkı, enerjisi, mizacı ve uyumluluğu hiçbir yerden
+              görünmüyordu — yani sağa kaydırma sebebinin tamamı kart
+              kaydırıldığı an kayboluyordu. Sahip için panel vardı, pet için
+              hiçbir şey yoktu.
+            */}
+            <AppPressable
+              onPress={() =>
+                conversation.data?.petId
+                  ? router.push({
+                      pathname: "/pet/[petId]",
+                      params: { petId: conversation.data.petId, conversationId },
+                    })
+                  : undefined
+              }
+              disabled={!conversation.data?.petId}
+              accessibilityRole="button"
+              accessibilityLabel={`${title} profilini aç`}
+              className="flex-1 flex-row items-center"
+            >
+              {conversation.data?.petPhotoUrl ? (
+                <Image
+                  source={conversation.data.petPhotoUrl}
+                  contentFit="cover"
+                  style={{ width: 42, height: 42, borderRadius: 14 }}
+                />
+              ) : (
+                <View className="h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-bg-tertiary">
+                  <AppIcon name="paw-print" color="#C4B7AE" size={20} />
+                </View>
+              )}
+              <View className="ml-3 flex-1">
               <Text className="text-base font-bold text-text-primary" numberOfLines={1}>
                 {title}
               </Text>
@@ -475,8 +495,9 @@ export default function ChatScreen() {
                 >
                   {activityText}
                 </Text>
+                </View>
               </View>
-            </View>
+            </AppPressable>
             {ownerProfile.data ? (
               <AppPressable
                 onPress={() => setOwnerSheet(true)}
