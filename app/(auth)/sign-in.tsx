@@ -14,6 +14,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import { BrandMark } from "../../components/brand-mark";
 import { AppPressable } from "../../components/ui/pressable";
 import { translateAuthError } from "../../core/domain/auth-errors";
+import {
+  isAcceptablePassword,
+  isValidEmail,
+  passwordRules,
+} from "../../core/domain/credentials";
 import { useTranslation } from "../../core/i18n";
 import { useAuthStore } from "../../stores/auth";
 
@@ -35,8 +40,25 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [emailUnconfirmed, setEmailUnconfirmed] = useState(false);
+  // "touched": kullanıcı yazmaya BAŞLAR başlamaz kırmızı göstermek, henüz
+  // hata yapmamış birini azarlamaktır. Alan terk edilince değerlendiriliyor.
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  const isSignUp = mode === "sign-up";
+  const emailValid = isValidEmail(email);
+  const emailError = emailTouched && email.length > 0 && !emailValid;
+  // Şifre kuralları YALNIZCA kayıt akışında. Girişte dayatmak, 6-7 karakterle
+  // açılmış eski hesapların sahibini doğru şifresiyle kilitlerdi.
+  const rules = isSignUp ? passwordRules(password) : [];
+  const canSubmit =
+    configured &&
+    !busy &&
+    emailValid &&
+    password.length > 0 &&
+    (!isSignUp || isAcceptablePassword(password));
 
   const submit = async () => {
+    if (!canSubmit) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -96,8 +118,17 @@ export default function SignInScreen() {
           keyboardType="email-address"
           autoComplete="email"
           textContentType="emailAddress"
-          className="mb-3 rounded-xl border border-border bg-surface px-4 py-3.5 text-text-primary"
+          onBlur={() => setEmailTouched(true)}
+          className={`rounded-xl border bg-surface px-4 py-3.5 text-text-primary ${
+            emailError ? "border-danger" : "border-border"
+          }`}
         />
+        {emailError ? (
+          <Text className="mt-1.5 text-xs text-danger">
+            Geçerli bir e-posta adresi yaz (örn. ad@ornek.com).
+          </Text>
+        ) : null}
+        <View className="h-3" />
         <View className="mb-5 flex-row items-center rounded-xl border border-border bg-surface pr-2">
           <TextInput
             value={password}
@@ -124,6 +155,27 @@ export default function SignInScreen() {
             />
           </AppPressable>
         </View>
+
+        {isSignUp ? (
+          <View className="-mt-2 mb-5 gap-1">
+            {rules.map((rule) => (
+              <View key={rule.id} className="flex-row items-center gap-2">
+                <Ionicons
+                  name={rule.passed ? "checkmark-circle" : "ellipse-outline"}
+                  size={14}
+                  color={rule.passed ? "#2FB8A6" : "#C4B7AE"}
+                />
+                <Text
+                  className={`text-xs ${
+                    rule.passed ? "text-accent-dark" : "text-text-tertiary"
+                  }`}
+                >
+                  {rule.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {error || params.authError ? (
           <Text className="text-danger text-sm mb-3">{error ?? params.authError}</Text>
@@ -156,7 +208,7 @@ export default function SignInScreen() {
 
         <AppPressable
           onPress={submit}
-          disabled={busy || !configured || !email || !password}
+          disabled={!canSubmit}
           className="bg-brand rounded-xl py-4 items-center disabled:opacity-50"
         >
           {busy ? (
@@ -176,9 +228,10 @@ export default function SignInScreen() {
 
         <AppPressable
           onPress={() => {
-            setMode(mode === "sign-in" ? "sign-up" : "sign-in");
+            setMode(isSignUp ? "sign-in" : "sign-up");
             setError(null);
             setNotice(null);
+            setEmailTouched(false);
           }}
           className="py-3 items-center"
         >

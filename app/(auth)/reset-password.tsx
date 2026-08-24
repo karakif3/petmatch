@@ -6,10 +6,17 @@ import {
   Pressable,
   Text,
   TextInput,
+  View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { translateAuthError } from "../../core/domain/auth-errors";
+import {
+  isAcceptablePassword,
+  MIN_PASSWORD_LENGTH,
+  passwordRules,
+} from "../../core/domain/credentials";
 import { useAuthStore } from "../../stores/auth";
 
 export default function ResetPasswordScreen() {
@@ -21,9 +28,14 @@ export default function ResetPasswordScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const rules = passwordRules(password);
+  const strongEnough = isAcceptablePassword(password);
+
   const submit = async () => {
-    if (password.length < 6) {
-      setError("Şifre en az 6 karakter olmalı.");
+    if (!strongEnough) {
+      setError(
+        `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı ve harf ile rakam içermeli.`,
+      );
       return;
     }
     if (password !== confirmation) {
@@ -55,7 +67,7 @@ export default function ResetPasswordScreen() {
     >
       <Text className="text-text-primary text-3xl font-bold mb-3">Yeni şifre oluştur</Text>
       <Text className="text-text-secondary mb-8">
-        Hesabın için en az 6 karakterli yeni bir şifre seç.
+        Hesabın için yeni bir şifre seç.
       </Text>
       <TextInput
         value={password}
@@ -69,6 +81,31 @@ export default function ResetPasswordScreen() {
         textContentType="newPassword"
         className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
       />
+      {/*
+        Kurallar yazarken görünüyor. "Gönder → reddedildi → tekrar dene"
+        döngüsü, kuralı baştan göstermenin yerini tutmuyor; şifre alanı
+        maskeli olduğu için kullanıcı neyi eksik bıraktığını göremiyor.
+      */}
+      {password.length > 0 ? (
+        <View className="mb-3 gap-1">
+          {rules.map((rule) => (
+            <View key={rule.id} className="flex-row items-center gap-2">
+              <Ionicons
+                name={rule.passed ? "checkmark-circle" : "ellipse-outline"}
+                size={14}
+                color={rule.passed ? "#2FB8A6" : "#C4B7AE"}
+              />
+              <Text
+                className={`text-xs ${
+                  rule.passed ? "text-accent-dark" : "text-text-tertiary"
+                }`}
+              >
+                {rule.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <TextInput
         value={confirmation}
         onChangeText={setConfirmation}
@@ -84,7 +121,7 @@ export default function ResetPasswordScreen() {
       {error ? <Text className="text-danger text-sm mb-3">{error}</Text> : null}
       <Pressable
         onPress={submit}
-        disabled={busy || !password || !confirmation}
+        disabled={busy || !strongEnough || !confirmation}
         className="bg-brand rounded-xl py-4 items-center disabled:opacity-50"
       >
         {busy ? (

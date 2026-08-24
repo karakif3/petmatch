@@ -251,6 +251,26 @@ güncellenmemişti, yani buradan uygulama hiçbir şeye bağlanamıyordu. Yeni r
 sonrası `.env` her makinede ayrı güncellenmeli; bunu hatırlatan tek şey
 `region-migration.md` §6 ve orada "her makine" yazmıyordu.
 
+**2026-08-24 — Auth form doğrulaması ve şifre politikası.** Diğer makinede
+park kalmış `wip/ui-kit-local` dalından yalnızca değeri olan parça alındı:
+`core/domain/credentials.ts` + testi (e-posta biçimi, uzunluk/harf/rakam
+kuralları). Ekran kodu ALINMADI — o dal uzaktaki `components/ui` katmanı
+kurulmadan önce yazılmıştı ve main'deki ekranlar UX turunda zaten elden
+geçmişti; doğrulama mevcut ekranlara bağlandı.
+
+- Kayıt akışında kurallar **canlı** gösteriliyor (şifre alanı maskeli olduğu
+  için "gönder → reddedildi" döngüsü kuralı göstermenin yerini tutmuyor).
+- E-posta biçimi alan terk edilince değerlendiriliyor; yazmaya başlar başlamaz
+  kırmızı göstermek henüz hata yapmamış kullanıcıyı azarlamak olurdu.
+- **Giriş formunda şifre kuralı UYGULANMIYOR** — bu bilinçli: sunucu asgarisi
+  6 ve 6-7 karakterle açılmış hesaplar var; girişte 8 dayatmak kullanıcıyı
+  DOĞRU şifresiyle kendi hesabından kilitlerdi.
+- Bulunan tutarsızlık: `credentials.ts` 8 istiyor, `auth-errors.ts` çevirisi
+  "en az 6 karakter" diyordu, `reset-password.tsx` ise 6 dayatıyordu. Üçü tek
+  sabitte (`MIN_PASSWORD_LENGTH`) birleştirildi. **Sunucu tarafı hâlâ 6** —
+  yayından önce Dashboard'dan 8'e çekilmeli, kayıt
+  [`auth-release-checklist.md`](auth-release-checklist.md)'de.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız

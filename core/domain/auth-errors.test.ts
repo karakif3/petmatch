@@ -6,8 +6,14 @@ describe("translateAuthError", () => {
   it.each([
     ["Invalid login credentials", "E-posta veya şifre hatalı."],
     ["Email not confirmed", "E-posta adresini doğrulamalısın."],
-    ["User already registered", "Bu e-posta ile zaten bir hesap var."],
-    ["Password should be at least 6 characters", "Şifre en az 6 karakter olmalı."],
+    [
+      "User already registered",
+      "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.",
+    ],
+    [
+      "Password should be at least 6 characters",
+      "Şifre en az 8 karakter olmalı ve harf ile rakam içermeli.",
+    ],
     ["Token has expired", "Bağlantının süresi dolmuş. Yeni bir bağlantı iste."],
     ["Failed to fetch", "İnternet bağlantını kontrol edip yeniden dene."],
   ])("%s mesajını Türkçeleştirir", (source, expected) => {

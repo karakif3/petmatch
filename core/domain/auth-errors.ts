@@ -1,8 +1,19 @@
+import { MIN_PASSWORD_LENGTH } from "./credentials";
+
 const AUTH_ERROR_RULES: [RegExp, string][] = [
   [/invalid login credentials|invalid credentials/i, "E-posta veya şifre hatalı."],
   [/email not confirmed|email.*not.*verified/i, "E-posta adresini doğrulamalısın."],
-  [/user already registered|already been registered/i, "Bu e-posta ile zaten bir hesap var."],
-  [/password should be at least|weak password/i, "Şifre en az 6 karakter olmalı."],
+  [
+    /user already registered|already been registered/i,
+    "Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.",
+  ],
+  // Sunucunun asgarisi 6, uygulamanınki MIN_PASSWORD_LENGTH. Metin sunucunun
+  // sayısını tekrarlarsa kullanıcı istemcide reddedilen bir şifre için
+  // "ama 6 karakter yeter" yazan bir hata görür.
+  [
+    /password should be at least|weak password/i,
+    `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı ve harf ile rakam içermeli.`,
+  ],
   [/expired.*(token|otp)|(token|otp).*expired/i, "Bağlantının süresi dolmuş. Yeni bir bağlantı iste."],
   [/invalid.*(token|otp)|(token|otp).*invalid/i, "Bağlantı geçersiz veya daha önce kullanılmış."],
   [/rate limit|too many requests|over_request_rate_limit/i, "Çok fazla deneme yapıldı. Biraz bekleyip yeniden dene."],

@@ -46,6 +46,24 @@
 Şifre sıfırlama, doğrulama e-postasını yeniden gönderme, mobil deep link,
 PKCE `code` değişimi ve Türkçe hata durumları uygulamada hazırdır.
 
+## Şifre politikası — istemci 8, sunucu 6
+
+`core/domain/credentials.ts` yeni şifrelerde **en az 8 karakter + harf +
+rakam** istiyor (kayıt ve şifre sıfırlama ekranlarında canlı gösteriliyor).
+Supabase'in sunucu tarafı asgarisi ise hâlâ **6**.
+
+Bu ikisi bilerek ayrı:
+
+- **Giriş formunda kural UYGULANMIYOR.** Sunucu 6'ya izin verdiği için
+  6-7 karakterle açılmış hesaplar var; girişte 8 dayatmak kullanıcıyı DOĞRU
+  şifresiyle kendi hesabından kilitler.
+- Yeni şifre üreten her akış (kayıt · sıfırlama) 8 kuralını uyguluyor, yani
+  yeni hesaplar zaten güçlü.
+
+- [ ] **Yayından önce:** Dashboard → Authentication → Policies → Minimum
+      password length **8** yapılmalı. O zamana kadar istemci tek savunma
+      hattı; API'ye doğrudan giden bir istemci 6 karakterle hesap açabilir.
+
 Supabase Dashboard → Authentication → URL Configuration altında:
 
 - [x] **`petmatch://**` allow list'e eklendi** (2026-08-06). Uygulama
