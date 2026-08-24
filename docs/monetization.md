@@ -209,7 +209,7 @@ sabitleniyor:
 ## Sıralama artık bir tasarım problemi
 
 Faz 1 ile birlikte destede dört sinyal yarışıyor: **mesafe · son aktiflik ·
-uyum skoru · boost.** Şu anki `discover_pets` yalnızca mesafeye göre sıralıyor
+uyum skoru · boost.** Şu anki `discover_playdate_pets` yalnızca mesafeye göre sıralıyor
 ve ilk 50'yi döndürüyor; uyum skoru istemcide o 50'yi yeniden diziyor.
 
 Bu haliyle taşımaz. Ayrıca `core/domain/matching.ts`'teki mesafe bileşeni

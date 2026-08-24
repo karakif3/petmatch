@@ -159,6 +159,28 @@ Bu turdan açık kalanlar:
 - **Test verisini gerçek fotoğraflarla seed et** — yer tutucu görseller
   her görsel değerlendirmeyi zorlaştırıyor (bkz. §13).
 
+**2026-08-24 — Keşfet tek katmana indi + sahip filtresi sızıntısı kapandı
+(`0059`).** Kod denetiminde çıkan iki bulgu, ikisi de aynı fonksiyonda:
+
+- **Filtre kesmeden sonra uygulanıyordu.** Sarmalayıcı ham katmandan sabit
+  100 satır alıp sahip filtrelerini onun üstüne uyguluyordu; ham katman
+  mesafeye göre sıralayıp kestiği için uygun aday 100'üncüden sonra
+  kalırsa deste boşalıyordu. Bugün ısırmıyordu çünkü `0057`'den beri havuz
+  tek bölge — ama bu tesadüf, kural değil. İki katman birleşti, ham
+  `discover_pets` düşürüldü, `p_limit` gerçek limit oldu.
+- **Sahip yaş/cinsiyet filtresi görünürlük kapısı tanımıyordu.** Yaş
+  filtresinde kontrol hiç yoktu, cinsiyet filtresi yalnızca `<> 'hidden'`
+  istiyordu. Kartta gösterilmeyen bilgi filtre daraltılarak çıkarılabiliyordu
+  (`hidden` sahibin yaşı yıla kadar, `after_match` sahibin cinsiyeti eşleşme
+  öncesi) — `0007`'de ham mesafeye karşı alınan önlemle aynı tür açık.
+  Karar: **sahip filtresi = sahip katmanı**; filtre açıkken yalnızca `public`
+  sahipli adaylar değerlendiriliyor. Aynı kapı sosyal mod ve doğrulama
+  filtrelerine de yazıldı (davranış aynı, kural artık açık).
+
+İkisi de `discovery-owner-filters.test.sql` ile regresyona bağlandı ve
+**testlerin eski kodda düştüğü ayrıca doğrulandı** — 100 yakın doğrulanmamış
+aday + 1 uzak doğrulanmış aday kurulumunda eski yapı sıfır satır dönüyordu.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız

@@ -5,7 +5,7 @@
  * kullanıcının filtrelerini ve karşı tarafın görünürlük tercihlerini uygular.
  * İkisi ayrı tutuluyor: sıralama değişse bile eleme kuralları sabit kalmalı.
  *
- * MESAFE BURADA YOK — bilerek. `discover_pets` ham koordinat döndürmüyor
+ * MESAFE BURADA YOK — bilerek. `discover_playdate_pets` ham koordinat döndürmüyor
  * (üçgenleme savunması, bkz. 0007). Arama havuzu seçilen `region_slug`'dır;
  * mesafe yalnızca o bölge içinde sıralayıp `max_distance_km` ile eler.
  * Skora mesafe bileşeni koymak, istemcide hiçbir zaman dolmayacak bir alana
@@ -120,7 +120,7 @@ export type EligibilityContext = {
  * Aday keşfet listesinde gösterilebilir mi?
  *
  * ⚠️ Bu **iyimser istemci filtresidir**. Bağlayıcı eleme sunucuda,
- * `discover_pets()` içindedir — ikisi ayrışırsa sunucu kazanır. Buradaki amaç,
+ * `discover_playdate_pets()` içindedir — ikisi ayrışırsa sunucu kazanır. Buradaki amaç,
  * yerel olarak bilinen bir değişiklikten sonra (filtre değişti, swipe atıldı)
  * elde duran desteyi sunucuya gitmeden süzebilmek.
  *

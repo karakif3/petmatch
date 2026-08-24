@@ -111,7 +111,7 @@ export type Pet = {
 /**
  * Keşfet destesinde dönen aday.
  *
- * Ham koordinat YOK — `discover_pets` hiçbir zaman lat/lng döndürmez ve
+ * Ham koordinat YOK — `discover_playdate_pets` hiçbir zaman lat/lng döndürmez ve
  * mesafeyi kova olarak verir (bkz. 0007, üçgenleme savunması).
  */
 export type DiscoveryCandidate = Pet & {

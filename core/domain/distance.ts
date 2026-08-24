@@ -35,7 +35,7 @@ export function coarsenCoordinates(coords: Coordinates, precision = 2): Coordina
 }
 
 /**
- * Mesafe kovaları — `discover_pets` bu değerleri döndürür, ham km değil.
+ * Mesafe kovaları — `discover_playdate_pets` bu değerleri döndürür, ham km değil.
  *
  * Sürekli ondalık mesafe üçgenlemeye açıktır: saldırgan kendi konumunu üç
  * noktaya taşıyıp aynı hedefi ölçerse evini bulur. SQL tarafındaki

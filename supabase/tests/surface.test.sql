@@ -57,12 +57,17 @@ select tests.assert(
   'politikalarda auth.uid() (select ...) ile sarmalanmış'
 );
 
--- Ham keşfet katmanı yalnızca sarmalayıcının içinden çağrılabilir olmalı.
--- discover_playdate_pets sahip fotoğrafı, sosyal mod ve doğrulama filtrelerini
--- ham katmanın ÜSTÜNE uyguluyor; ham katman açık kalırsa istemci atlar.
+-- Keşfetin tek yüzeyi var. Ham `discover_pets` katmanı `0059`'da kaldırıldı:
+-- filtreleri sarmalayıcıda tutmak "önce kes sonra filtrele" hatasını
+-- doğuruyordu ve iki ayrı eleme kuralı birbirinden ayrışmaya açıktı.
 select tests.assert(
-  not has_function_privilege('authenticated', 'discover_pets(uuid,text[],integer,integer,integer)', 'execute'),
-  'ham discover_pets istemciye kapalı'
+  not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'discover_pets'
+  ),
+  'ham discover_pets katmanı kaldırıldı — keşfet tek fonksiyon'
 );
 
 select tests.assert(

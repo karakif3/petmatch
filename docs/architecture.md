@@ -52,6 +52,13 @@ koordinat vermediyse mesafe atlanır ve kova null döner. `swipe_pet` ile
 RPC önce bounding-box ile eler (`pets_discovery_idx`), sonra kalanlarda
 haversine çalıştırır. PostGIS'e bağımlılık yok — taşınabilirlik için bilinçli.
 
+Keşfet **tek fonksiyondur** (`0059`). Önceden ham bir `discover_pets` katmanı
+vardı ve sarmalayıcı sahip filtrelerini onun üstüne uyguluyordu; ham katman
+mesafeye göre sıralayıp sabit 100 satırda kestiği için filtreler kesmeden
+SONRA çalışıyordu — havuz 100'ü geçtiğinde uygun aday elde varken deste
+boşalırdı. Kural: **eleme ile sıralama aynı sorguda kalır.** Bir filtreyi
+sarmalayıcıya koymak, onu limitin dışına koymak demektir.
+
 ## Eşleşme neden trigger
 
 Karşılıklı beğeni kontrolü istemcide yapılsaydı iki taraf aynı anda beğendiğinde

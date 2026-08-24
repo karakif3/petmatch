@@ -75,12 +75,20 @@ Kullanıcı iki ayrı ayar tutar:
 
 Zorunluluk **çift yönlü** uygulanır: karşı taraf da bu zorunluluğu koyduysa,
 kendi profilin gizliyken ona görünmezsin. Kural `core/domain/matching.ts`
-(`isEligible`) ve `discover_pets()` RPC'sinde birebir aynı yazılıdır —
+(`isEligible`) ve `discover_playdate_pets()` RPC'sinde birebir aynı yazılıdır —
 ikisi ayrışırsa sunucu tarafı bağlayıcıdır.
 
 `require_visible_owner` simetrik bir kullanıcı kuralı olduğu için yalnızca
 `profiles` tablosunda tutulur. `0012` migration'ı eski
 `discovery_preferences` kopyasını birleştirip kaldırır.
+
+**Sahip filtresi = sahip katmanı (`0059`).** Sahibe göre kurulan filtreler
+(fotoğraf · sosyal mod · doğrulama · yaş · cinsiyet) yalnızca `public`
+sahipli adayları değerlendirir; `after_match` ve `hidden` sahipli petler o
+filtre açıkken destede hiç çıkmaz. Sebep yalnızca tutarlılık değil: filtreyi
+"public olmayana uygulanmaz" diye muaf tutmak, filtre daraltılıp sonuç
+kümesindeki değişim okunarak gösterilmeyen bir bilginin (gizli sahibin yaşı,
+`after_match` sahibin cinsiyeti) çıkarılmasına izin veriyordu.
 
 Sahip fotoğrafı private `owner-avatars` bucket'ındadır. Yalnızca sahibi,
 public profil adayını gören oturum veya aktif eşleşmedeki karşı taraf kısa
