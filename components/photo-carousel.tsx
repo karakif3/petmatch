@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { Image } from "expo-image";
 import { AppIcon } from "./ui/icon";
 
+import { lightHaptic } from "../core/ui/haptics";
 import { AppPressable } from "./ui/pressable";
 
 type Props = {
@@ -52,7 +53,13 @@ export function PhotoCarousel({
   }
 
   const go = (next: number) => {
+    // Sınırda dokunuş SESSİZ kalıyor: son fotoğraftayken sağa basmak bir
+    // şey yapmıyor, dolayısıyla titreşim de vermemeli — yoksa haptik
+    // "oldu" derken ekranda hiçbir şey olmuyor.
     if (next < 0 || next >= count) return;
+    // Fotoğraf değişimi küçük bir gezinme adımı: `light`, karar
+    // anlarının `medium`'undan bilerek ayrı (bkz. core/ui/haptics.ts).
+    lightHaptic();
     onIndexChange(next);
   };
 
