@@ -97,6 +97,80 @@ Siyasi görüş, inanç, sağlık, cinsel hayat veya kullanıcı mesajlarından 
 etiketler eşleşme amacıyla profillenmez. Serbest bio metninden “mindset skoru”
 üretilmez.
 
+## Neden şimdi, neden sonra (2026-08-25)
+
+Faz B'nin kalemleri aynı anda yapılmaz. Ayrım şu: **bugün ucuz, sonra pahalı
+olan** ile **erken yapılırsa yükümlülüğü erken üstlendiren**.
+
+### Şimdi yapılması gerekenler
+
+**1. Kişi-kişi eşleşme katmanı.** `swipes(from_pet_id, to_pet_id)` ve
+`matches(pet_a_id, pet_b_id)` pet kimliğine bağlı. Borç olduğu şimdiden
+görünüyor: `safety.test.sql` *"pet silinemiyor (karşı tarafın sohbet
+geçmişini götürürdü)"* diye bir iddia taşıyor — yani grafiğin yanlış varlığa
+bağlı olduğu fark edilip **varlık dondurulmuş**. Aynı semptom `0012`'de bir
+kez daha çıkmış: konuşma üyeliği petin sahibinden türetilemediği için
+`conversation_participants` açılmak zorunda kalınmış.
+
+Sonra pahalı olmasının sebebi anahtar değişimi değil **tekilleştirme**: kişi
+düzeyine inildiğinde iki peti olan kullanıcının aynı kişiye iki ayrı swipe'ı
+çakışır ve hangisinin kazanacağına karar vermek veri kaybı demektir. Bugün
+böyle bir satır yok. Ayrıca `on_swipe_created`, `swipe_pet`,
+`discover_playdate_pets`, `pending_likes` ve `meetups` pet id'siyle
+konuşuyor; canlı veriyle değiştirmek kesinti ya da çift-yazma dönemi ister.
+
+Aynı düzeltme backlog'daki **çoklu pet desteğini** de açar: tek aktif pet
+kuralı (`(owner_id) where is_active`) zaten grafiğin pete bağlı olmasının
+sonucu.
+
+**2. Petsiz kullanıcı kararı.** Bu bir alan değil, ürünün merkezî
+değişmezi: "her kullanıcının aktif bir peti vardır". `mark_onboarding_complete`
+aktif pet şart koşuyor, `discover_playdate_pets` aktif playdate peti olmayanı
+reddediyor, sohbet başlıkları pet adından geliyor, profil tamamlama pet
+alanlarını sayıyor. Sonradan kabul etmek, bu varsayıma dayanan her yeri
+denetlemek demek — ve cevabı onboarding'in şeklini belirlediği için ekran
+kararıdır, kolon kararı değil.
+
+**3. `connection_mode` alanı.** Gerekçesi teknik değil hukuki. Bugün
+`owner_social_open` bir **boolean**. Yarın moda taşınırken şu soru çıkacak:
+`true` diyen mevcut kullanıcı `friendship` mi `friendship_or_dating` mi?
+Cevabı yok — ve bu, **romantik niyet hakkında bir tahmin**. Tahmin etmemek
+için tek yol her mevcut kullanıcıya yeniden sormak; yani sonraki migration
+otomatik olarak bir yeniden rıza turu doğurur. Bu dokümanın kendi kuralı
+bunu yasaklıyor: *"sessizce yeni amaç altında veri işlenmez."* Alan bugün
+eklenirse her gerçek kullanıcı ilk günden açıkça seçer.
+
+Rıza altyapısı hazır (`0056` zorunlu yeniden kabul) — mesele yapabilmek
+değil, zamanlama.
+
+### Şimdi YAPILMAMASI gerekenler
+
+Bunlar erken yapılırsa kategori yükümlülüğünü yoğunluk oluşmadan üstlenmiş
+olursunuz:
+
+- Mağazada dating kategorisi / 18+ pazarlaması
+- Cinsiyet tercihini **sunucuda saklamak** (KVKK hukuki temeli tamamlanmadan)
+- Sohbette fotoğraf (görsel moderasyon kapasitesi yokken 1.2 karşılanamaz)
+- Moderasyon SLA'sını tetikleyen her şey, ekip büyümeden
+
+### Tetikleyici tarih değil yoğunluk
+
+Faz B'ye geçiş kararı takvimle değil `region_density()` çıktısıyla
+verilmelidir. Sebep: **dating havuzu böler.** `pets_only | friendship |
+dating | friendship_or_dating` yalnız karşılıklı uyumlu modları eşleştirir;
+yani `launch.md`'nin "tek mahalleye sıkıştır" tezinin ürettiği havuz dörde
+ayrılır. Seyrek bir havuzda bu, her alt havuzun çalışmayacak kadar incelmesi
+demek. **Dating yoğunluk yaratmaz, yoğunluk gerektirir.**
+
+Eşik sayı baştan yazılmalı (ör. "bir pilot bölgede aktif peti olan N
+kullanıcı"), yoksa karar hisle verilir.
+
+### Bedava ön sinyal
+
+`owner_social_open` bugün zaten "petimle birlikte yeni insanlarla tanışmak
+istiyorum" diyor. Pilot açıldığında bu oranı ölçmek, dating hipotezinin
+**kod yazmadan** alınabilecek ilk sinyali.
+
 ## Veri sınırları
 
 | Veri | Karar |
