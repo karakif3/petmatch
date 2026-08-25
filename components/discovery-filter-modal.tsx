@@ -88,6 +88,7 @@ export function DiscoveryFilterModal({
   const [requireSocial, setRequireSocial] = useState(false);
   const [requireVerified, setRequireVerified] = useState(false);
   const [species, setSpecies] = useState<("cat" | "dog")[]>([]);
+  const [petGenders, setPetGenders] = useState<("male" | "female")[]>([]);
   const [maxDistanceKm, setMaxDistanceKm] = useState(25);
   const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(false);
   const [minPetAge, setMinPetAge] = useState("");
@@ -106,6 +107,7 @@ export function DiscoveryFilterModal({
     setRequireSocial(ownerSettings.requireSocial);
     setRequireVerified(ownerSettings.requireVerified);
     setSpecies(filterSettings.species);
+    setPetGenders(filterSettings.petGenders);
     setMaxDistanceKm(filterSettings.maxDistanceKm);
     setDistanceFilterEnabled(filterSettings.distanceFilterEnabled);
     setMinPetAge(filterSettings.minPetAgeYears?.toString() ?? "");
@@ -130,6 +132,10 @@ export function DiscoveryFilterModal({
   const apply = () => {
     const parsedPetMin = minPetAge.trim() ? Number(minPetAge) : null;
     const parsedPetMax = maxPetAge.trim() ? Number(maxPetAge) : null;
+    if (petGenders.length === 0) {
+      setError("En az bir pet cinsiyeti seçmelisin.");
+      return;
+    }
     if (species.length === 0) {
       setError("En az bir pet türü seçmelisin.");
       return;
@@ -161,6 +167,7 @@ export function DiscoveryFilterModal({
     onApply(
       {
         species,
+        petGenders,
         maxDistanceKm,
         distanceFilterEnabled,
         minPetAgeYears: parsedPetMin,
@@ -229,6 +236,50 @@ export function DiscoveryFilterModal({
                     }`}
                   >
                     <Text className={active ? "font-semibold text-brand-dark" : "font-semibold text-text-secondary"}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/*
+              Pet cinsiyeti (`0064`). Sahip cinsiyetinden AYRI bir şey:
+              buradaki alan hayvana dair, dolayısıyla `species` ile aynı
+              sınıfta — kalıcı olarak saklanmasında KVKK sorunu yok. Sahip
+              cinsiyeti tercihi ise hâlâ cihazda tutuluyor ve sunucuya
+              yazılmıyor (bkz. goal-model.md).
+            */}
+            <Text className="mb-2 text-sm font-semibold text-text-primary">Cinsiyet</Text>
+            <View className="mb-5 flex-row gap-2">
+              {([
+                ["female", "Dişi"],
+                ["male", "Erkek"],
+              ] as const).map(([value, label]) => {
+                const active = petGenders.includes(value);
+                return (
+                  <Pressable
+                    key={value}
+                    onPress={() =>
+                      setPetGenders((items) =>
+                        items.includes(value)
+                          ? items.filter((item) => item !== value)
+                          : [...items, value],
+                      )
+                    }
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: active }}
+                    className={`flex-1 items-center rounded-xl border py-3 ${
+                      active ? "border-brand bg-brand/10" : "border-border bg-surface"
+                    }`}
+                  >
+                    <Text
+                      className={
+                        active
+                          ? "font-semibold text-brand-dark"
+                          : "font-semibold text-text-secondary"
+                      }
+                    >
                       {label}
                     </Text>
                   </Pressable>

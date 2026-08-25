@@ -217,6 +217,7 @@ export type Database = {
           notify_on_match: boolean
           notify_on_message: boolean
           notify_on_new_candidates: boolean
+          pet_genders: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo: boolean
           require_owner_social: boolean
           require_verified_owner: boolean
@@ -233,6 +234,7 @@ export type Database = {
           notify_on_match?: boolean
           notify_on_message?: boolean
           notify_on_new_candidates?: boolean
+          pet_genders?: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo?: boolean
           require_owner_social?: boolean
           require_verified_owner?: boolean
@@ -249,6 +251,7 @@ export type Database = {
           notify_on_match?: boolean
           notify_on_message?: boolean
           notify_on_new_candidates?: boolean
+          pet_genders?: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo?: boolean
           require_owner_social?: boolean
           require_verified_owner?: boolean
@@ -1471,21 +1474,38 @@ export type Database = {
         Returns: undefined
       }
       unregister_push_token: { Args: { p_token: string }; Returns: undefined }
-      update_my_discovery_filters: {
-        Args: {
-          p_distance_filter_enabled: boolean
-          p_max_age_years: number
-          p_max_distance_km: number
-          p_min_age_years: number
-          p_notify_on_new_candidates: boolean
-          p_require_owner_photo: boolean
-          p_require_owner_social: boolean
-          p_require_verified_owner: boolean
-          p_require_visible_owner: boolean
-          p_species: Database["public"]["Enums"]["species"][]
-        }
-        Returns: undefined
-      }
+      update_my_discovery_filters:
+        | {
+            Args: {
+              p_distance_filter_enabled: boolean
+              p_max_age_years: number
+              p_max_distance_km: number
+              p_min_age_years: number
+              p_notify_on_new_candidates: boolean
+              p_require_owner_photo: boolean
+              p_require_owner_social: boolean
+              p_require_verified_owner: boolean
+              p_require_visible_owner: boolean
+              p_species: Database["public"]["Enums"]["species"][]
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_distance_filter_enabled: boolean
+              p_max_age_years: number
+              p_max_distance_km: number
+              p_min_age_years: number
+              p_notify_on_new_candidates: boolean
+              p_pet_genders: Database["public"]["Enums"]["pet_gender"][]
+              p_require_owner_photo: boolean
+              p_require_owner_social: boolean
+              p_require_verified_owner: boolean
+              p_require_visible_owner: boolean
+              p_species: Database["public"]["Enums"]["species"][]
+            }
+            Returns: undefined
+          }
       update_my_language: { Args: { p_language: string }; Returns: undefined }
       update_my_owner_details: {
         Args: {

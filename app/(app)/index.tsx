@@ -689,6 +689,7 @@ export default function DiscoverScreen() {
                   void applyFilters(
                     {
                       species: ["cat", "dog"],
+                      petGenders: ["male", "female"],
                       maxDistanceKm: 25,
                       distanceFilterEnabled: false,
                       minPetAgeYears: null,

@@ -51,6 +51,8 @@ export type DiscoveryDeck = {
 
 export type DiscoveryFilterSettings = {
   species: ("cat" | "dog")[];
+  /** Hangi pet cinsiyetleri destede (`0064`). Boş olamaz. */
+  petGenders: ("male" | "female")[];
   /** Yalnızca `distanceFilterEnabled` açıkken eleme yapar (`0061`). */
   maxDistanceKm: number;
   distanceFilterEnabled: boolean;
@@ -206,7 +208,7 @@ export async function loadDiscoveryDeck(
     sb
       .from("discovery_preferences")
       .select(
-        "species,max_distance_km,distance_filter_enabled,min_age_years,max_age_years,require_owner_photo,require_owner_social,require_verified_owner,notify_on_new_candidates",
+        "species,pet_genders,max_distance_km,distance_filter_enabled,min_age_years,max_age_years,require_owner_photo,require_owner_social,require_verified_owner,notify_on_new_candidates",
       )
       .eq("user_id", userId)
       .single(),
@@ -239,6 +241,7 @@ export async function loadDiscoveryDeck(
   };
   const filterSettings: DiscoveryFilterSettings = {
     species: preferencesResult.data.species,
+    petGenders: preferencesResult.data.pet_genders,
     maxDistanceKm: preferencesResult.data.max_distance_km,
     distanceFilterEnabled: preferencesResult.data.distance_filter_enabled,
     minPetAgeYears:
@@ -304,6 +307,7 @@ export async function updateDiscoveryFilters(
     "update_my_discovery_filters",
     {
       p_species: input.species,
+      p_pet_genders: input.petGenders,
       p_max_distance_km: input.maxDistanceKm,
       p_distance_filter_enabled: input.distanceFilterEnabled,
       p_min_age_years: input.minPetAgeYears ?? (null as unknown as number),
