@@ -443,6 +443,21 @@ export default function ProfileScreen() {
                 onPress={() => router.push("/profile/pet")}
               />
               <RowSeparator />
+              {/*
+                "Petlerim" AYRI bir satır: "Pet profili" aktif petin
+                alanlarını düzenliyor, burası hangi petin aktif olduğunu
+                yönetiyor. İkisini tek satırda toplamak, ad değiştirmekle
+                destedeki kimliği değiştirmeyi aynı yere koymak olurdu.
+              */}
+              <Row
+                icon="paw-print"
+                iconColor="#E0523F"
+                iconBackground="bg-brand/10"
+                title="Petlerim"
+                detail="Yeni pet ekle, aktif peti değiştir"
+                onPress={() => router.push("/profile/pets")}
+              />
+              <RowSeparator />
               <Row
                 icon="user"
                 iconColor="#1E9384"

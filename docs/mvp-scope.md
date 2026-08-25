@@ -130,7 +130,29 @@ görür, bir petiyle "pass" dediği profil öbür petiyle geri gelir.
 
 MVP kararı: **kullanıcının aynı anda tek aktif peti olur.** Birden fazla pet
 kaydedilebilir ama keşfet ve eşleşme her zaman tek bir "aktif pet" üzerinden
-yürür; kullanıcı aktif peti profil ekranından değiştirir.
+yürür; kullanıcı aktif peti **Profil → Petlerim** ekranından değiştirir.
+
+> **2026-08-25 düzeltmesi.** Bu cümle uzun süre var olmayan bir ekranı
+> anlatıyordu: pet yalnızca onboarding'de yaratılabiliyordu, uygulamada
+> ikinci pet eklemenin ya da aktif peti değiştirmenin **hiçbir yolu yoktu**.
+> Yani kural pratikte "tek hesap = sonsuza kadar tek pet"ti. En ağır bedeli
+> petin ölmesiydi: kullanıcının tek çıkışı hesabı silmekti, o da bütün
+> eşleşmelerini ve sohbetlerini götürüyordu. `0062` ile eksik yazma yolları
+> (`create_my_pet`, `set_active_pet`) ve Petlerim ekranı eklendi.
+
+İki kural ekranın merkezinde:
+
+- **Aktif olmayan pet silinmez.** Sohbet geçmişi onun üzerinden asılı
+  (`conversation_participants`) ve bir petin kaydı sahibi için bir anı.
+- **Aktifleştirme ayrı ve bilinçli bir adım.** Yeni pet pasif doğar; en az
+  bir fotoğrafı olmadan aktif edilemez (fotoğrafsız aktif pet, destede boş
+  kart demek). Böylece kullanıcı mevcut petinin destedeki yerini yan etki
+  olarak kaybetmez.
+
+Aktif pet değişimi tek transaction'da yapılır: istemciden iki ayrı istek
+atmak, arada bir hata olduğunda kullanıcıyı **hiç aktif peti olmayan**
+duruma düşürürdü — o durumda Keşfet, swipe ve profil tamamlama hep birden
+kırılır.
 
 `0012` migration'ı `(owner_id) where is_active` unique index'iyle bu kararı
 veritabanı düzeyinde zorlar. Sahiplendirme devri yeni sahibin önceki aktif

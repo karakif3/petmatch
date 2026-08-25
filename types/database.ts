@@ -1085,6 +1085,14 @@ export type Database = {
           verification_method: string
         }[]
       }
+      create_my_pet: {
+        Args: {
+          p_gender: Database["public"]["Enums"]["pet_gender"]
+          p_name: string
+          p_species: Database["public"]["Enums"]["species"]
+        }
+        Returns: string
+      }
       discover_playdate_pets: {
         Args: {
           p_limit?: number
@@ -1402,6 +1410,7 @@ export type Database = {
           severity: string
         }[]
       }
+      set_active_pet: { Args: { p_pet_id: string }; Returns: undefined }
       set_meetup_place_verification: {
         Args: { p_note?: string; p_place_id: string; p_verified: boolean }
         Returns: undefined
