@@ -551,6 +551,24 @@ export default function ChatScreen() {
 
         </View>
 
+        {/*
+          Pet kimliği değişimi notu (`0063`). Karşı taraf bu sohbete BAŞKA
+          bir kimlikle girmişti; ad canlı okunduğu için başlık sessizce
+          değişiyordu ve ilk düşünülecek şey kandırıldığı oluyordu.
+          Kural sunucuda: not yalnızca değişim bu konuşmadan SONRA olduysa
+          geliyor.
+        */}
+        {conversation.data?.petIdentityChanged ? (
+          <View className="mx-4 mt-3 flex-row items-start rounded-xl bg-bg-secondary px-3 py-2.5">
+            <AppIcon name="circle-alert" color="#9A8B82" size={15} />
+            <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
+              {conversation.data.petPreviousName
+                ? `Bu sohbetteki pet değişti: ${conversation.data.petPreviousName} → ${title}.`
+                : "Bu sohbetteki petin bilgileri değişti."}
+            </Text>
+          </View>
+        ) : null}
+
         {meetup.data ? (
           <View className="pt-3">
             <MeetupCard

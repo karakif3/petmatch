@@ -8,7 +8,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { AppIcon } from "../../components/ui/icon";
 import { AppPressable } from "../../components/ui/pressable";
-import { createMyPet, listMyPets, setActivePet } from "../../core/api/pets";
+import {
+  createMyPet,
+  listMyPets,
+  resetMyPetPasses,
+  setActivePet,
+} from "../../core/api/pets";
 import { savePetPhotos, type LocalProfilePhoto } from "../../core/api/profile";
 import { errorMessage } from "../../core/domain/error-message";
 import type { Species } from "../../core/domain/types";
@@ -43,6 +48,7 @@ export default function PetsScreen() {
   const [gender, setGender] = useState<"male" | "female">("female");
   const [photos, setPhotos] = useState<LocalProfilePhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const pets = useQuery({
     queryKey: ["my-pets", user?.id],
@@ -118,7 +124,27 @@ export default function PetsScreen() {
       setError(errorMessage(mutationError, "Pet eklenemedi.")),
   });
 
-  const busy = activate.isPending || create.isPending;
+  /*
+   * Desteyi sıfırla: kimlik değişiminden sonra erişimi geri kazanmanın yolu.
+   * Eşleşmelere DOKUNMUYOR — onlar insan ilişkisi; sıfırlanan yalnızca
+   * "geç" kayıtları, yani kimin gösterileceği.
+   */
+  const resetPasses = useMutation({
+    mutationFn: (petId: string) => resetMyPetPasses(petId),
+    onSuccess: async (deleted) => {
+      successHaptic();
+      setNotice(
+        deleted > 0
+          ? `${deleted} "geç" kaydı silindi. Bu petler yeniden destene girebilir.`
+          : "Silinecek bir kayıt yoktu.",
+      );
+      await invalidate();
+    },
+    onError: (mutationError) =>
+      setError(errorMessage(mutationError, "Deste sıfırlanamadı.")),
+  });
+
+  const busy = activate.isPending || create.isPending || resetPasses.isPending;
 
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">
@@ -192,6 +218,24 @@ export default function PetsScreen() {
           yap"a basarken diğer petinin silineceğini sanabilir. Bu ekranın en
           kritik cümlesi bu.
         */}
+        {pets.data?.some((pet) => pet.isActive) ? (
+          <AppPressable
+            onPress={() => {
+              const active = pets.data?.find((pet) => pet.isActive);
+              if (active) resetPasses.mutate(active.id);
+            }}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityHint="Daha önce geçtiğin petler yeniden destene girebilir"
+            className="mb-5 flex-row items-center justify-center rounded-xl border border-border py-3 disabled:opacity-50"
+          >
+            <AppIcon name="refresh-cw" color="#6B5D55" size={16} />
+            <Text className="ml-2 text-[13px] font-semibold text-text-secondary">
+              Aktif petin destesini sıfırla
+            </Text>
+          </AppPressable>
+        ) : null}
+
         {(pets.data?.length ?? 0) > 1 ? (
           <Text className="mb-5 text-[11px] leading-4 text-text-tertiary">
             Aktif olmayan petler silinmez; profilleri ve geçmiş sohbetleri
@@ -304,6 +348,9 @@ export default function PetsScreen() {
         )}
 
         {error ? <Text className="mt-4 text-sm text-danger">{error}</Text> : null}
+        {notice ? (
+          <Text className="mt-4 text-sm text-accent-dark">{notice}</Text>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

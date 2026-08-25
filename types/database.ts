@@ -722,12 +722,14 @@ export type Database = {
           good_with_dogs: boolean | null
           good_with_kids: boolean | null
           id: string
+          identity_changed_at: string | null
           is_active: boolean
           is_neutered: boolean
           latitude: number | null
           longitude: number | null
           name: string
           owner_id: string
+          previous_name: string | null
           size: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
           temperaments: string[]
@@ -748,12 +750,14 @@ export type Database = {
           good_with_dogs?: boolean | null
           good_with_kids?: boolean | null
           id?: string
+          identity_changed_at?: string | null
           is_active?: boolean
           is_neutered?: boolean
           latitude?: number | null
           longitude?: number | null
           name: string
           owner_id: string
+          previous_name?: string | null
           size?: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
           temperaments?: string[]
@@ -774,12 +778,14 @@ export type Database = {
           good_with_dogs?: boolean | null
           good_with_kids?: boolean | null
           id?: string
+          identity_changed_at?: string | null
           is_active?: boolean
           is_neutered?: boolean
           latitude?: number | null
           longitude?: number | null
           name?: string
           owner_id?: string
+          previous_name?: string | null
           size?: Database["public"]["Enums"]["pet_size"]
           species?: Database["public"]["Enums"]["species"]
           temperaments?: string[]
@@ -1248,8 +1254,10 @@ export type Database = {
           meetup_place_name: string
           meetup_scheduled_at: string
           pet_id: string
+          pet_identity_changed: boolean
           pet_name: string
           pet_photo_path: string
+          pet_previous_name: string
           unread_count: number
         }[]
       }
@@ -1385,6 +1393,7 @@ export type Database = {
         }
         Returns: string
       }
+      reset_my_pet_passes: { Args: { p_pet_id: string }; Returns: number }
       respond_to_adoption_interest: {
         Args: { p_accept: boolean; p_interest_id: string }
         Returns: string
@@ -1497,6 +1506,7 @@ export type Database = {
           p_birth_date: string
           p_breed: string
           p_energy_level: number
+          p_gender: Database["public"]["Enums"]["pet_gender"]
           p_good_with_cats: boolean
           p_good_with_dogs: boolean
           p_good_with_kids: boolean
@@ -1504,6 +1514,7 @@ export type Database = {
           p_name: string
           p_pet_id: string
           p_size: Database["public"]["Enums"]["pet_size"]
+          p_species: Database["public"]["Enums"]["species"]
           p_temperaments: string[]
         }
         Returns: string

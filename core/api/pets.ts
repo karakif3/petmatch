@@ -89,3 +89,19 @@ export async function setActivePet(petId: string): Promise<void> {
   });
   if (error) throw error;
 }
+
+/**
+ * Petin verdiği "geç" kayıtlarını siler — beğenilere ve eşleşmelere
+ * dokunmaz (`0063`).
+ *
+ * Tür/kimlik değişiminden sonra asıl sessiz kayıp burada: `swipes` pet
+ * id'sine bağlı olduğu için yeni kimlik eskisinin geçmişini miras alıyor ve
+ * daha önce geçilen kimse yeni peti bir daha hiç görmüyor.
+ */
+export async function resetMyPetPasses(petId: string): Promise<number> {
+  const { data, error } = await requireSupabaseClient().rpc("reset_my_pet_passes", {
+    p_pet_id: petId,
+  });
+  if (error) throw error;
+  return (data as number) ?? 0;
+}

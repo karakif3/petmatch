@@ -1,5 +1,6 @@
 import type { Database } from "../../types/database";
 import type {
+  Species,
   Coordinates,
   EnergyLevel,
   OwnerInterest,
@@ -77,6 +78,8 @@ export type LocalProfilePhoto = {
 };
 
 export type PetProfileUpdate = {
+  species: Species;
+  gender: "male" | "female";
   petId: string;
   name: string;
   breed: string;
@@ -398,6 +401,8 @@ export async function updatePetProfile(input: PetProfileUpdate): Promise<string>
   const { data, error } = await requireSupabaseClient().rpc("update_my_pet_profile", {
     p_pet_id: input.petId,
     p_name: name,
+    p_species: input.species,
+    p_gender: input.gender,
     p_breed: breed || "",
     p_birth_date: input.birthDate || (null as unknown as string),
     p_size: input.size,

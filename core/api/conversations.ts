@@ -18,6 +18,9 @@ export type ConversationSummary = {
   counterpartDisplayName: string | null;
   petId: string | null;
   petName: string | null;
+  /** Karşı tarafın peti bu konuşma başladıktan SONRA kimlik değiştirdi mi. */
+  petIdentityChanged: boolean;
+  petPreviousName: string | null;
   petPhotoUrl: string | null;
   lastMessage: string | null;
   lastMessageAt: string | null;
@@ -90,6 +93,8 @@ function mapConversation(row: ConversationRow): ConversationSummary {
     counterpartDisplayName: row.counterpart_display_name || null,
     petId: row.pet_id || null,
     petName: row.pet_name || null,
+    petIdentityChanged: row.pet_identity_changed ?? false,
+    petPreviousName: row.pet_previous_name || null,
     petPhotoUrl: publicPhotoUrl(row.pet_photo_path || null),
     lastMessage: row.last_message || null,
     lastMessageAt: row.last_message_at || null,

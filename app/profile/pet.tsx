@@ -30,6 +30,7 @@ import {
 import {
   TEMPERAMENTS,
   type EnergyLevel,
+  type Species,
   type Size,
   type Temperament,
 } from "../../core/domain/types";
@@ -187,6 +188,8 @@ export default function PetProfileScreen() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [species, setSpecies] = useState<Species>("dog");
+  const [gender, setGender] = useState<"male" | "female">("female");
   const [nameError, setNameError] = useState<string | null>(null);
   const [photosError, setPhotosError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -195,6 +198,8 @@ export default function PetProfileScreen() {
     if (!profile.data) return;
     const pet = profile.data.pet;
     setName(pet.name);
+    setSpecies(pet.species);
+    setGender(pet.gender);
     setBreed(pet.breed ?? "");
     setPetAge(birthDateToPetAge(pet.birthDate));
     setSize(pet.size);
@@ -234,6 +239,8 @@ export default function PetProfileScreen() {
     Boolean(profile.data) &&
     (name !== profile.data!.pet.name ||
       breed !== (profile.data!.pet.breed ?? "") ||
+      species !== profile.data!.pet.species ||
+      gender !== profile.data!.pet.gender ||
       petAge !== birthDateToPetAge(profile.data!.pet.birthDate) ||
       size !== profile.data!.pet.size ||
       energyLevel !== profile.data!.pet.energyLevel ||
@@ -250,6 +257,8 @@ export default function PetProfileScreen() {
     if (!profile.data) return;
     const pet = profile.data.pet;
     setName(pet.name);
+    setSpecies(pet.species);
+    setGender(pet.gender);
     setBreed(pet.breed ?? "");
     setPetAge(birthDateToPetAge(pet.birthDate));
     setSize(pet.size);
@@ -368,6 +377,33 @@ export default function PetProfileScreen() {
     if (!name.trim()) return setNameError("Petinin adını yazmalısın.");
     if (!photos.length) return setPhotosError("En az bir pet fotoğrafı kalmalı.");
 
+    /*
+     * Tür ya da cinsiyet değişiyorsa ONAY İSTE. Bu alanlar profili
+     * zenginleştiren alanlar değil, "bu kim" sorusunun cevabı: karşı taraf
+     * bu petle eşleşmişti ve sohbetinde başka bir kimlik görecek.
+     *
+     * Onay metni ne olacağını AÇIKÇA söylüyor — eşleşmelerin duracağını da,
+     * karşı tarafın bilgilendirileceğini de. Sürprizi kaydettikten sonra
+     * yaşatmak, kullanıcıyı kendi profilinden korkutur.
+     */
+    const identityChanging =
+      species !== profile.data.pet.species || gender !== profile.data.pet.gender;
+    if (identityChanging) {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          "Petin kimliği değişiyor",
+          "Mevcut eşleşmelerin ve sohbetlerin duracak. Karşı taraf sohbette " +
+            "petin değiştiğini görecek. Devam edilsin mi?",
+          [
+            { text: "Vazgeç", style: "cancel", onPress: () => resolve(false) },
+            { text: "Devam et", onPress: () => resolve(true) },
+          ],
+          { cancelable: true, onDismiss: () => resolve(false) },
+        );
+      });
+      if (!confirmed) return;
+    }
+
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -376,6 +412,8 @@ export default function PetProfileScreen() {
       await updatePetProfile({
         petId: pet.id,
         name,
+        species,
+        gender,
         breed,
         birthDate: petAgeToBirthDate(petAge) ?? "",
         size,
@@ -440,7 +478,6 @@ export default function PetProfileScreen() {
     );
   }
 
-  const pet = profile.data.pet;
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">
       <KeyboardAvoidingView
@@ -457,10 +494,6 @@ export default function PetProfileScreen() {
           </AppPressable>
           <View className="ml-2 flex-1">
             <Text className="text-lg font-bold text-text-primary">Pet profilini düzenle</Text>
-            <Text className="mt-0.5 text-xs text-text-secondary">
-              {pet.species === "dog" ? "Köpek" : "Kedi"} ·{" "}
-              {pet.gender === "female" ? "Dişi" : "Erkek"}
-            </Text>
           </View>
         </View>
 
@@ -497,6 +530,62 @@ export default function PetProfileScreen() {
             autoCapitalize="words"
             error={nameError}
           />
+          {/*
+            TÜR VE CİNSİYET ARTIK DEĞİŞTİRİLEBİLİR (`0063`). Önceden başlıkta
+            salt okunur bir satırdı; peti ölüp başka bir hayvan sahiplenen
+            kullanıcının mevcut kaydını dönüştürme yolu yoktu ve tek çıkış
+            hesabı silmekti — bütün eşleşmeleri ve sohbetleri götürerek.
+
+            Değişim eşleşmeleri SIFIRLAMIYOR: eşleşme kurulduğu an ilişki
+            insanlar arasında sürüyor. Ama sessiz de kalmıyor; karşı tarafın
+            sohbetinde bir not beliriyor (`0063`).
+          */}
+          <Text className="mb-3 text-lg font-bold text-text-primary">Tür</Text>
+          <View className="mb-6 flex-row gap-2">
+            {(["dog", "cat"] as const).map((option) => (
+              <AppPressable
+                key={option}
+                onPress={() => setSpecies(option)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: species === option }}
+                className={`flex-1 items-center rounded-xl border py-3 ${
+                  species === option ? "border-brand bg-brand/10" : "border-border bg-surface"
+                }`}
+              >
+                <Text
+                  className={
+                    species === option ? "font-semibold text-brand-dark" : "text-text-secondary"
+                  }
+                >
+                  {option === "dog" ? "Köpek" : "Kedi"}
+                </Text>
+              </AppPressable>
+            ))}
+          </View>
+
+          <Text className="mb-3 text-lg font-bold text-text-primary">Cinsiyet</Text>
+          <View className="mb-6 flex-row gap-2">
+            {(["female", "male"] as const).map((option) => (
+              <AppPressable
+                key={option}
+                onPress={() => setGender(option)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: gender === option }}
+                className={`flex-1 items-center rounded-xl border py-3 ${
+                  gender === option ? "border-brand bg-brand/10" : "border-border bg-surface"
+                }`}
+              >
+                <Text
+                  className={
+                    gender === option ? "font-semibold text-brand-dark" : "text-text-secondary"
+                  }
+                >
+                  {option === "female" ? "Dişi" : "Erkek"}
+                </Text>
+              </AppPressable>
+            ))}
+          </View>
+
           <Field label="Irkı (opsiyonel)" value={breed} onChangeText={setBreed} maxLength={80} autoCapitalize="words" />
           {/*
             Kayıt akışıyla AYNI kontrol. Onboarding yaşı kovalarla sorup
