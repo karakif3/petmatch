@@ -241,7 +241,12 @@ export async function loadDiscoveryDeck(
   };
   const filterSettings: DiscoveryFilterSettings = {
     species: preferencesResult.data.species,
-    petGenders: preferencesResult.data.pet_genders,
+    // Savunma amaçlı varsayılan. Kolon NOT NULL, yani sunucudan boş
+    // gelemez — ama alan EKLENDİĞİ tur, elde tutulan eski bir yanıt
+    // (React Query önbelleği) filtre ekranının tamamını çökertti:
+    // `petGenders.includes` undefined üzerinde patlıyor. Tek satırlık
+    // varsayılan, bu hata sınıfını bir daha ekrana taşımıyor.
+    petGenders: preferencesResult.data.pet_genders ?? ["male", "female"],
     maxDistanceKm: preferencesResult.data.max_distance_km,
     distanceFilterEnabled: preferencesResult.data.distance_filter_enabled,
     minPetAgeYears:
