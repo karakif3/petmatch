@@ -167,9 +167,16 @@ export default function PetProfileScreen() {
         </View>
       ) : (
         <ScrollView contentContainerClassName="pb-12">
+          {/*
+            4/5 — Keşfet kartının 3/4'ünden bilerek farklı. Kartın işi
+            FOTOĞRAF olmak; profil sayfasının işi bilgi göstermek. 3/4'te
+            foto 874pt'lik ekranın %61'ini alıyordu ve ad/cinsiyet/çipler
+            kıvrımın altında kalıyordu. 4/5'te hâlâ fotoğraf öncelikli ama
+            kimlik satırı ilk ekrana giriyor.
+          */}
           <PhotoCarousel
             photoUrls={pet.data.photoUrls}
-            aspectRatio={3 / 4}
+            aspectRatio={4 / 5}
             index={photoIndex}
             onIndexChange={setPhotoIndex}
           />
