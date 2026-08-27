@@ -19,6 +19,10 @@ export type ProfileCompletionInput = {
   ownerAvatarUrl: string | null;
   ownerBio: string | null;
   /**
+   * Kapak + extras. Yoksa avatar varsa 1, yoksa 0 kabul edilir.
+   */
+  ownerPhotoCount?: number | null;
+  /**
    * Ağ sınırından geliyor: alan sonradan eklendiğinde önbellekteki eski
    * şekilli veri bunu HİÇ taşımıyor. Tip zorunlu olduğu için TypeScript
    * yakalayamadı ve `undefined.length` canlıda 11 çökme üretti.
@@ -75,6 +79,13 @@ export function missingProfileItems(
     items.push({
       key: "ownerAvatar",
       label: "Kendi fotoğrafın",
+      improvesMatching: true,
+      route: "/profile/owner",
+    });
+  } else if ((input.ownerPhotoCount ?? 1) < 2) {
+    items.push({
+      key: "ownerExtraPhoto",
+      label: "Bir sahip fotoğrafı daha",
       improvesMatching: false,
       route: "/profile/owner",
     });
@@ -104,7 +115,7 @@ export function missingProfileItems(
 
 /** 0 = hiç dolu değil, 1 = tamam. Kartın ilerleme çubuğu için. */
 export function completionRatio(input: ProfileCompletionInput): number {
-  const TOTAL = 7;
   const missing = missingProfileItems(input).length;
-  return (TOTAL - missing) / TOTAL;
+  const total = 7 + (input.ownerAvatarUrl ? 1 : 0);
+  return (total - missing) / total;
 }

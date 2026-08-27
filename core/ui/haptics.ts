@@ -15,6 +15,21 @@ export function decisionHaptic() {
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 }
 
+/** Keşfet geç — düşük yoğunluk; yanlışlıkla basınca da bağırmaz. */
+export function passHaptic() {
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+}
+
+/** Keşfet beğen — karar anının varsayılan ağırlığı. */
+export function likeHaptic() {
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+}
+
+/** Süper beğen — nadir, kutlayıcı; impact değil bildirim. */
+export function superHaptic() {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+}
+
 /** Olumlu sonuç: eşleşme, kaydetme başarılı, buluşma onaylandı. */
 export function successHaptic() {
   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

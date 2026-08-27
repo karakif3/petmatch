@@ -1,6 +1,7 @@
 import type { Database } from "../../types/database";
 import type {
   Species,
+  ConnectionTag,
   Coordinates,
   EnergyLevel,
   OwnerInterest,
@@ -19,16 +20,21 @@ type PetRow = Database["public"]["Tables"]["pets"]["Row"];
 export type EditableProfile = {
   displayName: ProfileRow["display_name"];
   city: string;
+  regionSlug: string | null;
   ownerVisibility: OwnerVisibility;
   ownerBio: string | null;
   ownerBirthDate: string;
   ownerGender: "female" | "male" | "other" | null;
   ownerSocialOpen: boolean;
   ownerInterests: OwnerInterest[];
+  /** Yalnızca `ownerSocialOpen` true iken anlamlı; filtrelenmez, yalnızca sinyal (`0066`). */
+  connectionTag: ConnectionTag | null;
   ownerAvatar: {
     storagePath: string;
     url: string;
   } | null;
+  /** Kapak `ownerAvatar`; extras pet profilinde. En fazla 4. */
+  ownerPhotos: ProfilePhoto[];
   verificationStatus: ProfileRow["verification_status"];
   verificationReviewNote: string | null;
   verificationReview: {
@@ -54,6 +60,7 @@ export type EditableProfile = {
     photos: ProfilePhoto[];
     photoUrl: string | null;
     hasLocation: boolean;
+    speciesGenderChangedAt: string;
   };
   notifications: {
     onMatch: boolean;
@@ -102,13 +109,14 @@ export type OwnerProfileUpdate = {
   gender: "female" | "male" | "other" | null;
   ownerVisibility: OwnerVisibility;
   ownerSocialOpen: boolean;
+  connectionTag: ConnectionTag | null;
   interests: OwnerInterest[];
-  previousAvatarPath: string | null;
-  avatar:
-    | { kind: "remote"; storagePath: string }
-    | ({ kind: "local" } & LocalProfilePhoto)
-    | null;
+  /** Galeri kapağı; `saveOwnerPhotos` sonrası position 0. */
+  avatarPath: string | null;
 };
+
+/** Keşfet hapı kapak, pet profili extras. Pet galerisi 6; sahip ikincil. */
+export const OWNER_PHOTO_MAX = 4;
 
 export type ProfileUpdate = {
   displayName: string;
@@ -131,20 +139,27 @@ function profilePhoto(storagePath: string): ProfilePhoto {
   return { storagePath, url: publicPhotoUrl(storagePath)! };
 }
 
+function isMissingColumnError(
+  error: { message?: string; code?: string },
+  column: string,
+): boolean {
+  return error.code === "PGRST204" || (error.message ?? "").includes(column);
+}
+
 export async function loadEditableProfile(userId: string): Promise<EditableProfile> {
   const sb = requireSupabaseClient();
   const [profileResult, petResult, preferencesResult, verificationResult] = await Promise.all([
     sb
       .from("profiles")
       .select(
-        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,interests,verification_status",
+        "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,connection_tag,interests,verification_status,region_slug",
       )
       .eq("id", userId)
       .single(),
     sb
       .from("pets")
       .select(
-        "id,name,species,gender,breed,birth_date,size,energy_level,is_neutered,temperaments,good_with_cats,good_with_dogs,good_with_kids,bio,latitude,longitude",
+        "id,name,species,gender,breed,birth_date,size,energy_level,is_neutered,temperaments,good_with_cats,good_with_dogs,good_with_kids,bio,latitude,longitude,created_at,species_gender_changed_at",
       )
       .eq("owner_id", userId)
       .eq("is_active", true)
@@ -168,42 +183,75 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
   ]);
 
   if (profileResult.error) throw profileResult.error;
-  if (petResult.error) throw petResult.error;
+  let pet = petResult;
+  if (pet.error && isMissingColumnError(pet.error, "species_gender_changed_at")) {
+    pet = await sb
+      .from("pets")
+      .select(
+        "id,name,species,gender,breed,birth_date,size,energy_level,is_neutered,temperaments,good_with_cats,good_with_dogs,good_with_kids,bio,latitude,longitude,created_at",
+      )
+      .eq("owner_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
+  }
+  if (pet.error) throw pet.error;
   if (preferencesResult.error) throw preferencesResult.error;
   if (verificationResult.error) throw verificationResult.error;
-  if (!petResult.data) throw new Error("Aktif pet bulunamadı.");
+  if (!pet.data) throw new Error("Aktif pet bulunamadı.");
 
-  const [{ data: photos, error: photoError }, avatarResult] = await Promise.all([
+  const [{ data: photos, error: photoError }, ownerPhotoRows] = await Promise.all([
     sb
       .from("pet_photos")
       .select("storage_path")
-      .eq("pet_id", petResult.data.id)
+      .eq("pet_id", pet.data.id)
       .order("position"),
-    profileResult.data.avatar_url
-      ? sb.storage
-          .from(STORAGE_BUCKETS.ownerAvatars)
-          .createSignedUrl(profileResult.data.avatar_url, 60 * 60)
-      : Promise.resolve({ data: null, error: null }),
+    sb
+      .from("owner_photos")
+      .select("storage_path")
+      .eq("owner_id", userId)
+      .order("position"),
   ]);
   if (photoError) throw photoError;
-  if (avatarResult.error) throw avatarResult.error;
+  if (ownerPhotoRows.error) {
+    const missingTable =
+      ownerPhotoRows.error.code === "PGRST205" ||
+      (ownerPhotoRows.error.message ?? "").includes("owner_photos");
+    if (!missingTable) throw ownerPhotoRows.error;
+  }
+
+  const ownerPhotoPaths = (ownerPhotoRows.data ?? []).map((row) => row.storage_path);
+  const fallbackAvatar = profileResult.data.avatar_url;
+  const signedOwnerPaths =
+    ownerPhotoPaths.length > 0
+      ? ownerPhotoPaths
+      : fallbackAvatar
+        ? [fallbackAvatar]
+        : [];
+  const ownerSigned =
+    signedOwnerPaths.length > 0
+      ? await sb.storage
+          .from(STORAGE_BUCKETS.ownerAvatars)
+          .createSignedUrls(signedOwnerPaths, 60 * 60)
+      : { data: null, error: null };
+  if (ownerSigned.error) throw ownerSigned.error;
+  const ownerPhotos: ProfilePhoto[] = signedOwnerPaths.flatMap((storagePath, index) => {
+    const url = ownerSigned.data?.[index]?.signedUrl;
+    return url ? [{ storagePath, url }] : [];
+  });
 
   return {
     displayName: profileResult.data.display_name,
     city: profileResult.data.city ?? "",
+    regionSlug: profileResult.data.region_slug,
     ownerVisibility: profileResult.data.owner_visibility,
     ownerBio: profileResult.data.bio,
     ownerBirthDate: profileResult.data.birth_date ?? "",
     ownerGender: profileResult.data.gender as EditableProfile["ownerGender"],
     ownerSocialOpen: profileResult.data.owner_social_open,
+    connectionTag: profileResult.data.connection_tag as ConnectionTag | null,
     ownerInterests: profileResult.data.interests as OwnerInterest[],
-    ownerAvatar:
-      profileResult.data.avatar_url && avatarResult.data
-        ? {
-            storagePath: profileResult.data.avatar_url,
-            url: avatarResult.data.signedUrl,
-          }
-        : null,
+    ownerAvatar: ownerPhotos[0] ?? null,
+    ownerPhotos,
     verificationStatus: profileResult.data.verification_status,
     verificationReviewNote: verificationResult.data?.note ?? null,
     verificationReview: verificationResult.data
@@ -214,24 +262,27 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
         }
       : null,
     pet: {
-      id: petResult.data.id,
-      name: petResult.data.name,
-      species: petResult.data.species,
-      gender: petResult.data.gender,
-      breed: petResult.data.breed,
-      birthDate: petResult.data.birth_date,
-      size: petResult.data.size,
-      energyLevel: energyLevel(petResult.data.energy_level),
-      isNeutered: petResult.data.is_neutered,
-      temperaments: petResult.data.temperaments as Temperament[],
-      goodWithCats: petResult.data.good_with_cats,
-      goodWithDogs: petResult.data.good_with_dogs,
-      goodWithKids: petResult.data.good_with_kids,
-      bio: petResult.data.bio,
+      id: pet.data.id,
+      name: pet.data.name,
+      species: pet.data.species,
+      gender: pet.data.gender,
+      breed: pet.data.breed,
+      birthDate: pet.data.birth_date,
+      size: pet.data.size,
+      energyLevel: energyLevel(pet.data.energy_level),
+      isNeutered: pet.data.is_neutered,
+      temperaments: pet.data.temperaments as Temperament[],
+      goodWithCats: pet.data.good_with_cats,
+      goodWithDogs: pet.data.good_with_dogs,
+      goodWithKids: pet.data.good_with_kids,
+      bio: pet.data.bio,
       photos: (photos ?? []).map(({ storage_path }) => profilePhoto(storage_path)),
       photoUrl: publicPhotoUrl(photos?.[0]?.storage_path ?? null),
-      hasLocation:
-        petResult.data.latitude !== null && petResult.data.longitude !== null,
+      hasLocation: pet.data.latitude !== null && pet.data.longitude !== null,
+      speciesGenderChangedAt:
+        "species_gender_changed_at" in pet.data && pet.data.species_gender_changed_at
+          ? pet.data.species_gender_changed_at
+          : pet.data.created_at,
     },
     notifications: {
       onMatch: preferencesResult.data.notify_on_match,
@@ -256,42 +307,41 @@ export async function submitVerificationAppeal(
   if (error) throw error;
 }
 
-export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void> {
+export async function saveOwnerPhotos(input: {
+  userId: string;
+  previousStoragePaths: string[];
+  photos: ({ kind: "remote"; storagePath: string } | ({ kind: "local" } & LocalProfilePhoto))[];
+}): Promise<string | null> {
+  if (input.photos.length > OWNER_PHOTO_MAX) {
+    throw new Error(`En fazla ${OWNER_PHOTO_MAX} sahip fotoğrafı ekleyebilirsin.`);
+  }
+
   const sb = requireSupabaseClient();
   const uploadedPaths: string[] = [];
-  let avatarPath = input.avatar?.kind === "remote" ? input.avatar.storagePath : null;
-
-  await recordOptionalConsent(
-    "public_profile_consent",
-    input.ownerVisibility === "public",
-  );
-
+  const orderedPaths: string[] = [];
   try {
-    if (input.avatar?.kind === "local") {
-      const extension = fileExtension(input.avatar);
-      avatarPath = `${input.userId}/avatar-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 10)}.${extension}`;
-      const response = await fetch(input.avatar.uri);
+    for (const [index, photo] of input.photos.entries()) {
+      if (photo.kind === "remote") {
+        orderedPaths.push(photo.storagePath);
+        continue;
+      }
+      const extension = fileExtension(photo);
+      const nonce = `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 10)}`;
+      const storagePath = `${input.userId}/${nonce}.${extension}`;
+      const response = await fetch(photo.uri);
       const { error } = await sb.storage
         .from(STORAGE_BUCKETS.ownerAvatars)
-        .upload(avatarPath, await response.arrayBuffer(), {
-          contentType: input.avatar.mimeType ?? "image/jpeg",
+        .upload(storagePath, await response.arrayBuffer(), {
+          contentType: photo.mimeType ?? "image/jpeg",
           upsert: false,
         });
       if (error) throw error;
-      uploadedPaths.push(avatarPath);
+      uploadedPaths.push(storagePath);
+      orderedPaths.push(storagePath);
     }
 
-    const { error } = await sb.rpc("update_my_owner_details", {
-      p_display_name: input.displayName,
-      p_bio: input.bio,
-      p_birth_date: input.birthDate,
-      p_gender: input.gender ?? (null as unknown as string),
-      p_owner_visibility: input.ownerVisibility,
-      p_avatar_path: avatarPath ?? (null as unknown as string),
-      p_owner_social_open: input.ownerSocialOpen,
-      p_interests: input.interests,
+    const { error } = await sb.rpc("replace_owner_photo_order", {
+      p_storage_paths: orderedPaths,
     });
     if (error) throw error;
   } catch (error) {
@@ -301,15 +351,64 @@ export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void>
     throw error;
   }
 
-  if (
-    input.previousAvatarPath &&
-    input.previousAvatarPath !== avatarPath
-  ) {
+  const stalePaths = input.previousStoragePaths.filter(
+    (path) => !orderedPaths.includes(path),
+  );
+  if (stalePaths.length) {
     const { error } = await sb.storage
       .from(STORAGE_BUCKETS.ownerAvatars)
-      .remove([input.previousAvatarPath]);
+      .remove(stalePaths);
     if (error) throw error;
   }
+
+  return orderedPaths[0] ?? null;
+}
+
+export async function loadOwnerPhotos(ownerId: string): Promise<ProfilePhoto[]> {
+  const sb = requireSupabaseClient();
+  const { data, error } = await sb
+    .from("owner_photos")
+    .select("storage_path")
+    .eq("owner_id", ownerId)
+    .order("position");
+  if (error) {
+    const missingTable =
+      error.code === "PGRST205" || (error.message ?? "").includes("owner_photos");
+    if (!missingTable) throw error;
+    return [];
+  }
+  const paths = (data ?? []).map((row) => row.storage_path);
+  if (!paths.length) return [];
+  const signed = await sb.storage
+    .from(STORAGE_BUCKETS.ownerAvatars)
+    .createSignedUrls(paths, 60 * 60);
+  if (signed.error) throw signed.error;
+  return paths.flatMap((storagePath, index) => {
+    const url = signed.data?.[index]?.signedUrl;
+    return url ? [{ storagePath, url }] : [];
+  });
+}
+
+export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void> {
+  const sb = requireSupabaseClient();
+
+  await recordOptionalConsent(
+    "public_profile_consent",
+    input.ownerVisibility === "public",
+  );
+
+  const { error } = await sb.rpc("update_my_owner_details", {
+    p_display_name: input.displayName,
+    p_bio: input.bio,
+    p_birth_date: input.birthDate,
+    p_gender: input.gender ?? (null as unknown as string),
+    p_owner_visibility: input.ownerVisibility,
+    p_avatar_path: input.avatarPath ?? (null as unknown as string),
+    p_owner_social_open: input.ownerSocialOpen,
+    p_interests: input.interests,
+    p_connection_tag: input.connectionTag ?? (null as unknown as string),
+  });
+  if (error) throw error;
 }
 
 export async function submitOwnerVerification(input: {
@@ -416,7 +515,16 @@ export async function updatePetProfile(input: PetProfileUpdate): Promise<string>
     p_good_with_kids: input.goodWithKids ?? (null as unknown as boolean),
     p_bio: bio || "",
   });
-  if (error) throw error;
+  if (error) {
+    if (
+      error.message.includes(
+        "species and gender can change at most once every 6 months",
+      )
+    ) {
+      throw new Error("Tür ve cinsiyet en fazla 6 ayda bir değiştirilebilir.");
+    }
+    throw error;
+  }
 
   // Kullanıcı bu formu kaydettiyse boyut/enerji/kısırlaştırma artık
   // varsayılan değil, seçilmiş sayılır — profil tamamlama kartı bu adımı

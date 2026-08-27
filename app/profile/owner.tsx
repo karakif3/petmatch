@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,21 +15,31 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppIcon } from "../../components/ui/icon";
 
 import {
   loadEditableProfile,
+  saveOwnerPhotos,
   saveOwnerProfile,
   submitOwnerVerification,
   submitVerificationAppeal,
+  OWNER_PHOTO_MAX,
   type LocalProfilePhoto,
 } from "../../core/api/profile";
 import { BirthDateField } from "../../components/birth-date-field";
+import { PetPhotoEditor } from "../../components/pet-photo-editor";
 import { isAdultDate } from "../../core/domain/date-validation";
+import { ownerAgeBucket, ownerAgeBucketChanged } from "../../core/domain/owner-age-bucket";
 import { ownerInterestLabels } from "../../core/domain/labels";
-import { OWNER_INTERESTS, type OwnerInterest, type OwnerVisibility } from "../../core/domain/types";
+import {
+  CONNECTION_TAGS,
+  OWNER_INTERESTS,
+  type ConnectionTag,
+  type OwnerInterest,
+  type OwnerVisibility,
+} from "../../core/domain/types";
 import { useTranslation } from "../../core/i18n";
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
@@ -39,27 +49,34 @@ import { AppPressable } from "../../components/ui/pressable";
 import { SectionTitle } from "../../components/ui/section";
 import { ProfileFormSkeleton } from "../../components/ui/skeleton";
 import { successHaptic } from "../../core/ui/haptics";
+import { useUnsavedChangesGuard } from "../../core/ui/unsaved-changes-guard";
 
-type AvatarState =
-  | { kind: "remote"; storagePath: string; uri: string }
-  | ({ kind: "local" } & LocalProfilePhoto)
-  | null;
+type PhotoItem =
+  | { id: string; kind: "remote"; storagePath: string; uri: string }
+  | ({ id: string; kind: "local" } & LocalProfilePhoto);
 
 const visibilityOptions: {
   value: OwnerVisibility;
   label: string;
   detail: string;
+  recommended?: boolean;
 }[] = [
-  { value: "hidden", label: "Gizli", detail: "Keşfette yalnızca petin görünür." },
-  {
-    value: "after_match",
-    label: "Eşleşince",
-    detail: "Sahip bilgilerin yalnızca eşleşmeden sonra açılır.",
-  },
   {
     value: "public",
     label: "Keşfette görünür",
-    detail: "Fotoğrafın ve kısa profilin pet kartında gösterilir.",
+    recommended: true,
+    detail:
+      "Kapak fotoğrafın ve adın pet kartında çıkar. Dilediğin zaman buradan kapatabilirsin.",
+  },
+  {
+    value: "after_match",
+    label: "Yalnızca eşleşince",
+    detail: "Keşfette yalnızca petin görünür; sahip bilgilerin eşleşince açılır.",
+  },
+  {
+    value: "hidden",
+    label: "Gizli",
+    detail: "Keşfette yalnızca petin görünür. Eşleşseniz bile sahip bölümü çıkmaz.",
   },
 ];
 
@@ -75,10 +92,9 @@ const verificationReasonLabels: Record<string, string> = {
 };
 
 const genderOptions: {
-  value: "female" | "male" | "other" | null;
+  value: "female" | "male" | "other";
   label: string;
 }[] = [
-  { value: null, label: "Belirtmek istemiyorum" },
   { value: "female", label: "Kadın" },
   { value: "male", label: "Erkek" },
   { value: "other", label: "Diğer" },
@@ -127,6 +143,10 @@ export default function OwnerProfileScreen() {
   const t = useTranslation();
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ focus?: string | string[] }>();
+  const focus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
+  const scrollRef = useRef<ScrollView>(null);
+  const [visibilityOffset, setVisibilityOffset] = useState<number | null>(null);
   const profile = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: () => loadEditableProfile(user!.id),
@@ -137,14 +157,16 @@ export default function OwnerProfileScreen() {
   const [bio, setBio] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<"female" | "male" | "other" | null>(null);
-  const [visibility, setVisibility] = useState<OwnerVisibility>("after_match");
+  const [visibility, setVisibility] = useState<OwnerVisibility>("public");
   const [socialOpen, setSocialOpen] = useState(false);
+  const [connectionTag, setConnectionTag] = useState<ConnectionTag | null>(null);
   const [interests, setInterests] = useState<OwnerInterest[]>([]);
-  const [avatar, setAvatar] = useState<AvatarState>(null);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [verificationPhoto, setVerificationPhoto] =
     useState<LocalProfilePhoto | null>(null);
   const [verificationAcknowledged, setVerificationAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [photoDragging, setPhotoDragging] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [verificationExpanded, setVerificationExpanded] = useState(false);
   const [appealText, setAppealText] = useState("");
@@ -160,17 +182,33 @@ export default function OwnerProfileScreen() {
     setGender(profile.data.ownerGender);
     setVisibility(profile.data.ownerVisibility);
     setSocialOpen(profile.data.ownerSocialOpen);
+    setConnectionTag(profile.data.connectionTag);
     setInterests(profile.data.ownerInterests);
-    setAvatar(
-      profile.data.ownerAvatar
-        ? {
-            kind: "remote",
-            storagePath: profile.data.ownerAvatar.storagePath,
-            uri: profile.data.ownerAvatar.url,
-          }
-        : null,
+    setPhotos(
+      (profile.data.ownerPhotos.length
+        ? profile.data.ownerPhotos
+        : profile.data.ownerAvatar
+          ? [profile.data.ownerAvatar]
+          : []
+      ).map((photo, index) => ({
+        id: `${photo.storagePath}#${index}`,
+        kind: "remote" as const,
+        storagePath: photo.storagePath,
+        uri: photo.url,
+      })),
     );
   }, [profile.data]);
+
+  useEffect(() => {
+    if (focus !== "visibility" || visibilityOffset === null) return;
+    const handle = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, visibilityOffset - 12),
+        animated: true,
+      });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [focus, visibilityOffset]);
 
   /* Başarı mesajı kendiliğinden kaybolur, hata kalır (bkz. profil ekranı). */
   useEffect(() => {
@@ -179,28 +217,68 @@ export default function OwnerProfileScreen() {
     return () => clearTimeout(timeout);
   }, [notice]);
 
-  const pickAvatar = async () => {
-    setError(null);
+  const pickFromLibrary = async (available: number) => {
     if (!(await ensureImageLibraryAccess())) {
       setError("Sahip fotoğrafı seçmek için galeri izni gerekiyor.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsMultipleSelection: true,
+      selectionLimit: available,
+      quality: 0.85,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+    });
+    if (result.canceled) return;
+    const selected: PhotoItem[] = result.assets.slice(0, available).map((asset, index) => ({
+      id: `${asset.uri}-${Date.now()}-${index}`,
+      kind: "local",
+      uri: asset.uri,
+      fileName: asset.fileName ?? null,
+      mimeType: asset.mimeType ?? null,
+    }));
+    setPhotos((items) => [...items, ...selected]);
+  };
+
+  const pickFromCamera = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setError("Sahip fotoğrafı çekmek için kamera izni gerekiyor.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
       quality: 0.85,
       preferredAssetRepresentationMode:
         ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled) return;
     const photo = result.assets[0];
-    setAvatar({
-      kind: "local",
-      uri: photo.uri,
-      fileName: photo.fileName ?? null,
-      mimeType: photo.mimeType ?? null,
-    });
+    setPhotos((items) => [
+      ...items,
+      {
+        id: `${photo.uri}-${Date.now()}`,
+        kind: "local",
+        uri: photo.uri,
+        fileName: photo.fileName ?? null,
+        mimeType: photo.mimeType ?? null,
+      },
+    ]);
+  };
+
+  const pickPhotos = () => {
+    setError(null);
+    const available = OWNER_PHOTO_MAX - photos.length;
+    if (available < 1) {
+      setError(`En fazla ${OWNER_PHOTO_MAX} sahip fotoğrafı ekleyebilirsin.`);
+      return;
+    }
+    Alert.alert("Fotoğraf ekle", undefined, [
+      { text: "Vazgeç", style: "cancel" },
+      { text: "Galeriden seç", onPress: () => void pickFromLibrary(available) },
+      { text: "Fotoğraf çek", onPress: () => void pickFromCamera() },
+    ]);
   };
 
   const takeVerificationPhoto = async () => {
@@ -214,6 +292,8 @@ export default function OwnerProfileScreen() {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       quality: 0.72,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled) return;
     const photo = result.assets[0];
@@ -235,15 +315,17 @@ export default function OwnerProfileScreen() {
   };
 
   /**
-   * "Tanışmaya açığım" seçeneğinin ön koşulları (bkz. docs/goal-model.md §2:
-   * açık olması için ad + sahip fotoğrafı + `public` görünürlük zorunlu).
-   * Kaydetme anında tek bir hata cümlesi yerine, seçenek görünürken
-   * eksik kalemler tek tek gösteriliyor.
+   * "Tanışmaya açığım" seçeneğinin ön koşulları — ad + sahip fotoğrafı +
+   * GİZLİ OLMAYAN bir görünürlük (`0066`). Önceki kural yalnızca `public`'e
+   * izin veriyordu; "eşleşince görünür + açık" da artık geçerli — pet
+   * uyumu önce, romantik sinyal yalnızca eşleşince ortaya çıksın diyen
+   * makul bir tercih. Kaydetme anında tek bir hata cümlesi yerine, seçenek
+   * görünürken eksik kalemler tek tek gösteriliyor.
    */
   const missingConnectionRequirements = [
     displayName.trim() ? null : "Adın",
-    avatar ? null : "Sahip fotoğrafın",
-    visibility === "public" ? null : "Görünürlük: herkese açık",
+    photos.length ? null : "Sahip fotoğrafın",
+    visibility === "hidden" ? "Görünürlük: gizli olmasın" : null,
   ].filter((item): item is string => item !== null);
 
   /**
@@ -260,6 +342,20 @@ export default function OwnerProfileScreen() {
     interests.length === profile.data.ownerInterests.length &&
     interests.every((item) => profile.data!.ownerInterests.includes(item));
 
+  const savedPhotos = profile.data?.ownerPhotos.length
+    ? profile.data.ownerPhotos
+    : profile.data?.ownerAvatar
+      ? [profile.data.ownerAvatar]
+      : [];
+  const photosMatch =
+    profile.data !== undefined &&
+    photos.length === savedPhotos.length &&
+    photos.every(
+      (photo, index) =>
+        photo.kind === "remote" &&
+        photo.storagePath === savedPhotos[index]?.storagePath,
+    );
+
   const dirty =
     Boolean(profile.data) &&
     (displayName !== (profile.data!.displayName ?? "") ||
@@ -268,11 +364,16 @@ export default function OwnerProfileScreen() {
       gender !== profile.data!.ownerGender ||
       visibility !== profile.data!.ownerVisibility ||
       socialOpen !== profile.data!.ownerSocialOpen ||
+      connectionTag !== profile.data!.connectionTag ||
       !sameInterests ||
-      avatar?.kind === "local" ||
-      Boolean(profile.data!.ownerAvatar) !== Boolean(avatar) ||
+      !photosMatch ||
       Boolean(verificationPhoto) ||
       verificationAcknowledged);
+
+  useUnsavedChangesGuard(
+    dirty,
+    "Çıkarsan bu turdaki değişiklikler kaybolur.",
+  );
 
   const resetForm = () => {
     if (!profile.data) return;
@@ -282,15 +383,20 @@ export default function OwnerProfileScreen() {
     setGender(profile.data.ownerGender);
     setVisibility(profile.data.ownerVisibility);
     setSocialOpen(profile.data.ownerSocialOpen);
+    setConnectionTag(profile.data.connectionTag);
     setInterests(profile.data.ownerInterests);
-    setAvatar(
-      profile.data.ownerAvatar
-        ? {
-            kind: "remote",
-            storagePath: profile.data.ownerAvatar.storagePath,
-            uri: profile.data.ownerAvatar.url,
-          }
-        : null,
+    setPhotos(
+      (profile.data.ownerPhotos.length
+        ? profile.data.ownerPhotos
+        : profile.data.ownerAvatar
+          ? [profile.data.ownerAvatar]
+          : []
+      ).map((photo, index) => ({
+        id: `${photo.storagePath}#${index}`,
+        kind: "remote" as const,
+        storagePath: photo.storagePath,
+        uri: photo.url,
+      })),
     );
     setVerificationPhoto(null);
     setVerificationAcknowledged(false);
@@ -303,36 +409,33 @@ export default function OwnerProfileScreen() {
    * Profil sekmesinde bu risk yoktu (sekme ekranı mount kalıyor, state
    * duruyor); burası bir yığın ekranı, geri basınca unmount oluyor.
    */
-  const goBack = () => {
-    if (!dirty) {
-      router.back();
-      return;
-    }
-    Alert.alert(
-      "Kaydedilmemiş değişiklikler var",
-      "Çıkarsan bu turdaki değişiklikler kaybolur.",
-      [
-        { text: "Düzenlemeye dön", style: "cancel" },
-        { text: "Çık ve vazgeç", style: "destructive", onPress: () => router.back() },
-      ],
-    );
-  };
+  const goBack = () => router.back();
 
-  const save = async () => {
+  const persistSave = async () => {
     if (!user || !profile.data) return;
-    if (!isAdultDate(birthDate)) {
-      setError("Geçerli bir doğum tarihi yazmalısın ve 18 yaşında olmalısın.");
-      return;
-    }
-    if (socialOpen && (!displayName.trim() || !avatar || visibility !== "public")) {
-      setError(t("ownerConnection.prerequisitesError"));
-      return;
-    }
-
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
+      const previousPaths = savedPhotos.map((photo) => photo.storagePath);
+      const coverPath = photosMatch
+        ? photos[0]?.kind === "remote"
+          ? photos[0].storagePath
+          : null
+        : await saveOwnerPhotos({
+            userId: user.id,
+            previousStoragePaths: previousPaths,
+            photos: photos.map((photo) =>
+              photo.kind === "remote"
+                ? { kind: "remote" as const, storagePath: photo.storagePath }
+                : {
+                    kind: "local" as const,
+                    uri: photo.uri,
+                    fileName: photo.fileName,
+                    mimeType: photo.mimeType,
+                  },
+            ),
+          });
       await saveOwnerProfile({
         userId: user.id,
         displayName,
@@ -341,12 +444,9 @@ export default function OwnerProfileScreen() {
         gender,
         ownerVisibility: visibility,
         ownerSocialOpen: socialOpen,
+        connectionTag: socialOpen ? connectionTag : null,
         interests,
-        previousAvatarPath: profile.data.ownerAvatar?.storagePath ?? null,
-        avatar:
-          avatar?.kind === "remote"
-            ? { kind: "remote", storagePath: avatar.storagePath }
-            : avatar,
+        avatarPath: coverPath,
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["profile", user.id] }),
@@ -356,6 +456,7 @@ export default function OwnerProfileScreen() {
         // aynı sayıyı görüyordu (sekme ekranı mount kalıyor, `staleTime`
         // dolsa bile kendiliğinden tazelenmiyor).
         queryClient.invalidateQueries({ queryKey: ["profile-completion", user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["owner-photos"] }),
       ]);
       await profile.refetch();
       successHaptic();
@@ -367,6 +468,34 @@ export default function OwnerProfileScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const save = async () => {
+    if (!user || !profile.data) return;
+    if (!isAdultDate(birthDate)) {
+      setError("Geçerli bir doğum tarihi yazmalısın ve 18 yaşında olmalısın.");
+      return;
+    }
+    if (socialOpen && (!displayName.trim() || !photos.length || visibility === "hidden")) {
+      setError(t("ownerConnection.prerequisitesError"));
+      return;
+    }
+
+    if (ownerAgeBucketChanged(profile.data.ownerBirthDate, birthDate)) {
+      const previous = ownerAgeBucket(profile.data.ownerBirthDate);
+      const next = ownerAgeBucket(birthDate);
+      Alert.alert(
+        "Yaş aralığın değişecek",
+        `Karşı taraf “${previous}” yerine “${next}” görecek. Kesin yıl hâlâ gizli.`,
+        [
+          { text: "Vazgeç", style: "cancel" },
+          { text: "Kaydet", onPress: () => void persistSave() },
+        ],
+      );
+      return;
+    }
+
+    await persistSave();
   };
 
   const submitVerification = async () => {
@@ -463,36 +592,34 @@ export default function OwnerProfileScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="px-5 pb-12 pt-5"
+          scrollEnabled={!photoDragging}
+          contentContainerClassName={dirty ? "px-5 pb-28 pt-5" : "px-5 pb-12 pt-5"}
         >
-          <View className="mb-7 items-center">
-            <AppPressable onPress={pickAvatar} disabled={busy} accessibilityLabel="Sahip fotoğrafını değiştir">
-              {avatar ? (
-                <Image source={avatar.uri} contentFit="cover" style={{ width: 124, height: 124, borderRadius: 62 }} />
-              ) : (
-                <View className="h-[124px] w-[124px] items-center justify-center rounded-full border border-dashed border-brand bg-brand/5">
-                  <AppIcon name="user-plus" color="#F97362" size={38} />
-                </View>
-              )}
-              <View className="absolute bottom-0 right-0 h-10 w-10 items-center justify-center rounded-full border-2 border-bg-primary bg-brand">
-                <AppIcon name="camera" color="#FFFFFF" size={19} />
-              </View>
-            </AppPressable>
-            <Text className="mt-3 text-sm font-bold text-text-primary">
-              {avatar ? "Fotoğrafı değiştir" : "Sahip fotoğrafı ekle"}
-            </Text>
-            {avatar ? (
-              <AppPressable
-                onPress={() => {
-                  setAvatar(null);
-                  if (socialOpen) setSocialOpen(false);
-                }}
-                className="mt-2"
-              >
-                <Text className="text-xs font-semibold text-danger">Fotoğrafı kaldır</Text>
-              </AppPressable>
-            ) : null}
+          <View className="mb-7">
+            <View className="mb-2 flex-row items-baseline justify-between">
+              <Text className="text-sm font-semibold text-text-primary">Sahip fotoğrafları</Text>
+              <Text className="text-xs text-text-tertiary">
+                {photos.length}/{OWNER_PHOTO_MAX}
+              </Text>
+            </View>
+            <PetPhotoEditor
+              photos={photos}
+              max={OWNER_PHOTO_MAX}
+              busy={busy}
+              coverAspect={1}
+              emptyHint="Kapak keşfet hapında görünür"
+              coverHint="Kapak keşfet hapında. Diğer fotoğraflar pet profilinde."
+              restHint="Kapak keşfet hapında. Çarpı ile sil; basılı tutup sürükleyerek sırayı değiştir."
+              includeSelfHint={false}
+              onDragActive={setPhotoDragging}
+              onChange={(next) => {
+                setPhotos(next as typeof photos);
+                if (next.length === 0 && socialOpen) setSocialOpen(false);
+              }}
+              onAdd={pickPhotos}
+            />
           </View>
 
           <Field
@@ -523,7 +650,7 @@ export default function OwnerProfileScreen() {
             label="Doğum tarihin"
             value={birthDate}
             onChange={setBirthDate}
-            helper="Kesin tarih gösterilmez; uygun durumda yalnızca “30’lu yaşlar” gibi bir aralık görünür."
+            helper="Kesin tarih gösterilmez. Keşfette görünürken “25–29 yaş” gibi bir aralık, karşı taraf gizli olsa da çıkar."
           />
 
           <SectionTitle>Cinsiyet (opsiyonel)</SectionTitle>
@@ -533,7 +660,7 @@ export default function OwnerProfileScreen() {
               return (
                 <AppPressable
                   key={option.value ?? "none"}
-                  onPress={() => setGender(option.value)}
+                  onPress={() => setGender(active ? null : option.value)}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: active, checked: active }}
                   className={`min-h-11 justify-center rounded-full border px-4 ${
@@ -584,7 +711,38 @@ export default function OwnerProfileScreen() {
             </Text>
           ) : null}
 
+          <View
+            onLayout={(event) => {
+              setVisibilityOffset(event.nativeEvent.layout.y);
+            }}
+            className={
+              focus === "visibility"
+                ? "-mx-2 mb-2 rounded-2xl border border-brand/30 bg-brand/5 px-2 pt-3"
+                : undefined
+            }
+          >
           <SectionTitle>Profil görünürlüğü</SectionTitle>
+          <Text className="mb-3 text-xs leading-4 text-text-secondary">
+            Keşfet’te ayrı bir gizleme tuşu yok. Dilediğin zaman buradan
+            kapatabilirsin.
+          </Text>
+          <OwnerVisibilityPreview
+            visibility={visibility}
+            petName={profile.data?.pet.name ?? "petin"}
+            owner={{
+              displayName: displayName.trim() || null,
+              photoUrl: photos[0]?.uri ?? null,
+              extraPhotoUrls: photos.slice(1).map((photo) => photo.uri),
+              bio: bio.trim() || null,
+              gender,
+              ageBucket: ownerAgeBucket(birthDate || null),
+              socialOpen,
+              verified: profile.data?.verificationStatus === "approved",
+              interests,
+              connectionTag: socialOpen ? connectionTag : null,
+            }}
+            unsaved={visibility !== profile.data?.ownerVisibility}
+          />
           <View className="mb-7 gap-2">
             {/*
               Seçili durum artık YALNIZCA RENKLE anlatılmıyor: solda bir
@@ -599,7 +757,11 @@ export default function OwnerProfileScreen() {
                   key={option.value}
                   onPress={() => {
                     setVisibility(option.value);
-                    if (option.value !== "public") setSocialOpen(false);
+                    // Yalnızca `hidden` "açık"la çelişiyor (`0066`) — varlığını
+                    // hiç göstermeyip aynı anda tanışmaya açık olmak içsel
+                    // çelişki. `after_match` serbest: pet uyumu önce, sinyal
+                    // yalnızca eşleşince ortaya çıksın diyen makul bir tercih.
+                    if (option.value === "hidden") setSocialOpen(false);
                   }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: active, checked: active }}
@@ -613,35 +775,36 @@ export default function OwnerProfileScreen() {
                     size={20}
                   />
                   <View className="ml-3 flex-1">
-                    <Text
-                      className={`font-semibold ${active ? "text-brand-dark" : "text-text-primary"}`}
-                    >
-                      {option.label}
-                    </Text>
-                    <Text className="mt-1 text-xs leading-4 text-text-secondary">
-                      {option.detail}
-                    </Text>
+                    <View className="flex-row flex-wrap items-center gap-2">
+                      <Text
+                        className={`font-semibold ${active ? "text-brand-dark" : "text-text-primary"}`}
+                      >
+                        {option.label}
+                      </Text>
+                      {option.recommended ? (
+                        <View className="rounded-full bg-brand/15 px-2 py-0.5">
+                          <Text className="text-[10px] font-bold text-brand-dark">
+                            Önerilen
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    {active ? (
+                      <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                        {option.detail}
+                      </Text>
+                    ) : null}
+                    {option.value === "hidden" && socialOpen ? (
+                      <Text className="mt-1 text-xs font-semibold text-brand-dark">
+                        Seçersen “yeni insanlarla tanışmak istiyorum” seçeneği kapanır.
+                      </Text>
+                    ) : null}
                   </View>
                 </AppPressable>
               );
             })}
           </View>
-
-          <OwnerVisibilityPreview
-            visibility={visibility}
-            petName={profile.data?.pet.name ?? "petin"}
-            owner={{
-              displayName: displayName.trim() || null,
-              photoUrl: avatar?.uri ?? null,
-              bio: bio.trim() || null,
-              // Yaş/cinsiyet sunucuda karşılıklı açıklama kuralına bağlı;
-              // önizleme onları taklit etmiyor, dipnotta açıklıyor.
-              gender: null,
-              ageBucket: null,
-              socialOpen,
-              verified: profile.data?.verificationStatus === "approved",
-            }}
-          />
+          </View>
 
           <SectionTitle>{t("ownerConnection.title")}</SectionTitle>
           <View className="mb-7 gap-2">
@@ -667,7 +830,10 @@ export default function OwnerProfileScreen() {
             <AppPressable
               onPress={() => {
                 setSocialOpen(true);
-                setVisibility("public");
+                // Yalnızca `hidden`'dan çıkar; `after_match`'i olduğu gibi
+                // bırak — "public"e zorlamak, eşleşme öncesi gizli kalıp
+                // tanışmaya açık olmak isteyeni dışlıyordu (`0066`).
+                if (visibility === "hidden") setVisibility("after_match");
               }}
               accessibilityRole="radio"
               accessibilityState={{ selected: socialOpen, checked: socialOpen }}
@@ -708,6 +874,51 @@ export default function OwnerProfileScreen() {
                 </View>
               ) : null}
             </AppPressable>
+
+            {/*
+              FİLTRELEMEYEN, opsiyonel bir sinyal — havuzu bölmeden retention
+              sorununu (eşleşme sonrası "bu kişi ne bekliyor" belirsizliği)
+              hafifletir. Serbest metin değil, sabit taksonomi: moderasyon
+              yükü istemiyoruz (`0066`).
+            */}
+            {socialOpen ? (
+              <View className="mt-1 rounded-xl border border-border bg-surface p-3.5">
+                <Text className="text-xs font-bold text-text-primary">
+                  {t("ownerConnection.tagTitle")}
+                </Text>
+                <Text className="mt-1 text-[11px] leading-4 text-text-tertiary">
+                  {t("ownerConnection.tagDetail")}
+                </Text>
+                <View className="mt-2.5 flex-row flex-wrap gap-2">
+                  {CONNECTION_TAGS.map((tag) => {
+                    const active = connectionTag === tag;
+                    const label =
+                      tag === "new_friends"
+                        ? t("ownerConnection.tagNewFriends")
+                        : tag === "open_minded"
+                          ? t("ownerConnection.tagOpenMinded")
+                          : t("ownerConnection.tagNotSureYet");
+                    return (
+                      <AppPressable
+                        key={tag}
+                        onPress={() => setConnectionTag(active ? null : tag)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ selected: active, checked: active }}
+                        className={`min-h-9 justify-center rounded-full border px-3.5 ${
+                          active ? "border-accent bg-accent/10" : "border-border bg-bg-secondary"
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs font-semibold ${active ? "text-accent-dark" : "text-text-secondary"}`}
+                        >
+                          {label}
+                        </Text>
+                      </AppPressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
           </View>
 
           <SectionTitle>Sahip + pet doğrulaması</SectionTitle>
@@ -736,7 +947,7 @@ export default function OwnerProfileScreen() {
                         : "Henüz doğrulanmadı"}
                 </Text>
                 <Text className="mt-1 text-xs leading-4 text-text-secondary">
-                  Sen ve aktif petin aynı karede görünmeli. Başvurular genellikle 24 saat içinde incelenir.
+                  Profil galerisinden ayrı, birlikte çekilmiş bir kare. Sen ve aktif petin aynı karede, yüzlerin net görünsün. Bu fotoğraf profilde yayınlanmaz; yalnızca inceleme içindir.
                 </Text>
                 {verificationStatus === "rejected" &&
                 profile.data.verificationReviewNote ? (
@@ -848,7 +1059,7 @@ export default function OwnerProfileScreen() {
               <View className="mt-3 flex-row items-start rounded-xl bg-accent/5 p-3">
                 <AppIcon name="info" color="#1E9384" size={18} />
                 <Text className="ml-2 flex-1 text-xs leading-4 text-text-secondary">
-                  Sahip fotoğrafını değiştirirsen rozet güvenlik nedeniyle kaldırılır ve yeniden doğrulama gerekir.
+                  Rozet, birlikte çektiğin doğrulama fotoğrafına bağlı. Profil galerisini değiştirmek rozeti düşürmez.
                 </Text>
               </View>
             ) : null}

@@ -352,8 +352,8 @@ Bu ikisi yayın kapıcısı ama **şu an kapatılmamalı**: geliştirme ve test
 akışını doğrudan besliyorlar. Yayın gününde, aynı oturumda ve bu sırayla
 yapılacaklar.
 
-- **Test hesapları duruyor.** 10 hesap (`test1/2@petmatch.app`, altı
-  `@petmatch.test`) keşfet destesini, eşleşmeyi, sohbeti ve buluşma
+- **Test hesapları duruyor.** `test1/2@petmatch.app` ve `@petmatch.test`
+  hesapları keşfet destesini, eşleşmeyi, sohbeti ve buluşma
   akışını denemenin tek yolu. Silmek şu an test kapasitesini sıfırlar.
   Silerken: `auth.users` satırı pets/pet_photos/profiles'ı cascade ile
   götürür ama **storage nesneleri GİTMEZ** — `pet-photos/{userId}/…` ve
@@ -586,7 +586,8 @@ karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
    - Aynı anda tek bekleyen başvuru, 24 saatte üç gönderim sınırı
    - Private bucket, 6 MB sınır, image MIME allow-list ve Storage nesnesi doğrulaması
    - Moderasyon kararı sonrası fotoğrafı silme
-   - Onaylı sahip fotoğrafı değişince rozeti sıfırlama
+   - Rozet, `verification-photos` kanıtına bağlı; profil galerisi değişince düşmez
+   - Sahip galerisi `owner_photos` (kapak + extras, en fazla 4)
    - **Sıradaki:** onay/ret için uygulama içi + push bildirimi
    - **Sıradaki:** yapılandırılmış ret nedenleri, Türkçe açıklama ve itiraz yolu
    - **Sıradaki:** aktif pet değişiminde yeniden doğrulama; çoklu pet öncesi pet bazlı rozet

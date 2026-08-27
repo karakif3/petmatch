@@ -35,6 +35,16 @@ select tests.assert(
   'yalnızca ırk değişince kimlik notu tetiklenmiyor'
 );
 
+-- 0067: tür kotası taze pette kilitler. Sohbet-notu iddiası için 6 ayı
+-- geçmiş gibi damgala (yalnızca postgres; trigger authenticated'ı bağlar).
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+update pets
+set species_gender_changed_at = now() - interval '6 months 1 day'
+where id = 'aaaa1111-0000-0000-0000-000000000001';
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
+
 -- Tür ve ad değişiyor.
 select update_my_pet_profile(
   p_pet_id => 'aaaa1111-0000-0000-0000-000000000001',

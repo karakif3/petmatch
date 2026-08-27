@@ -11,6 +11,9 @@ export const tr = {
   },
   discovery: {
     subtitle: "Petinle uyumlu petleri ve insanları keşfet",
+    pass: "Geç",
+    like: "Beğen",
+    superLike: "Süper beğen",
   },
   ownerConnection: {
     title: "Tanışma amacı",
@@ -20,12 +23,17 @@ export const tr = {
       "Eşleşme petlerin uyumuna göre yapılır; sahip profilin görünürlük ayarına uyar.",
     openTitle: "Petimle birlikte yeni insanlarla tanışmak istiyorum",
     openDetail:
-      "Arkadaşlığa veya romantik bir bağa açık olabilirsin. Bu seçim yalnızca tanışmaya açık olduğunu gösterir; belirli bir ilişki vaadi değildir. Adın ve sahip fotoğrafın keşfette görünür.",
+      "Arkadaşlığa veya romantik bir bağa açık olabilirsin. Bu seçim yalnızca tanışmaya açık olduğunu gösterir; belirli bir ilişki vaadi değildir. Görünürlük ayarına göre adın ve sahip fotoğrafın eşleşince ya da keşfette görünür.",
     prerequisitesError:
-      "Yeni insanlarla tanışma modu için ad, sahip fotoğrafı ve keşfette görünür profil gerekiyor.",
+      "Yeni insanlarla tanışma modu için ad, sahip fotoğrafı ve gizli olmayan bir görünürlük gerekiyor.",
     badge: "Tanışmaya açık",
     filterLabel: "Tanışmaya açık sahipler",
     filterDetail:
       "Petiyle birlikte arkadaşlık veya romantik bir bağ için yeni insanlarla tanışmaya açık olanları göster.",
+    tagTitle: "İstersen bir not ekle (opsiyonel)",
+    tagDetail: "Bu, karşı tarafı filtrelemez — yalnızca profilinde görünen küçük bir ipucu.",
+    tagNewFriends: "Yeni arkadaşlar arıyorum",
+    tagOpenMinded: "Açık görüşlüyüm",
+    tagNotSureYet: "Henüz kararsızım",
   },
 } as const;

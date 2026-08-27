@@ -21,6 +21,9 @@ export const en: TranslationShape<typeof tr> = {
   },
   discovery: {
     subtitle: "Discover pets and people who fit your life",
+    pass: "Pass",
+    like: "Like",
+    superLike: "Super like",
   },
   ownerConnection: {
     title: "Connection goal",
@@ -30,12 +33,17 @@ export const en: TranslationShape<typeof tr> = {
       "Matching is based on pet compatibility; your owner profile follows your visibility setting.",
     openTitle: "I want to meet new people with my pet",
     openDetail:
-      "You may be open to friendship or a romantic connection. This only signals openness to meeting; it never promises a particular relationship. Your name and owner photo appear in discovery.",
+      "You may be open to friendship or a romantic connection. This only signals openness to meeting; it never promises a particular relationship. Depending on your visibility setting, your name and owner photo appear once matched or in discovery.",
     prerequisitesError:
-      "Meeting new people requires your name, an owner photo, and a profile visible in discovery.",
+      "Meeting new people requires your name, an owner photo, and a visibility that isn't hidden.",
     badge: "Open to meeting",
     filterLabel: "Owners open to meeting",
     filterDetail:
       "Show people who are open to meeting through their pet for friendship or a romantic connection.",
+    tagTitle: "Add a note if you'd like (optional)",
+    tagDetail: "This doesn't filter anyone out — it's just a small hint shown on your profile.",
+    tagNewFriends: "Looking for new friends",
+    tagOpenMinded: "Open-minded",
+    tagNotSureYet: "Not sure yet",
   },
 };

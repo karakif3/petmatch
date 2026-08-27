@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   RefreshControl,
   ScrollView,
@@ -13,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DiscoveryCard } from "../../components/discovery-card";
@@ -24,11 +23,15 @@ import {
   type DiscoverySegment,
 } from "../../components/discovery-segments";
 import { MatchCelebration } from "../../components/match-celebration";
+import { OwnerSheet } from "../../components/owner-sheet";
 import { ProfileCompletionCard } from "../../components/profile-completion-card";
 import { ReportModal } from "../../components/report-modal";
 import { SafetyMenuModal } from "../../components/safety-menu-modal";
-import { OwnerSheet } from "../../components/owner-sheet";
 import { SwipeableCard } from "../../components/swipeable-card";
+import {
+  DecisionActions,
+  swipePendingAction,
+} from "../../components/decision-actions";
 import { AppPressable } from "../../components/ui/pressable";
 import { DiscoveryCardSkeleton } from "../../components/ui/skeleton";
 import { listAdoptablePets } from "../../core/api/adoption";
@@ -45,12 +48,14 @@ import { blockUser } from "../../core/api/safety";
 import { FEATURES } from "../../core/features";
 import type { OwnerVisibility, SwipeDirection } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
+import {
+  setDiscoverProfileSession,
+  takeDiscoverProfileSwiped,
+} from "../../stores/discover-profile";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
-import { decisionHaptic } from "../../core/ui/haptics";
-import { shadowLg } from "../../core/ui/shadow";
-import { AppIcon, DECISION_STROKE, DecisionIcons } from "../../components/ui/icon";
+import { AppIcon } from "../../components/ui/icon";
 
 export default function DiscoverScreen() {
   const user = useAuthStore((state) => state.user);
@@ -67,10 +72,10 @@ export default function DiscoverScreen() {
   } | null>(null);
   const [segment, setSegment] = useState<DiscoverySegment>("all");
   const [safetyVisible, setSafetyVisible] = useState(false);
-  const [ownerSheet, setOwnerSheet] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [safetyBusy, setSafetyBusy] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
+  const [ownerSheetVisible, setOwnerSheetVisible] = useState(false);
   const [filterBusy, setFilterBusy] = useState(false);
   const [filterReady, setFilterReady] = useState(false);
   const [ownerFilters, setOwnerFilters] = useState<OwnerDiscoveryFilterInput>({
@@ -163,7 +168,10 @@ export default function DiscoverScreen() {
   );
   const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
   const currentCard = activeCards[0] ?? null;
-  const nextCard = activeCards[1] ?? null;
+
+  useEffect(() => {
+    setOwnerSheetVisible(false);
+  }, [currentCard?.id]);
 
   // İpucu ekranda GERÇEKTEN görünmüyorsa (kart yoksa) sayaç işlemeye
   // başlamıyor — yoksa kullanıcı hiç görmeden "görüldü" işaretlenirdi.
@@ -185,10 +193,14 @@ export default function DiscoverScreen() {
     setDismissedIds([]);
   }, [deck.dataUpdatedAt]);
 
-  // Kart değişince açık kalan sahip paneli yeni kartın sahibini gösterirdi.
-  useEffect(() => {
-    setOwnerSheet(false);
-  }, [currentCard?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      const swiped = takeDiscoverProfileSwiped();
+      if (swiped) {
+        setDismissedIds((ids) => (ids.includes(swiped) ? ids : [...ids, swiped]));
+      }
+    }, []),
+  );
 
   const completion = useQuery({
     queryKey: ["profile-completion", user?.id],
@@ -289,15 +301,27 @@ export default function DiscoverScreen() {
   const handleSwipe = (direction: SwipeDirection) => {
     if (!currentCard || swipe.isPending) return;
     dismissSwipeHint();
-    decisionHaptic();
     swipe.mutate({ toPetId: currentCard.id, direction });
   };
 
   const handleSuperLike = () => {
     if (!currentCard || swipe.isPending) return;
     dismissSwipeHint();
-    decisionHaptic();
     swipe.mutate({ toPetId: currentCard.id, direction: "like", isSuper: true });
+  };
+
+  const openProfile = (focusOwner = false) => {
+    if (!currentCard || !deck.data?.viewer) return;
+    setDiscoverProfileSession({
+      card: currentCard,
+      viewer: deck.data.viewer,
+      viewerOwnerPhotoUrl: deck.data.ownerSettings.avatarUrl,
+    });
+    router.push(
+      focusOwner
+        ? `/pet/${currentCard.id}?from=discover&focus=owner`
+        : `/pet/${currentCard.id}?from=discover`,
+    );
   };
 
   const refresh = async () => {
@@ -368,26 +392,35 @@ export default function DiscoverScreen() {
   };
 
   /**
-   * Sahip görünürlüğü hızlı anahtarı.
-   *
-   * Görünürlük ayarı profilde de duruyor ama asıl karşılığını BURADA
-   * veriyor: `public` olan sahip, kendi kartında avatar + ad + ilgi alanı
-   * teaser'ı olarak karşı tarafa görünüyor (0049). Kararın alındığı yer ile
-   * sonucunun görüldüğü yer aynı ekran olunca anahtarın ne yaptığı
-   * açıklama gerektirmiyor.
-   *
-   * İki kural:
-   * - **Otomatik açılmaz.** Varsayılan `after_match`/`hidden` kalıyor;
-   *   kapatınca da `public` öncesindeki değere dönüyor, `after_match`'e
-   *   sabitlemiyor — `hidden` seçmiş kullanıcıyı sessizce yukarı çekmek
-   *   gizlilik varsayılanını bozardı.
-   * - **Fotoğrafsız `public` anlamsız.** Avatar yoksa kart teaser'ı boş
-   *   kalırdı; sessizce başarısız olmak yerine sahip profiline yönlendiriyor.
+   * Görünürlük Keşfet başlığında yok — gizlemeyi oradan teşvik etmiyoruz.
+   * Ayar sahip profilinde. Bu alert, public kullanıcıya `0068` tek yön
+   * kuralını bir kez söyler.
    */
   const ownerVisibility: OwnerVisibility =
     deck.data?.ownerSettings.visibility ?? "after_match";
-  const ownerPublic = ownerVisibility === "public";
 
+  /**
+   * `0068` gösterimi tek yönlü yaptı: public sahibin yaş kovası / cinsiyeti
+   * gizli izleyiciye de çıkıyor. Mevcut public kullanıcılara sessiz kural
+   * değişmesin diye bir kez söylüyoruz. Filtre hâlâ karşılıklı.
+   */
+  useEffect(() => {
+    if (!user || !deck.data || showSwipeHint) return;
+    if (ownerVisibility !== "public") return;
+    let cancelled = false;
+    const key = `petmatch:seen-age-display-one-way:${user.id}`;
+    void AsyncStorage.getItem(key).then((value) => {
+      if (cancelled || value) return;
+      void AsyncStorage.setItem(key, "1");
+      Alert.alert(
+        "Yaş aralığın keşfette görünür",
+        "Keşfette görünürken yaş aralığın ve cinsiyetin, karşı taraf kendi profilini gizlemiş olsa da kartta çıkar. Desteyi yaşa veya cinsiyete göre daraltmak hâlâ senin de görünür olmanı ister.",
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, deck.data, ownerVisibility, showSwipeHint]);
 
   const toggleNewCandidateNotification = async () => {
     if (!deck.data) return;
@@ -449,39 +482,6 @@ export default function DiscoverScreen() {
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-text-primary">Keşfet</Text>
           <View className="flex-row items-center gap-2">
-            {/*
-              Bu düğme ESKİDEN görünürlüğü doğrudan yazan ikili bir anahtardı.
-              Kaldırıldı: `owner_visibility` ÜÇ durumlu (gizli · eşleşince ·
-              herkese açık) ve ikili bir kısayol üçüncü durumu kaçınılmaz
-              olarak kaybediyordu. Kayıp durumu bellekte tutuyordu
-              (`useRef`), o bellek de oturumla sıfırlanıyordu: "Gizli"
-              seçmiş bir kullanıcı, uygulamayı yeniden açıp anahtarı
-              kapattığında GİZLİ'ye değil "eşleşince"ye düşüyordu — yani
-              gizliliği kendisine söylenmeden gevşiyordu.
-
-              Şimdi durum burada GÖSTERİLİYOR ama değiştirilmiyor; dokunuş
-              ayarın tek sahibi olan sahip profiline götürüyor.
-            */}
-            {deck.data ? (
-              <AppPressable
-                onPress={() => router.push("/profile/owner")}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  ownerPublic
-                    ? "Sahip profilin keşfette görünüyor. Görünürlük ayarını aç."
-                    : "Sahip profilin keşfette görünmüyor. Görünürlük ayarını aç."
-                }
-                className={`h-11 w-11 items-center justify-center rounded-full border ${
-                  ownerPublic ? "border-brand bg-brand/10" : "border-border bg-surface"
-                }`}
-              >
-                <AppIcon
-                  name={ownerPublic ? "eye" : "eye-off"}
-                  color={ownerPublic ? "#F97362" : "#6B5D55"}
-                  size={20}
-                />
-              </AppPressable>
-            ) : null}
             <AppPressable
               onPress={() => setFilterVisible(true)}
               disabled={!deck.data}
@@ -496,9 +496,12 @@ export default function DiscoverScreen() {
               ) : null}
             </AppPressable>
             {deck.data?.viewer ? (
-              // Üçüncü öğe eklendi (görünürlük anahtarı); uzun pet adı
-              // artık satırı taşırabilir, bu yüzden çip kısalıyor.
-              <View className="max-w-[120px] shrink flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2">
+              <AppPressable
+                onPress={() => router.push("/profile/pet")}
+                accessibilityRole="button"
+                accessibilityLabel={`${deck.data.viewer.name} pet profilini düzenle`}
+                className="max-w-[120px] shrink flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2"
+              >
                 <AppIcon name="paw-print" color="#F97362" size={16} />
                 <Text
                   numberOfLines={1}
@@ -506,7 +509,7 @@ export default function DiscoverScreen() {
                 >
                   {deck.data.viewer.name}
                 </Text>
-              </View>
+              </AppPressable>
             ) : null}
           </View>
         </View>
@@ -749,22 +752,6 @@ export default function DiscoverScreen() {
               durumda sayfa yeniden kaydırılabilir oluyor.
             */}
             <View className="relative flex-1" style={{ minHeight: 320 }}>
-              {/*
-                Deste derinliği: bir sonraki kart hafif küçültülmüş ve
-                aşağı kaydırılmış halde arkada duruyor. Öncesinde swipe
-                sonrası bir an tamamen boş ekran görünüyordu — arkada
-                bekleyen kart, desteyi bitmeyen bir akış gibi hissettiriyor.
-                `pointerEvents="none"`: bu kopya salt görsel, dokunulamaz.
-              */}
-              {nextCard ? (
-                <View
-                  pointerEvents="none"
-                  className="absolute inset-0 top-2"
-                  style={{ transform: [{ scale: 0.96 }] }}
-                >
-                  <DiscoveryCard card={nextCard} fill />
-                </View>
-              ) : null}
               <SwipeableCard
                 resetKey={currentCard.id}
                 disabled={swipe.isPending}
@@ -774,7 +761,8 @@ export default function DiscoverScreen() {
                 <DiscoveryCard
                   card={currentCard}
                   fill
-                  onOwnerPress={currentCard.owner ? () => setOwnerSheet(true) : undefined}
+                  onOpenProfile={() => openProfile(false)}
+                  onOpenOwner={() => setOwnerSheetVisible(true)}
                 />
               </SwipeableCard>
               <AppPressable
@@ -837,58 +825,26 @@ export default function DiscoverScreen() {
               : { marginTop: -36, paddingTop: 36 }
           }
         >
-          <View className="flex-row items-center justify-center gap-6 px-5 pb-4">
-            <AppPressable
-              onPress={() => handleSwipe("pass")}
-              disabled={swipe.isPending}
-              accessibilityLabel="Geç"
-              style={shadowLg}
-              className="h-16 w-16 items-center justify-center rounded-full bg-surface disabled:opacity-50"
-            >
-              <DecisionIcons.pass color="#7A6A61" size={30} strokeWidth={DECISION_STROKE} />
-            </AppPressable>
-            <AppPressable
-              onPress={handleSuperLike}
-              disabled={swipe.isPending}
-              accessibilityLabel="Süper beğen"
-              style={shadowLg}
-              className="h-12 w-12 items-center justify-center rounded-full bg-warning disabled:opacity-50"
-            >
-              <DecisionIcons.superLike
-                color="#FFFFFF"
-                size={20}
-                strokeWidth={DECISION_STROKE}
-                fill="#FFFFFF"
-              />
-            </AppPressable>
-            <AppPressable
-              onPress={() => handleSwipe("like")}
-              disabled={swipe.isPending}
-              accessibilityLabel="Beğen"
-              style={shadowLg}
-              className="h-[70px] w-[70px] items-center justify-center rounded-full bg-brand disabled:opacity-50"
-            >
-              {swipe.isPending ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <DecisionIcons.like
-                  color="#FFFFFF"
-                  size={31}
-                  strokeWidth={DECISION_STROKE}
-                  fill="#FFFFFF"
-                />
+          <View className="px-5 pb-4">
+            <DecisionActions
+              busy={swipe.isPending}
+              pendingAction={swipePendingAction(
+                swipe.isPending,
+                swipe.variables,
               )}
-            </AppPressable>
+              onPass={() => handleSwipe("pass")}
+              onLike={() => handleSwipe("like")}
+              onSuperLike={handleSuperLike}
+            />
           </View>
         </LinearGradient>
       ) : null}
       <OwnerSheet
+        visible={ownerSheetVisible}
         owner={currentCard?.owner ?? null}
         petName={currentCard?.name ?? ""}
-        visible={ownerSheet && Boolean(currentCard?.owner)}
-        onClose={() => setOwnerSheet(false)}
+        onClose={() => setOwnerSheetVisible(false)}
       />
-
       <SafetyMenuModal
         visible={safetyVisible}
         busy={safetyBusy}

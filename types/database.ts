@@ -677,6 +677,38 @@ export type Database = {
           },
         ]
       }
+      owner_photos: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          position?: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          position?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_photos_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_photos: {
         Row: {
           created_at: string
@@ -735,6 +767,7 @@ export type Database = {
           previous_name: string | null
           size: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
+          species_gender_changed_at: string
           temperaments: string[]
           updated_at: string
         }
@@ -763,6 +796,7 @@ export type Database = {
           previous_name?: string | null
           size?: Database["public"]["Enums"]["pet_size"]
           species: Database["public"]["Enums"]["species"]
+          species_gender_changed_at?: string
           temperaments?: string[]
           updated_at?: string
         }
@@ -791,6 +825,7 @@ export type Database = {
           previous_name?: string | null
           size?: Database["public"]["Enums"]["pet_size"]
           species?: Database["public"]["Enums"]["species"]
+          species_gender_changed_at?: string
           temperaments?: string[]
           updated_at?: string
         }
@@ -834,6 +869,7 @@ export type Database = {
           bio: string | null
           birth_date: string | null
           city: string | null
+          connection_tag: string | null
           created_at: string
           display_name: string | null
           gender: string | null
@@ -856,6 +892,7 @@ export type Database = {
           bio?: string | null
           birth_date?: string | null
           city?: string | null
+          connection_tag?: string | null
           created_at?: string
           display_name?: string | null
           gender?: string | null
@@ -878,6 +915,7 @@ export type Database = {
           bio?: string | null
           birth_date?: string | null
           city?: string | null
+          connection_tag?: string | null
           created_at?: string
           display_name?: string | null
           gender?: string | null
@@ -1383,6 +1421,10 @@ export type Database = {
         Args: { p_platform: string; p_token: string }
         Returns: undefined
       }
+      replace_owner_photo_order: {
+        Args: { p_storage_paths: string[] }
+        Returns: undefined
+      }
       replace_pet_photo_order: {
         Args: { p_pet_id: string; p_storage_paths: string[] }
         Returns: undefined
@@ -1512,6 +1554,7 @@ export type Database = {
           p_avatar_path: string
           p_bio: string
           p_birth_date: string
+          p_connection_tag?: string
           p_display_name: string
           p_gender: string
           p_interests: string[]

@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ActivityIndicator, AppState, Platform, Text, View } from "react-native";
+import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import type { NotificationResponse } from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
@@ -29,6 +29,14 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppErrorBoundary } from "../components/app-error-boundary";
 import { InAppNotificationBanner } from "../components/in-app-notification-banner";
 import { AppPressable } from "../components/ui/pressable";
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    "[expo-notifications]",
+    "Error reading persisted",
+    "The action 'GO_BACK' was not handled",
+  ]);
+}
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 configureForegroundNotifications();
@@ -134,12 +142,14 @@ function NotificationEffects() {
           Notifications.addNotificationResponseReceivedListener(
             openNotification,
           );
-        const response = await Notifications.getLastNotificationResponseAsync();
-        if (!disposed && response) openNotification(response);
+        try {
+          const response = await Notifications.getLastNotificationResponseAsync();
+          if (!disposed && response) openNotification(response);
+        } catch {
+          // Simülatörde persisted notification deposu okunamayabiliyor.
+        }
       })
-      .catch((error) => {
-        console.error("Bildirim yönlendirmesi başlatılamadı:", error);
-      });
+      .catch(() => undefined);
 
     return () => {
       disposed = true;
@@ -282,6 +292,15 @@ export default function RootLayout() {
               <Stack.Screen name="legal-consent" />
               <Stack.Screen name="(app)" />
               <Stack.Screen name="chat/[conversationId]" />
+              <Stack.Screen
+                name="pet/[petId]"
+                options={{
+                  animation: "slide_from_right",
+                  freezeOnBlur: true,
+                  contentStyle: { backgroundColor: "#FFFBF7" },
+                  gestureEnabled: true,
+                }}
+              />
               <Stack.Screen name="profile/pet" />
               <Stack.Screen name="profile/owner" />
               <Stack.Screen name="moderation/index" />

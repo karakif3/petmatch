@@ -24,6 +24,7 @@ const FULL: ProfileCompletionInput = {
   ownerAvatarUrl: "abc/avatar.jpg",
   ownerBio: "Kadıköy'de yaşıyorum.",
   ownerInterests: ["walks"],
+  ownerPhotoCount: 2,
 };
 
 describe("missingProfileItems", () => {
@@ -55,11 +56,20 @@ describe("missingProfileItems", () => {
     expect(keys).toEqual(["petDetails"]);
   });
 
-  it("ilgi alanı eklemek de eksik sayısını düşürür", () => {
-    const keys = missingProfileItems({ ...FULL, ownerInterests: [] }).map(
+  it("tek sahip fotoğrafında bir kare daha ister", () => {
+    const keys = missingProfileItems({ ...FULL, ownerPhotoCount: 1 }).map(
       (item) => item.key,
     );
-    expect(keys).toEqual(["ownerInterests"]);
+    expect(keys).toEqual(["ownerExtraPhoto"]);
+  });
+
+  it("kapak yokken extra istemez", () => {
+    const keys = missingProfileItems({
+      ...FULL,
+      ownerAvatarUrl: null,
+      ownerPhotoCount: 0,
+    }).map((item) => item.key);
+    expect(keys).toEqual(["ownerAvatar"]);
   });
 
   it("alan hiç yoksa çökmez", () => {

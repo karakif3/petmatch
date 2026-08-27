@@ -73,6 +73,11 @@ begin
       avatar_url       = p_id::text || '/avatar.jpg'
   where id = p_id;
 
+  insert into owner_photos (owner_id, storage_path, position)
+  values (p_id, p_id::text || '/avatar.jpg', 0)
+  on conflict (owner_id, position) do update
+    set storage_path = excluded.storage_path;
+
   return p_id;
 end;
 $$;

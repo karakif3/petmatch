@@ -66,6 +66,22 @@ export const OWNER_INTERESTS = [
 ] as const;
 export type OwnerInterest = (typeof OWNER_INTERESTS)[number];
 
+/**
+ * "Tanışma amacı: açık" seçilince gösterilen opsiyonel sinyal.
+ *
+ * FİLTRELEMEZ — yalnızca profilde görünen bir çip. Amaç: eşleşme sonrası
+ * "bu kişi ne bekliyor" belirsizliğini azaltmak (retention), eşleşme
+ * havuzunu bölmeden (`docs/pet-first-connection.md`: "dating yoğunluk
+ * yaratmaz, yoğunluk gerektirir"). Sabit taksonomi, serbest metin değil —
+ * serbest metin moderasyon yükü ister.
+ */
+export const CONNECTION_TAGS = [
+  "new_friends",
+  "open_minded",
+  "not_sure_yet",
+] as const;
+export type ConnectionTag = (typeof CONNECTION_TAGS)[number];
+
 export type Coordinates = {
   latitude: number;
   longitude: number;

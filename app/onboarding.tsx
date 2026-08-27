@@ -143,6 +143,7 @@ export default function OnboardingScreen() {
   const [locationConsent, setLocationConsent] = useState(false);
 
   const [busy, setBusy] = useState(false);
+  const [photoDragging, setPhotoDragging] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldError, string>>>({});
@@ -276,6 +277,12 @@ export default function OnboardingScreen() {
       if (needsManualCity && city.trim().length < 2) {
         return setFieldErrors({ city: "Bulunduğun ilçe veya şehri yazmalısın." });
       }
+      if (coordinates && !locationConsent) {
+        return setFieldErrors({
+          locationConsent:
+            "Yaklaşık konum için açık rıza vermeli veya konumu kaldırmalısın.",
+        });
+      }
       setStep(1);
       return;
     }
@@ -309,14 +316,23 @@ export default function OnboardingScreen() {
         ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (!result.canceled) {
-      const additions: LocalPhoto[] = result.assets.slice(0, remaining).map((asset) => ({
-        id: asset.uri,
-        uri: asset.uri,
-        fileName: asset.fileName ?? null,
-        mimeType: asset.mimeType ?? null,
-      }));
-      setPhotos((current) => [...current, ...additions].slice(0, 6));
-      clearFieldError("photos");
+      setPhotos((current) => {
+        const remainingNow = 6 - current.length;
+        if (remainingNow <= 0) return current;
+        const have = new Set(current.map((photo) => photo.uri));
+        const additions: LocalPhoto[] = result.assets
+          .slice(0, remainingNow)
+          .filter((asset) => !have.has(asset.uri))
+          .map((asset, index) => ({
+            id: `${asset.uri}-${Date.now()}-${index}`,
+            uri: asset.uri,
+            fileName: asset.fileName ?? null,
+            mimeType: asset.mimeType ?? null,
+          }));
+        if (!additions.length) return current;
+        clearFieldError("photos");
+        return [...current, ...additions].slice(0, 6);
+      });
     }
   };
 
@@ -412,6 +428,7 @@ export default function OnboardingScreen() {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={!photoDragging}
         contentContainerClassName="px-6 pb-32 pt-12"
       >
         <View className="mb-7 flex-row items-center justify-between">
@@ -621,6 +638,39 @@ export default function OnboardingScreen() {
                 </Text>
               )}
             </AppPressable>
+            {coordinates ? (
+              <View className="mt-3">
+                <Checkbox
+                  checked={locationConsent}
+                  onChange={(value) => {
+                    setLocationConsent(value);
+                    clearFieldError("locationConsent");
+                  }}
+                >
+                  <Text className="text-sm leading-5 text-text-secondary">
+                    Yaklaşık konumumun, seçtiğim bölge içinde mesafe bazlı keşfet
+                    için işlenmesine açık rıza veriyorum. Bu özellik isteğe bağlıdır.
+                  </Text>
+                </Checkbox>
+                {fieldErrors.locationConsent ? (
+                  <Text className="mt-2 text-xs font-semibold text-danger">
+                    {fieldErrors.locationConsent}
+                  </Text>
+                ) : null}
+                <AppPressable
+                  onPress={() => {
+                    setCoordinates(null);
+                    setLocationConsent(false);
+                    clearFieldError("locationConsent");
+                  }}
+                  className="mt-2 self-start py-1"
+                >
+                  <Text className="text-xs font-semibold text-text-tertiary">
+                    Konumu kaldır
+                  </Text>
+                </AppPressable>
+              </View>
+            ) : null}
           </>
         ) : null}
 
@@ -638,9 +688,6 @@ export default function OnboardingScreen() {
               autoCapitalize="words"
               maxLength={40}
             />
-            {fieldErrors.photos ? (
-              <Text className="mt-2 text-xs font-semibold text-danger">{fieldErrors.photos}</Text>
-            ) : null}
             <Text className="mb-2 text-sm font-semibold text-text-primary">Türü</Text>
             <View className="mb-4 flex-row gap-2">
               <View className="flex-1">
@@ -675,6 +722,10 @@ export default function OnboardingScreen() {
                 />
               </View>
             </View>
+            <Text className="mb-4 text-xs leading-4 text-text-tertiary">
+              Tür ve cinsiyet kayıtta kilitlenir. Petin değişirse 6 ayda bir
+              profilden güncelleyebilirsin.
+            </Text>
 
             <PetAgePicker value={petAge} onChange={setPetAge} />
 
@@ -696,11 +747,13 @@ export default function OnboardingScreen() {
               Pet fotoğrafları
             </Text>
             <Text className="mb-4 text-sm leading-5 text-text-secondary">
-              En az 1, en fazla 6 fotoğraf ekle. İlk fotoğraf profil kapağı olur.
+              En az 1, en fazla 6 fotoğraf. Büyük kare kapak. Petinle aynı
+              karede olduğun fotoğraflar karşı tarafın seni tanımasını kolaylaştırır.
             </Text>
             <PetPhotoEditor
               photos={photos}
               max={6}
+              onDragActive={setPhotoDragging}
               onAdd={() => void pickPhotos()}
               // `PetPhotoEditor` yalnızca verdiğimiz diziyi filtreler/yeniden
               // sıralar, yeni nesne üretmez — bu yüzden döndürdüğü referanslar
@@ -711,9 +764,11 @@ export default function OnboardingScreen() {
                 clearFieldError("photos");
               }}
             />
-
-            {/* Konum artık adım 1'de, bölgenin yanında. Rızası burada
-                kalıyor çünkü diğer yasal onaylarla birlikte alınıyor. */}
+            {fieldErrors.photos ? (
+              <Text className="mt-2 text-xs font-semibold text-danger">
+                {fieldErrors.photos}
+              </Text>
+            ) : null}
 
             <View className="mt-5 rounded-2xl border border-border bg-surface p-4">
               <Checkbox
@@ -725,7 +780,8 @@ export default function OnboardingScreen() {
               >
                 <Text className="text-sm leading-5 text-text-secondary">
                   Kullanım koşullarını kabul ediyor; gizlilik politikası ve KVKK
-                  aydınlatma metnini okuduğumu onaylıyorum.
+                  aydınlatma metnini okuduğumu onaylıyorum. Sahip profilim
+                  keşfette görünür başlar; dilediğim zaman ayarlardan kapatabilirim.
                 </Text>
               </Checkbox>
               <AppPressable onPress={() => router.push("/(auth)/legal")} className="mt-3">
@@ -735,34 +791,10 @@ export default function OnboardingScreen() {
                 <Text className="mt-3 text-xs font-semibold text-danger">{fieldErrors.legal}</Text>
               ) : null}
 
-              {coordinates ? (
-                <View className="mt-4 border-t border-border pt-4">
-                  <Checkbox
-                    checked={locationConsent}
-                    onChange={(value) => {
-                      setLocationConsent(value);
-                      clearFieldError("locationConsent");
-                    }}
-                  >
-                    <Text className="text-sm leading-5 text-text-secondary">
-                      Yaklaşık konumumun, seçtiğim bölge içinde mesafe bazlı keşfet
-                      için işlenmesine açık rıza veriyorum. Bu özellik isteğe bağlıdır.
-                    </Text>
-                  </Checkbox>
-                  {fieldErrors.locationConsent ? (
-                    <Text className="mt-2 text-xs font-semibold text-danger">
-                      {fieldErrors.locationConsent}
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
-
               {/*
-                Herkese açık profil rızası buradan kaldırıldı: kayıt akışı
-                artık görünürlük sormuyor, varsayılan `after_match` kalıyor ve
-                o herkese açık bir profil değil. Rıza, kullanıcı profilinden
-                "Herkese açık"a geçmek istediğinde orada alınıyor — kararın
-                yanında, bir ekran ötesinde değil.
+                Konum rızası adım 1'de. Keşfet görünürlüğü checkbox'ta
+                açıklanıyor; `public_profile_consent` completeOnboarding'de
+                yazılıyor. Kapatmak Sahip profili ayarından.
               */}
             </View>
           </>

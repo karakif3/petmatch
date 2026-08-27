@@ -43,9 +43,15 @@ import {
 import { ensureImageLibraryAccess } from "../../core/media/image-library";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
+import { formatIsoDateForDisplay, toIsoDate } from "../../core/domain/date-validation";
+import {
+  canChangeSpeciesGender,
+  speciesGenderUnlockAt,
+} from "../../core/domain/pet-identity";
 import { AppPressable } from "../../components/ui/pressable";
 import { ProfileFormSkeleton } from "../../components/ui/skeleton";
 import { successHaptic } from "../../core/ui/haptics";
+import { useUnsavedChangesGuard } from "../../core/ui/unsaved-changes-guard";
 
 type PhotoItem =
   | { id: string; kind: "remote"; storagePath: string; uri: string }
@@ -187,6 +193,7 @@ export default function PetProfileScreen() {
   const [bio, setBio] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [busy, setBusy] = useState(false);
+  const [photoDragging, setPhotoDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [species, setSpecies] = useState<Species>("dog");
   const [gender, setGender] = useState<"male" | "female">("female");
@@ -211,8 +218,8 @@ export default function PetProfileScreen() {
     setGoodWithKids(pet.goodWithKids);
     setBio(pet.bio ?? "");
     setPhotos(
-      pet.photos.map((photo) => ({
-        id: photo.storagePath,
+      pet.photos.map((photo, index) => ({
+        id: `${photo.storagePath}#${index}`,
         kind: "remote",
         storagePath: photo.storagePath,
         uri: photo.url,
@@ -253,6 +260,21 @@ export default function PetProfileScreen() {
       bio !== (profile.data!.pet.bio ?? "") ||
       !photosMatch);
 
+  useUnsavedChangesGuard(
+    dirty,
+    "Çıkarsan bu turdaki pet profili değişiklikleri kaybolur.",
+  );
+
+  const speciesGenderLocked =
+    profile.data !== undefined &&
+    !canChangeSpeciesGender(profile.data.pet.speciesGenderChangedAt);
+  const speciesGenderUnlockLabel =
+    profile.data && speciesGenderLocked
+      ? formatIsoDateForDisplay(
+          toIsoDate(speciesGenderUnlockAt(profile.data.pet.speciesGenderChangedAt)),
+        )
+      : null;
+
   const resetForm = () => {
     if (!profile.data) return;
     const pet = profile.data.pet;
@@ -270,8 +292,8 @@ export default function PetProfileScreen() {
     setGoodWithKids(pet.goodWithKids);
     setBio(pet.bio ?? "");
     setPhotos(
-      pet.photos.map((photo) => ({
-        id: photo.storagePath,
+      pet.photos.map((photo, index) => ({
+        id: `${photo.storagePath}#${index}`,
         kind: "remote" as const,
         storagePath: photo.storagePath,
         uri: photo.url,
@@ -283,20 +305,7 @@ export default function PetProfileScreen() {
     setNotice(null);
   };
 
-  const goBack = () => {
-    if (!dirty) {
-      router.back();
-      return;
-    }
-    Alert.alert(
-      "Kaydedilmemiş değişiklikler var",
-      "Çıkarsan bu turdaki pet profili değişiklikleri kaybolur.",
-      [
-        { text: "Düzenlemeye dön", style: "cancel" },
-        { text: "Çık ve vazgeç", style: "destructive", onPress: () => router.back() },
-      ],
-    );
-  };
+  const goBack = () => router.back();
 
   const pickFromLibrary = async (available: number) => {
     if (!(await ensureImageLibraryAccess())) {
@@ -333,6 +342,8 @@ export default function PetProfileScreen() {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       quality: 0.85,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
     if (result.canceled) return;
     const photo = result.assets[0];
@@ -378,22 +389,26 @@ export default function PetProfileScreen() {
     if (!photos.length) return setPhotosError("En az bir pet fotoğrafı kalmalı.");
 
     /*
-     * Tür ya da cinsiyet değişiyorsa ONAY İSTE. Bu alanlar profili
-     * zenginleştiren alanlar değil, "bu kim" sorusunun cevabı: karşı taraf
-     * bu petle eşleşmişti ve sohbetinde başka bir kimlik görecek.
-     *
-     * Onay metni ne olacağını AÇIKÇA söylüyor — eşleşmelerin duracağını da,
-     * karşı tarafın bilgilendirileceğini de. Sürprizi kaydettikten sonra
-     * yaşatmak, kullanıcıyı kendi profilinden korkutur.
+     * Ad / tür / cinsiyet karşı tarafın GÖRDÜĞÜ kimlik. Eşleşmeler
+     * durmaz (0063); sohbette bir not çıkar. Tür ve cinsiyet ayrıca
+     * 6 ayda bir (0067) — kilitliyken çipler zaten basılmaz, bu onay
+     * kota açıldığında ve ad değişince çalışır.
      */
     const identityChanging =
-      species !== profile.data.pet.species || gender !== profile.data.pet.gender;
+      name.trim() !== profile.data.pet.name ||
+      species !== profile.data.pet.species ||
+      gender !== profile.data.pet.gender;
     if (identityChanging) {
+      const speciesOrGender =
+        species !== profile.data.pet.species || gender !== profile.data.pet.gender;
       const confirmed = await new Promise<boolean>((resolve) => {
         Alert.alert(
           "Petin kimliği değişiyor",
-          "Mevcut eşleşmelerin ve sohbetlerin duracak. Karşı taraf sohbette " +
-            "petin değiştiğini görecek. Devam edilsin mi?",
+          (speciesOrGender
+            ? "Tür ve cinsiyeti 6 ayda bir değiştirebilirsin. "
+            : "") +
+            "Eşleşmelerin ve sohbetlerin durmaz. Karşı taraf sohbette " +
+            "petin değiştiğini görür. Devam edilsin mi?",
           [
             { text: "Vazgeç", style: "cancel", onPress: () => resolve(false) },
             { text: "Devam et", onPress: () => resolve(true) },
@@ -499,6 +514,7 @@ export default function PetProfileScreen() {
 
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={!photoDragging}
           contentContainerClassName={dirty ? "px-5 pb-28 pt-5" : "px-5 pb-12 pt-5"}
         >
           <View className="mb-7">
@@ -512,12 +528,17 @@ export default function PetProfileScreen() {
               photos={photos}
               max={6}
               busy={busy}
+              onDragActive={setPhotoDragging}
               onChange={(next) =>
                 setPhotos(next as typeof photos)
               }
               onAdd={pickPhotos}
             />
-            {photosError ? (
+            {photos.length === 0 ? (
+              <Text className="mt-2 text-xs font-semibold text-danger">
+                En az bir pet fotoğrafı kalmalı.
+              </Text>
+            ) : photosError ? (
               <Text className="mt-2 text-xs font-semibold text-danger">{photosError}</Text>
             ) : null}
           </View>
@@ -531,26 +552,35 @@ export default function PetProfileScreen() {
             error={nameError}
           />
           {/*
-            TÜR VE CİNSİYET ARTIK DEĞİŞTİRİLEBİLİR (`0063`). Önceden başlıkta
-            salt okunur bir satırdı; peti ölüp başka bir hayvan sahiplenen
-            kullanıcının mevcut kaydını dönüştürme yolu yoktu ve tek çıkış
-            hesabı silmekti — bütün eşleşmeleri ve sohbetleri götürerek.
-
-            Değişim eşleşmeleri SIFIRLAMIYOR: eşleşme kurulduğu an ilişki
-            insanlar arasında sürüyor. Ama sessiz de kalmıyor; karşı tarafın
-            sohbetinde bir not beliriyor (`0063`).
+            Tür/cinsiyet kayıtta kilitlenir (`0067`). 6 ay dolunca — pet
+            öldü, yeni hayvan geldi — yerinde güncellenir; eşleşmeler yine
+            durmaz, sohbette not çıkar (`0063`). Ad bu kotanın dışında.
           */}
           <Text className="mb-3 text-lg font-bold text-text-primary">Tür</Text>
-          <View className="mb-6 flex-row gap-2">
+          <View className="mb-2 flex-row gap-2">
             {(["dog", "cat"] as const).map((option) => (
               <AppPressable
                 key={option}
-                onPress={() => setSpecies(option)}
+                onPress={() => {
+                  if (speciesGenderLocked) {
+                    Alert.alert(
+                      "Tür kilitli",
+                      speciesGenderUnlockLabel
+                        ? `Kayıtta seçilen tür 6 ayda bir değişir. Petin değiştiyse ${speciesGenderUnlockLabel} tarihinden sonra güncelleyebilirsin.`
+                        : "Tür 6 ayda bir değiştirilebilir.",
+                    );
+                    return;
+                  }
+                  setSpecies(option);
+                }}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: species === option }}
+                accessibilityState={{
+                  selected: species === option,
+                  disabled: speciesGenderLocked,
+                }}
                 className={`flex-1 items-center rounded-xl border py-3 ${
                   species === option ? "border-brand bg-brand/10" : "border-border bg-surface"
-                }`}
+                } ${speciesGenderLocked && species !== option ? "opacity-50" : ""}`}
               >
                 <Text
                   className={
@@ -562,18 +592,37 @@ export default function PetProfileScreen() {
               </AppPressable>
             ))}
           </View>
+          <Text className="mb-6 text-xs leading-4 text-text-tertiary">
+            {speciesGenderLocked
+              ? `Tür ve cinsiyet kayıtta kilitli. Petin değiştiyse ${speciesGenderUnlockLabel ?? "6 ay sonra"} güncelleyebilirsin.`
+              : "Tür ve cinsiyeti 6 ayda bir değiştirebilirsin — eşleşmeler durmaz, sohbette bir not çıkar."}
+          </Text>
 
           <Text className="mb-3 text-lg font-bold text-text-primary">Cinsiyet</Text>
           <View className="mb-6 flex-row gap-2">
             {(["female", "male"] as const).map((option) => (
               <AppPressable
                 key={option}
-                onPress={() => setGender(option)}
+                onPress={() => {
+                  if (speciesGenderLocked) {
+                    Alert.alert(
+                      "Cinsiyet kilitli",
+                      speciesGenderUnlockLabel
+                        ? `Kayıtta seçilen cinsiyet 6 ayda bir değişir. Petin değiştiyse ${speciesGenderUnlockLabel} tarihinden sonra güncelleyebilirsin.`
+                        : "Cinsiyet 6 ayda bir değiştirilebilir.",
+                    );
+                    return;
+                  }
+                  setGender(option);
+                }}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: gender === option }}
+                accessibilityState={{
+                  selected: gender === option,
+                  disabled: speciesGenderLocked,
+                }}
                 className={`flex-1 items-center rounded-xl border py-3 ${
                   gender === option ? "border-brand bg-brand/10" : "border-border bg-surface"
-                }`}
+                } ${speciesGenderLocked && gender !== option ? "opacity-50" : ""}`}
               >
                 <Text
                   className={

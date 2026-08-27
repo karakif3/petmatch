@@ -130,8 +130,13 @@ anahtarı istemciye çıkmaz.
 
 `owner-avatars` ve `verification-photos` private bucket'lardır. Avatar signed
 URL politikası own/public/active-match durumlarını ve block ilişkisini tekrar
-kontrol eder. Keşfet RPC'si kesin doğum tarihini döndürmez; yalnızca
-`owner_age_bucket()` çıktısı gider. Cinsiyet ve yaş filtre seçimleri Postgres'e
+kontrol eder. Sahip galerisi `owner_photos` (en fazla 4, kapak =
+`profiles.avatar_url`); Keşfet hapı yalnız kapağı gösterir, extras pet
+profilinde. Doğrulama kanıtı `verification-photos` içinde kalır — galeri
+değişince rozet düşmez. Keşfet RPC'si kesin doğum tarihini döndürmez; yalnızca
+`owner_age_bucket()` çıktısı gider. Public sahibin kovası izleyici gizli
+olsa da dolar (`0068`); yaş/cinsiyet **filtresi** hâlâ izleyicinin public
+açıklamasını ister. Cinsiyet ve yaş filtre seçimleri Postgres'e
 yazılmaz, cihaz storage'ında tutulup RPC parametresi olarak gönderilir.
 
 Kural: **bir tabloda tek bir kolonun değişmesi bekleniyorsa UPDATE politikası

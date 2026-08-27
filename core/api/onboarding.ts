@@ -15,10 +15,9 @@ export type OnboardingPhoto = {
  *
  * Irk, boyut, enerji, kısırlaştırma ve sahip görünürlüğü buradan çıkarıldı;
  * hepsinin ya şemada makul bir varsayılanı var (`size='medium'`,
- * `energy_level=3`, `is_neutered=false`, `owner_visibility='after_match'`) ya
+ * `energy_level=3`, `is_neutered=false`, `owner_visibility='public'`) ya
  * da null olabiliyor. Kullanıcı bunları profilinden, ürünü gördükten sonra
- * dolduruyor — özellikle görünürlük kararı, kullanıcı eşleşmenin ne demek
- * olduğunu görmeden sorulacak bir soru değildi.
+ * dolduruyor. Görünürlük keşfette açık başlar; kapatmak ayarlardan.
  *
  * Burada alanları YAZMAMAK bilinçli: mevcut bir peti güncellerken de aynı
  * yol işlediği için, kullanıcının profilden yaptığı seçimler kayıt akışı
@@ -67,13 +66,20 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
   }
   await recordLegalAcceptances({
     ...input.legal,
-    // Kayıt akışı görünürlüğü artık sormuyor; varsayılan `after_match`
-    // kalıyor ve o herkese açık bir profil değil. Ayrı açık rıza, kullanıcı
-    // profilinden "Herkese açık"a geçmek istediğinde orada alınıyor.
-    publicProfileConsent: false,
+    // Checkbox metni keşfette görünür başladığını söylüyor; rıza burada.
+    publicProfileConsent: true,
   });
 
   const city = input.city?.trim() || null;
+
+  const { data: existingPet, error: existingPetError } = await sb
+    .from("pets")
+    .select("id")
+    .eq("owner_id", input.userId)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  if (existingPetError) throw existingPetError;
 
   const { error: profileError } = await sb
     .from("profiles")
@@ -81,6 +87,8 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
       display_name: input.displayName?.trim() || null,
       birth_date: input.ownerBirthDate,
       city,
+      // İlk kayıt: keşfette görünür. Tekrar çalışan akış profilden seçileni ezmez.
+      ...(existingPet ? {} : { owner_visibility: "public" as const }),
     })
     .eq("id", input.userId);
   if (profileError) throw profileError;
@@ -96,15 +104,6 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
     longitude: input.pet.coordinates?.longitude ?? null,
     is_active: true,
   };
-
-  const { data: existingPet, error: existingPetError } = await sb
-    .from("pets")
-    .select("id")
-    .eq("owner_id", input.userId)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-  if (existingPetError) throw existingPetError;
 
   let petId = existingPet?.id;
   if (petId) {

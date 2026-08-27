@@ -29,6 +29,7 @@ export type DiscoveryDeckCard = DiscoveryCandidate & {
     socialOpen: boolean;
     verified: boolean;
     interests: OwnerInterest[];
+    extraPhotoUrls?: string[];
   } | null;
 };
 

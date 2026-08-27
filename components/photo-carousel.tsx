@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { AppIcon } from "./ui/icon";
 
@@ -17,7 +17,16 @@ type Props = {
    * kaymasına yol açıyordu.
    */
   fill?: boolean;
+  /** Lightbox kapatma düğmesi gibi üst kontrollerin tap'ini yememek için. */
+  topTapInset?: number;
+  /**
+   * Verilince sol/sağ sayfa yerine tüm kare bu basışa gider.
+   * Keşfet'te fotoğraf dokunuşu profil açsın diye.
+   */
+  onPress?: () => void;
 };
+
+const CARD_FILL = "#FDEADF";
 
 /**
  * Tinder tarzı fotoğraf karuseli: sol/sağ yarıya dokunarak geçiş, üstte
@@ -39,6 +48,8 @@ export function PhotoCarousel({
   index,
   onIndexChange,
   fill = false,
+  topTapInset = 0,
+  onPress,
 }: Props) {
   const count = photoUrls.length;
   const current = Math.min(index, Math.max(0, count - 1));
@@ -46,7 +57,10 @@ export function PhotoCarousel({
 
   if (count === 0) {
     return (
-      <View className="w-full items-center justify-center bg-bg-tertiary" style={frameStyle}>
+      <View
+        className="w-full items-center justify-center"
+        style={[frameStyle, { backgroundColor: CARD_FILL }]}
+      >
         <AppIcon name="paw-print" color="#C4B7AE" size={72} />
       </View>
     );
@@ -64,14 +78,23 @@ export function PhotoCarousel({
   };
 
   return (
-    // `bg-bg-tertiary`: fotoğraf yüklenemezse (kötü URL, ağ hatası) expo-image
-    // hiçbir şey boyamıyor; arka plan olmadan o alan şeffaf kalırdı.
-    <View style={frameStyle} className="w-full bg-bg-tertiary">
+    // Opak dolgu şart: Keşfet destesinde arkadaki kart isim olarak
+    // delinmesin. `fill` iken yüzde yükseklik 0 kalabiliyor — Image
+    // absoluteFill ile kabı gerçekten kaplar.
+    <View
+      style={[frameStyle, { backgroundColor: CARD_FILL, overflow: "hidden" }]}
+      className="w-full"
+    >
       <Image
         source={photoUrls[current]}
         contentFit="cover"
-        transition={180}
-        style={{ width: "100%", height: "100%" }}
+        recyclingKey={photoUrls[current]}
+        transition={fill ? 0 : 160}
+        style={
+          fill
+            ? [StyleSheet.absoluteFillObject, { backgroundColor: CARD_FILL }]
+            : { width: "100%", aspectRatio, backgroundColor: CARD_FILL }
+        }
       />
 
       {count > 1 ? (
@@ -87,8 +110,17 @@ export function PhotoCarousel({
         </View>
       ) : null}
 
-      {count > 1 ? (
-        <View className="absolute inset-0 flex-row">
+      {onPress ? (
+        <AppPressable
+          className="absolute inset-0"
+          style={{ top: topTapInset }}
+          disablePressFeedback
+          accessibilityRole="button"
+          accessibilityLabel="Profili aç"
+          onPress={onPress}
+        />
+      ) : count > 1 ? (
+        <View className="absolute bottom-0 left-0 right-0 flex-row" style={{ top: topTapInset }}>
           <AppPressable
             className="flex-1"
             disablePressFeedback

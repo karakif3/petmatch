@@ -1,34 +1,27 @@
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
 
 import type { OwnerVisibility } from "../core/domain/types";
-import { OwnerProfileSection, type OwnerDisclosure } from "./owner-sheet";
+import { OwnerDiscoverPill } from "./owner-discover-pill";
+import type { OwnerDisclosure } from "./owner-sheet";
 import { AppIcon } from "./ui/icon";
 
 /**
- * "Karşı taraf ne görüyor" — görünürlük seçiminin canlı önizlemesi.
+ * Görünürlük seçiminin canlı özeti — tam profil kopyası değil.
  *
- * Neden gerekiyor: kullanıcı üç seçenek arasından birini seçiyor ama
- * hiçbirinin karşı tarafta ne demek olduğunu göremiyordu. `Profilimi önizle`
- * yalnızca PET kartını gösteriyor, sahip katmanını bilerek hiç render
- * etmiyor — yani gizlilik kararı olan tek katman, önizlenemeyen katmandı.
- *
- * Neden AYRI bir üç durumlu anahtar yok: üç seçenek zaten hemen yukarıda
- * radyo olarak duruyor. İkinci bir seçici koymak aynı kararı iki yerde
- * sormak olurdu. Önizleme seçimi takip ediyor — dokun, sonucu gör.
- *
- * Sunucu mantığı BURADA TEKRARLANMIYOR: yaş aralığı (`owner_age_bucket()`)
- * ve karşılıklı açıklama kuralı (`0021`) sunucuda; önizleme onların yerine
- * geçmeye çalışmıyor, dipnotta ne olduklarını söylüyor.
+ * Tam `OwnerProfileSection` buraya konunca kapak hapı + avatar + extra
+ * kare aynı dosyayı üç kez gösteriyordu. Önizleme tek yüzey taklit eder:
+ * public → keşfet hapı; after_match / hidden → kısa metin.
  */
 export function OwnerVisibilityPreview({
   visibility,
   owner,
   petName,
+  unsaved = false,
 }: {
   visibility: OwnerVisibility;
   owner: OwnerDisclosure;
   petName: string;
+  unsaved?: boolean;
 }) {
   return (
     <View className="mb-7">
@@ -37,57 +30,46 @@ export function OwnerVisibilityPreview({
         <Text className="text-sm font-bold text-text-primary">
           Karşı taraf ne görüyor
         </Text>
+        {unsaved ? (
+          <View className="rounded-full bg-bg-tertiary px-2 py-0.5">
+            <Text className="text-[10px] font-bold text-text-tertiary">
+              Henüz kaydedilmedi
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      {visibility === "hidden" ? (
-        <View className="items-center rounded-2xl border border-border bg-surface px-5 py-7">
-          <AppIcon name="eye-off" color="#C4B7AE" size={26} />
-          <Text className="mt-3 text-center text-sm leading-5 text-text-secondary">
-            Keşfette yalnızca {petName} görünür. Eşleşseniz bile profil
-            sayfanda “Sahibi” bölümü hiç çıkmaz.
+      {visibility === "public" ? (
+        <View className="rounded-2xl border border-border bg-surface p-4">
+          <Text className="mb-2.5 text-[10px] font-bold uppercase tracking-wide text-text-tertiary">
+            Keşfet kartında
+          </Text>
+          <OwnerDiscoverPill variant="preview" owner={owner} />
+          <Text className="mt-3 text-xs leading-4 text-text-secondary">
+            Pet profilinde adın, yaş aralığın, fotoğrafların ve bio’n da
+            çıkar. Keşfet hapına yalnızca kapak konur.
+          </Text>
+        </View>
+      ) : visibility === "after_match" ? (
+        <View className="rounded-2xl border border-border bg-surface px-4 py-4">
+          <Text className="text-sm leading-5 text-text-secondary">
+            Keşfette yalnızca {petName} görünür. Eşleşince sohbet ve pet
+            profilinde adın ile fotoğrafın açılır.
           </Text>
         </View>
       ) : (
-        <View className="rounded-2xl border border-border bg-surface p-4">
-          <Text className="mb-3 text-xs leading-4 text-text-tertiary">
-            {visibility === "public"
-              ? "Keşfet kartında ve seni görebilen herkese:"
-              : "Yalnızca eşleştikten sonra — sohbette ve profil sayfasında:"}
+        <View className="items-center rounded-2xl border border-border bg-surface px-5 py-7">
+          <AppIcon name="eye-off" color="#C4B7AE" size={26} />
+          <Text className="mt-3 text-center text-sm leading-5 text-text-secondary">
+            Keşfette yalnızca {petName} görünür. Eşleşseniz bile “Sahibi”
+            bölümü çıkmaz.
           </Text>
-
-          {/*
-            `public` ayrıca DESTEDE bir iz bırakıyor: kartın üstündeki sahip
-            hapı. Bu, "eşleşince" ile aradaki tek görünür fark — o yüzden
-            önizlemede de yalnızca burada var.
-          */}
-          {visibility === "public" ? (
-            <View className="mb-4 flex-row items-center gap-2 self-start rounded-full bg-text-primary/90 py-1.5 pl-1.5 pr-3">
-              {owner.photoUrl ? (
-                <Image
-                  source={owner.photoUrl}
-                  contentFit="cover"
-                  style={{ width: 26, height: 26, borderRadius: 13 }}
-                />
-              ) : (
-                <View className="h-[26px] w-[26px] items-center justify-center rounded-full bg-white/20">
-                  <AppIcon name="user" color="#FFFFFF" size={13} />
-                </View>
-              )}
-              <Text className="text-xs font-bold text-white">
-                {owner.displayName ?? "Pet sahibi"}
-              </Text>
-              <AppIcon name="chevron-right" color="#FFFFFFB3" size={12} />
-            </View>
-          ) : null}
-
-          <OwnerProfileSection owner={owner} petName={petName} />
         </View>
       )}
 
       <Text className="mt-2.5 text-[11px] leading-4 text-text-tertiary">
-        Yaş aralığın ve cinsiyetin burada gösterilmiyor: karşı tarafa yalnızca
-        kendi yaşını/cinsiyetini paylaşan kullanıcılara ve “25–29 yaş” gibi bir
-        aralık olarak görünürler.
+        Yaş kesin yıl değil, “25–29 yaş” gibi bir aralık. Gizlemek istersen
+        bu sayfadan değiştirmen yeterli — Keşfet’te ayrı bir gizleme tuşu yok.
       </Text>
     </View>
   );

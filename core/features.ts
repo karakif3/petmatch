@@ -20,4 +20,22 @@ export const FEATURES = {
    * `docs/backlog.md`'deki sahiplendirme maddelerini gözden geçir.
    */
   adoption: false,
+
+  /**
+   * Çoklu pet roster'ı (Petlerim: ikinci pet ekleme, aktif pet değiştirme).
+   *
+   * `false` iken "Petlerim" giriş noktası profil ekranından kalkıyor ve
+   * ikinci pet eklemenin tek yolu (bu ekrandan) kapanıyor. DB tarafı
+   * (`0062`: roster tabloları, `create_my_pet`/`set_active_pet` RPC'leri)
+   * KALDIRILMIYOR — zararsız, kimseye görünmüyor, `/profile/pets` rotası
+   * da silinmedi (doğrudan gidilirse çalışır, test etmeye devam edilebilir).
+   *
+   * Gerekçe: 0063 (pet kimliğini yerinde düzenleme — tür/cinsiyet/ad
+   * değiştirilebiliyor) asıl kullanım durumunu ("hayvanım değişti")
+   * roster'a hiç ihtiyaç duymadan çözüyor. Roster'ın kattığı tek ek şey —
+   * eski peti ayrı bir kayıt olarak arşivde tutmak — nadir bir senaryo,
+   * "tek kişi tek hesap" motto'suyla asıl akış değil. Talep gelirse tek
+   * satırla geri açılır.
+   */
+  petRoster: false,
 } as const;

@@ -1,15 +1,27 @@
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { useState } from "react";
+
+import { ownerInterestLabels } from "../core/domain/labels";
+import type { ConnectionTag, OwnerInterest } from "../core/domain/types";
+import { useTranslation } from "../core/i18n";
+import { PhotoLightbox } from "./photo-lightbox";
 import { AppIcon } from "./ui/icon";
+import { AppPressable } from "./ui/pressable";
 
 export type OwnerDisclosure = {
   displayName: string | null;
   photoUrl: string | null;
+  /** Kapaktan sonraki galeri; Keşfet hapına konmaz. */
+  extraPhotoUrls?: string[];
   bio: string | null;
   gender: "female" | "male" | "other" | null;
   ageBucket: string | null;
   socialOpen: boolean;
   verified: boolean;
+  interests?: OwnerInterest[];
+  /** Yalnızca profil gövdesinde; Keşfet hapına konmaz (`0066`). */
+  connectionTag?: ConnectionTag | null;
 };
 
 function genderLabel(gender: OwnerDisclosure["gender"]): string | null {
@@ -56,23 +68,45 @@ export function OwnerProfileSection({
   owner: OwnerDisclosure;
   petName: string;
 }) {
+  const t = useTranslation();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const gender = genderLabel(owner.gender);
   const facts = [gender, owner.ageBucket].filter(Boolean).join(" · ");
+  const interests = owner.interests ?? [];
+  const gallery = [owner.photoUrl, ...(owner.extraPhotoUrls ?? [])].filter(
+    (url): url is string => Boolean(url),
+  );
+  const extras = owner.extraPhotoUrls ?? [];
+  const connectionLabel =
+    owner.connectionTag === "new_friends"
+      ? t("ownerConnection.tagNewFriends")
+      : owner.connectionTag === "open_minded"
+        ? t("ownerConnection.tagOpenMinded")
+        : owner.connectionTag === "not_sure_yet"
+          ? t("ownerConnection.tagNotSureYet")
+          : null;
 
   return (
     <>
       <View className="flex-row items-center">
-        {owner.photoUrl ? (
-          <Image
-            source={owner.photoUrl}
-            contentFit="cover"
-            style={{ width: 76, height: 76, borderRadius: 38 }}
-          />
-        ) : (
-          <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-bg-tertiary">
-            <AppIcon name="user" color="#9A8B82" size={32} />
-          </View>
-        )}
+        <AppPressable
+          onPress={() => gallery.length && setLightboxIndex(0)}
+          disabled={!gallery.length}
+          accessibilityRole="button"
+          accessibilityLabel="Sahip fotoğraflarını aç"
+        >
+          {owner.photoUrl ? (
+            <Image
+              source={owner.photoUrl}
+              contentFit="cover"
+              style={{ width: 84, height: 84, borderRadius: 42 }}
+            />
+          ) : (
+            <View className="h-[84px] w-[84px] items-center justify-center rounded-full bg-bg-tertiary">
+              <AppIcon name="user" color="#9A8B82" size={32} />
+            </View>
+          )}
+        </AppPressable>
         <View className="ml-4 flex-1">
           <View className="flex-row flex-wrap items-center gap-2">
             <Text className="text-xl font-bold text-text-primary">
@@ -88,13 +122,75 @@ export function OwnerProfileSection({
         </View>
       </View>
 
+      {extras.length > 0 ? (
+        <View className="mt-4">
+          <Text className="mb-2 text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
+            Diğer fotoğrafları
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="-mx-1"
+            contentContainerClassName="gap-2.5 px-1"
+          >
+            {extras.map((url, index) => (
+              <AppPressable
+                key={`${index}-${url}`}
+                onPress={() => setLightboxIndex((owner.photoUrl ? 1 : 0) + index)}
+                accessibilityRole="button"
+                accessibilityLabel={`Sahip fotoğrafı ${index + 2}`}
+                className="overflow-hidden rounded-2xl"
+              >
+                <Image
+                  source={url}
+                  contentFit="cover"
+                  style={{ width: 112, height: 112 }}
+                />
+              </AppPressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      <PhotoLightbox
+        visible={lightboxIndex !== null}
+        photoUrls={gallery}
+        index={lightboxIndex ?? 0}
+        onIndexChange={setLightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
+
+      {interests.length > 0 ? (
+        <View className="mt-4 flex-row flex-wrap gap-1.5">
+          {interests.map((interest) => (
+            <View
+              key={interest}
+              className="rounded-full border border-border bg-bg-secondary px-2.5 py-1"
+            >
+              <Text className="text-[11px] font-semibold text-text-secondary">
+                {ownerInterestLabels[interest]}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       {owner.socialOpen ? (
         <View className="mt-5 flex-row items-start rounded-2xl border border-brand/25 bg-brand/5 p-3.5">
           <AppIcon name="users" color="#F97362" size={18} />
-          <Text className="ml-2.5 flex-1 text-xs leading-5 text-text-secondary">
-            Sahip olarak da tanışmaya açık. Sohbet, petlerin yanı sıra sizin de
-            tanışmanıza açık demek.
-          </Text>
+          <View className="ml-2.5 flex-1">
+            <Text className="text-xs leading-5 text-text-secondary">
+              Sahip olarak da tanışmaya açık. Sohbet, petlerin yanı sıra sizin de
+              tanışmanıza açık demek.
+            </Text>
+            {connectionLabel ? (
+              <View className="mt-2.5 self-start rounded-full bg-brand/15 px-2.5 py-1">
+                <Text className="text-[11px] font-bold text-brand-dark">
+                  {connectionLabel}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       ) : null}
 

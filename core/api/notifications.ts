@@ -48,18 +48,20 @@ async function configureAndroidChannel(): Promise<void> {
 
 export function configureForegroundNotifications(): void {
   if (Platform.OS === "web") return;
-  void import("expo-notifications").then((Notifications) => {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        // Uygulama açıkken PetMatch'in kendi route-aware banner'ı gösterilir.
-        // Sistem banner'ını da açmak aynı bildirimi iki kez gösterirdi.
-        shouldShowBanner: false,
-        shouldShowList: true,
-        shouldPlaySound: false,
-        shouldSetBadge: true,
-      }),
-    });
-  });
+  void import("expo-notifications")
+    .then((Notifications) => {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          // Uygulama açıkken PetMatch'in kendi route-aware banner'ı gösterilir.
+          // Sistem banner'ını da açmak aynı bildirimi iki kez gösterirdi.
+          shouldShowBanner: false,
+          shouldShowList: true,
+          shouldPlaySound: false,
+          shouldSetBadge: true,
+        }),
+      });
+    })
+    .catch(() => undefined);
 }
 
 export async function registerForPushNotifications(

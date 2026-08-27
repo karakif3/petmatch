@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,12 +28,14 @@ import {
   updateEditableProfile,
   updateNotificationPreferences,
 } from "../../core/api/profile";
+import { listRegions, setMyRegion } from "../../core/api/regions";
 import { deleteAccount } from "../../core/api/safety";
 import {
   registerForPushNotifications,
   unregisterCurrentPushToken,
 } from "../../core/api/notifications";
 import { coarsenCoordinates } from "../../core/domain/distance";
+import { FEATURES } from "../../core/features";
 import type { Coordinates, OwnerVisibility } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
 import { errorMessage } from "../../core/domain/error-message";
@@ -55,36 +57,6 @@ const visibilityLabels: Record<OwnerVisibility, string> = {
   after_match: "Eşleşince görünür",
   public: "Herkese açık",
 };
-
-/**
- * Kart İÇİNDE bir alan satırı — kendi kenarlığı yok.
- *
- * Öncesinde her input kendi çerçevesindeydi ve alanlar arasında 20 pt
- * boşluk vardı; üç alan üç ayrı kutu gibi duruyordu. Artık tek kartın
- * içinde saç teli ayırıcılarla ayrılmış satırlar (iOS ayar dili).
- *
- * `accessibilityLabel` şart: React Native etiketi otomatik olarak input'a
- * BAĞLAMIYOR — ekran okuyucu bugüne kadar bu alanları "metin alanı" diye
- * okuyup adını hiç söylemiyordu.
- */
-function FieldRow({
-  label,
-  hint,
-  ...props
-}: { label: string; hint?: string } & React.ComponentProps<typeof TextInput>) {
-  return (
-    <View className="px-4 py-3">
-      <Text className="text-xs font-semibold text-text-tertiary">{label}</Text>
-      <TextInput
-        placeholderTextColor="#B9A99F"
-        accessibilityLabel={label}
-        className="mt-1 p-0 text-[16px] text-text-primary"
-        {...props}
-      />
-      {hint ? <Text className="mt-1.5 text-xs leading-4 text-text-tertiary">{hint}</Text> : null}
-    </View>
-  );
-}
 
 function NotificationToggle({
   icon,
@@ -124,6 +96,7 @@ function NotificationToggle({
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
+  const retryAccountStatus = useAuthStore((state) => state.retryOnboardingStatus);
   const queryClient = useQueryClient();
 
   const profile = useQuery({
@@ -132,11 +105,13 @@ export default function ProfileScreen() {
     enabled: Boolean(user),
   });
 
-  const [city, setCity] = useState("");
   const [notifyOnMatch, setNotifyOnMatch] = useState(true);
   const [notifyOnMessage, setNotifyOnMessage] = useState(true);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
+  const [regionBusy, setRegionBusy] = useState(false);
+  const [waitlistLocation, setWaitlistLocation] = useState("");
+  const [leavingPool, setLeavingPool] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,17 +125,27 @@ export default function ProfileScreen() {
   // anlamlı; veri gelmeden `false` kalır.
   const dirty =
     Boolean(profile.data) &&
-    (city !== profile.data!.city ||
-      notifyOnMatch !== profile.data!.notifications.onMatch ||
+    (notifyOnMatch !== profile.data!.notifications.onMatch ||
       notifyOnMessage !== profile.data!.notifications.onMessage ||
       coordinates !== null);
 
+  const regions = useQuery({ queryKey: ["regions"], queryFn: listRegions });
+  const pilotRegions = useMemo(
+    () => (regions.data ?? []).filter((region) => region.isPilot),
+    [regions.data],
+  );
+  const outsideRegion = useMemo(
+    () => (regions.data ?? []).find((region) => !region.isPilot) ?? null,
+    [regions.data],
+  );
+
   useEffect(() => {
     if (!profile.data) return;
-    setCity(profile.data.city);
     setNotifyOnMatch(profile.data.notifications.onMatch);
     setNotifyOnMessage(profile.data.notifications.onMessage);
     setCoordinates(null);
+    setLeavingPool(false);
+    setWaitlistLocation("");
   }, [profile.data]);
 
   /*
@@ -178,13 +163,78 @@ export default function ProfileScreen() {
   /** Kirli formu sunucudaki son hâline döndürür (kaydet şeridindeki "Vazgeç"). */
   const discardChanges = () => {
     if (!profile.data) return;
-    setCity(profile.data.city);
     setNotifyOnMatch(profile.data.notifications.onMatch);
     setNotifyOnMessage(profile.data.notifications.onMessage);
     setCoordinates(null);
+    setLeavingPool(false);
+    setWaitlistLocation("");
     setError(null);
     setNotice(null);
     setLocationError(null);
+  };
+
+  const applyRegion = async (
+    slug: string,
+    options?: { requestedLocation?: string; notifyWhenOpen?: boolean },
+  ) => {
+    setRegionBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await setMyRegion(slug, options);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["profile", user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+        retryAccountStatus(),
+      ]);
+      setLeavingPool(false);
+      setWaitlistLocation("");
+      setNotice(
+        slug === "other"
+          ? "Bölgen kaydedildi. Açılınca haber vereceğiz."
+          : "Keşfet havuzun güncellendi.",
+      );
+    } catch (regionError) {
+      setError(errorMessage(regionError, "Bölge güncellenemedi."));
+    } finally {
+      setRegionBusy(false);
+    }
+  };
+
+  const confirmPilotRegion = (slug: string, name: string) => {
+    if (slug === profile.data?.regionSlug || regionBusy) return;
+    Alert.alert(
+      `${name} bölgesine geç`,
+      "Keşfet yalnızca bu bölgedeki petleri gösterecek. Şehir etiketi kartta aynı kalır.",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        { text: "Bölgeyi değiştir", onPress: () => void applyRegion(slug) },
+      ],
+    );
+  };
+
+  const confirmLeavePool = () => {
+    const requested = waitlistLocation.trim();
+    if (requested.length < 2) {
+      setError("Bulunduğun ilçe veya şehri yazmalısın.");
+      return;
+    }
+    Alert.alert(
+      "Keşfet havuzundan çıkıyorsun",
+      "Bölgen listede yoksa desteyi göremezsin; sıradaki açılışı beklemeye alınırsın.",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        {
+          text: "Bekleme listesine geç",
+          style: "destructive",
+          onPress: () =>
+            void applyRegion("other", {
+              requestedLocation: requested,
+              notifyWhenOpen: true,
+            }),
+        },
+      ],
+    );
   };
 
   const refreshLocation = async () => {
@@ -224,7 +274,7 @@ export default function ProfileScreen() {
         updateEditableProfile({
           displayName: profile.data!.displayName ?? "",
           petName: profile.data!.pet.name,
-          city,
+          city: profile.data!.city,
           // Bu ekran görünürlüğü DÜZENLEMİYOR (bkz. `visibilityLabels`);
           // sunucudaki mevcut değer olduğu gibi geri gönderiliyor, yoksa
           // RPC zorunlu parametreyi alamaz.
@@ -377,17 +427,26 @@ export default function ProfileScreen() {
               )}
               <View className="-ml-5">
                 {profile.data.ownerAvatar ? (
-                  <Image
-                    source={profile.data.ownerAvatar.url}
-                    contentFit="cover"
-                    style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 23,
-                      borderWidth: 3,
-                      borderColor: "#FFFBF7",
-                    }}
-                  />
+                  <View>
+                    <Image
+                      source={profile.data.ownerAvatar.url}
+                      contentFit="cover"
+                      style={{
+                        width: 46,
+                        height: 46,
+                        borderRadius: 23,
+                        borderWidth: 3,
+                        borderColor: "#FFFBF7",
+                      }}
+                    />
+                    {profile.data.ownerPhotos.length > 1 ? (
+                      <View className="absolute -bottom-0.5 -right-0.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand px-1">
+                        <Text className="text-[9px] font-bold text-white">
+                          {profile.data.ownerPhotos.length}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 ) : (
                   <View className="h-[46px] w-[46px] items-center justify-center rounded-full border-[3px] border-bg-primary bg-bg-tertiary">
                     <AppIcon name="user" color="#B9A99F" size={20} />
@@ -442,28 +501,36 @@ export default function ProfileScreen() {
                 detail="Irk, yaş, boyut, enerji, mizaç, fotoğraflar"
                 onPress={() => router.push("/profile/pet")}
               />
-              <RowSeparator />
-              {/*
-                "Petlerim" AYRI bir satır: "Pet profili" aktif petin
-                alanlarını düzenliyor, burası hangi petin aktif olduğunu
-                yönetiyor. İkisini tek satırda toplamak, ad değiştirmekle
-                destedeki kimliği değiştirmeyi aynı yere koymak olurdu.
-              */}
-              <Row
-                icon="paw-print"
-                iconColor="#E0523F"
-                iconBackground="bg-brand/10"
-                title="Petlerim"
-                detail="Yeni pet ekle, aktif peti değiştir"
-                onPress={() => router.push("/profile/pets")}
-              />
+              {FEATURES.petRoster ? (
+                <>
+                  <RowSeparator />
+                  {/*
+                    "Petlerim" AYRI bir satır: "Pet profili" aktif petin
+                    alanlarını düzenliyor, burası hangi petin aktif olduğunu
+                    yönetiyor. İkisini tek satırda toplamak, ad değiştirmekle
+                    destedeki kimliği değiştirmeyi aynı yere koymak olurdu.
+                  */}
+                  <Row
+                    icon="paw-print"
+                    iconColor="#E0523F"
+                    iconBackground="bg-brand/10"
+                    title="Petlerim"
+                    detail="Yeni pet ekle, aktif peti değiştir"
+                    onPress={() => router.push("/profile/pets")}
+                  />
+                </>
+              ) : null}
               <RowSeparator />
               <Row
                 icon="user"
                 iconColor="#1E9384"
                 iconBackground="bg-accent/10"
                 title="Sahip profili"
-                detail="Fotoğraf, bio, yaş/cinsiyet paylaşımı, tanışma amacı"
+                detail={
+                  profile.data.ownerPhotos.length > 1
+                    ? `${profile.data.ownerPhotos.length} fotoğraf, bio, yaş/cinsiyet, tanışma amacı`
+                    : "Fotoğraf, bio, yaş/cinsiyet paylaşımı, tanışma amacı"
+                }
                 onPress={() => router.push("/profile/owner")}
               />
               <RowSeparator />
@@ -477,23 +544,116 @@ export default function ProfileScreen() {
                 iconBackground="bg-accent/10"
                 title="Sahip görünürlüğü"
                 value={visibilityLabels[profile.data.ownerVisibility]}
-                onPress={() => router.push("/profile/owner")}
+                onPress={() => router.push("/profile/owner?focus=visibility")}
                 accessibilityHint="Sahip profilinde değiştirilir"
               />
             </SectionCard>
           </View>
 
-          <SectionTitle>Şehir</SectionTitle>
+          <SectionTitle>Bölge</SectionTitle>
           <SectionCard>
-            <FieldRow
-              label="Şehir"
-              value={city}
-              onChangeText={setCity}
-              placeholder="Örn. İstanbul"
-              autoCapitalize="words"
-              autoCorrect={false}
-              returnKeyType="done"
-            />
+            <View className="px-4 py-3">
+              <Text className="text-xs leading-4 text-text-tertiary">
+                Keşfet yalnızca seçtiğin bölgedeki petleri gösterir. Karttaki
+                şehir etiketi bölgenin ili kalır (ör. İstanbul).
+              </Text>
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                {regions.isLoading ? <ActivityIndicator color="#F97362" /> : null}
+                {pilotRegions.map((region) => {
+                  const active =
+                    !leavingPool && profile.data.regionSlug === region.slug;
+                  return (
+                    <AppPressable
+                      key={region.slug}
+                      onPress={() => confirmPilotRegion(region.slug, region.name)}
+                      disabled={regionBusy}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      className={`min-h-11 items-center justify-center rounded-xl border px-4 disabled:opacity-50 ${
+                        active ? "border-brand bg-brand/10" : "border-border bg-surface"
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm font-semibold ${
+                          active ? "text-brand-dark" : "text-text-secondary"
+                        }`}
+                      >
+                        {region.name}
+                      </Text>
+                    </AppPressable>
+                  );
+                })}
+              </View>
+              {outsideRegion ? (
+                <AppPressable
+                  onPress={() => {
+                    if (profile.data.regionSlug === "other") return;
+                    setLeavingPool(true);
+                    setError(null);
+                  }}
+                  disabled={regionBusy}
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    selected: leavingPool || profile.data.regionSlug === "other",
+                  }}
+                  className={`mt-3 min-h-11 justify-center rounded-xl border px-4 py-3 disabled:opacity-50 ${
+                    leavingPool || profile.data.regionSlug === "other"
+                      ? "border-brand bg-brand/10"
+                      : "border-border bg-surface"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-semibold ${
+                      leavingPool || profile.data.regionSlug === "other"
+                        ? "text-brand-dark"
+                        : "text-text-secondary"
+                    }`}
+                  >
+                    {outsideRegion.name}
+                  </Text>
+                  <Text className="mt-1 text-xs leading-4 text-text-tertiary">
+                    Desteyi kapatır; sıradaki bölge talebine yazılır.
+                  </Text>
+                </AppPressable>
+              ) : null}
+              {leavingPool ? (
+                <View className="mt-3">
+                  <Text className="text-xs font-semibold text-text-tertiary">
+                    Bulunduğun ilçe veya şehir
+                  </Text>
+                  <TextInput
+                    value={waitlistLocation}
+                    onChangeText={setWaitlistLocation}
+                    placeholder="Örn. Üsküdar"
+                    placeholderTextColor="#B9A99F"
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    className="mt-1 p-0 text-[16px] text-text-primary"
+                  />
+                  <AppPressable
+                    onPress={confirmLeavePool}
+                    disabled={regionBusy}
+                    className="mt-3 min-h-11 items-center justify-center rounded-xl bg-brand disabled:opacity-50"
+                  >
+                    {regionBusy ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text className="text-sm font-semibold text-white">
+                        Bekleme listesine geç
+                      </Text>
+                    )}
+                  </AppPressable>
+                </View>
+              ) : null}
+              {regions.isError ? (
+                <AppPressable onPress={() => void regions.refetch()} className="mt-3 py-1">
+                  <Text className="text-sm font-semibold text-brand-dark">
+                    Bölgeler yüklenemedi. Tekrar dene
+                  </Text>
+                </AppPressable>
+              ) : null}
+            </View>
           </SectionCard>
 
           <SectionTitle>Yaklaşık konum</SectionTitle>
@@ -662,7 +822,7 @@ export default function ProfileScreen() {
             </AppPressable>
             <AppPressable
               onPress={save}
-              disabled={saveBusy || locationBusy || !city.trim()}
+              disabled={saveBusy || locationBusy}
               accessibilityRole="button"
               className="min-h-[50px] flex-[2] items-center justify-center rounded-xl bg-brand disabled:opacity-50"
             >

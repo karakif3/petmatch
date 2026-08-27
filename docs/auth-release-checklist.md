@@ -27,16 +27,20 @@
 > | `test1@petmatch.app` | Pet "Luna" · **moderatör (admin)** |
 > | `test2@petmatch.app` | Peti yok |
 > | `deniz` · `ece` · `mert` · `ayse` **@petmatch.test** | Pet + fotoğraf + **herkese açık sahip profili ve avatarı** |
-> | `selin` · `kaan` **@petmatch.test** | Pet + fotoğraf · görünürlük `after_match` |
-> | `burak` · `elif` **@petmatch.test** | Pet + fotoğraf · görünürlük `hidden` |
+> | `nisa` · `cem` · `defne` **@petmatch.test** | 2026-08-27 QA tohumu · pet + fotoğraf · **public** (Ada, Fındık, Toprak) |
+> | `selin` · `kaan` · `onur` · `yagmur` **@petmatch.test** | Pet + fotoğraf · görünürlük `after_match` |
+> | `burak` · `elif` · `baran` **@petmatch.test** | Pet + fotoğraf · görünürlük `hidden` |
 >
 > Şifre (hepsi): `Petmatch2026!`
 >
 > `@petmatch.test` hesapları keşfet destesini doldurmak için 2026-08-04'te
-> üretilen **tohum veriydi**: 8 pet, hepsi Kadıköy bölgesinde,
-> `goals = {playdate}`, birer yer tutucu fotoğraflı. Dördünün sahip avatarı
-> var — sahip segmenti (`OWNER_SEGMENT_MIN_CARDS = 3`) bu sayede test
-> edilebiliyor.
+> üretilen **tohum veriydi**; 2026-08-27'de altı hesap daha eklendi (`nisa`,
+> `cem`, `defne`, `onur`, `yagmur`, `baran`) çünkü `test1` (Luna) ilk sekiz
+> petin hepsini beğenmiş, deste boşalmıştı. Hepsi Kadıköy, `playdate`.
+>
+> Tohum fotoğrafları **metin içermez** ve `storage_path` başka petle paylaşılmaz.
+> 2026-08-27 ilk tohum Fındık/Ada/Mira/Rüzgar/Palamut/Toprak'ı eski petlerin
+> dosyasına bağladı; Fındık kartında Pamuk yazısının kaynağı buydu.
 >
 > Silerken `auth.users` satırını kaldırmak yeterli (pets, pet_photos ve
 > profiles FK ile cascade oluyor), ama **storage nesneleri cascade

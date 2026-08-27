@@ -9,7 +9,7 @@
 | Modül | Kapsam | Durum |
 |---|---|---|
 | Auth | E-posta + şifre. Google/Apple sonra. | ✅ iskelet |
-| Sahip profili | Opsiyonel ad, avatar, şehir, bio, yaş/cinsiyet açıklaması, görünürlük ve pet-first tanışma modu | ✅ tam düzenleme + private avatar + doğrulama başvurusu |
+| Sahip profili | Opsiyonel ad, 1–4 sahip fotoğrafı, şehir, bio, yaş/cinsiyet açıklaması, görünürlük ve pet-first tanışma modu | ✅ tam düzenleme + private galeri + ayrı doğrulama fotoğrafı |
 | Pet profili | Ad, tür, ırk, doğum tarihi, cinsiyet, kısırlaştırma, boyut, enerji, mizaç, uyumluluk, amaç, 1–6 fotoğraf | ✅ tam düzenleme + fotoğraf ekleme/silme/sıralama |
 | Keşfet | Bölge havuzu + pet filtreleri + karşılıklı sahip fotoğrafı/sosyal/verification/yaş/cinsiyet filtreleri. Mesafe varsayılan olarak elemez, sıralar (`0061`) | ✅ RPC + güvenli swipe + filtre ekranı |
 | Eşleşme | Karşılıklı beğeni → trigger ile match | ✅ DB + inbox ekranı |
@@ -40,7 +40,7 @@ gerisini kullanıma yayıyor. Akış aynı ilkeye çekildi.
 
 **Ertelenenler — hepsinin varsayılanı var ya da null olabiliyor:**
 ırk, boyut (`medium`), enerji (`3`), kısırlaştırma (`false`), pet doğum
-tarihi, biyografiler, sahip avatarı, sahip görünürlüğü (`after_match`).
+tarihi, biyografiler, sahip avatarı, sahip görünürlüğü (`public`).
 
 Bunlar keşfetin üstündeki **profil tamamlama kartından** toplanıyor. Kart
 kapatılabilir ve eksik yoksa hiç render edilmiyor.
@@ -51,10 +51,9 @@ kapatılabilir ve eksik yoksa hiç render edilmiyor.
   kullanıcı doğum tarihini bilmiyor. "Bilmiyorum" gerçek bir seçenek ve
   `null` yazıyor — uydurma tarih üretilmiyor. Ayrıntı:
   `core/domain/pet-age.ts`.
-- **Sahip görünürlüğü kayıtta sorulmuyor.** Kullanıcı eşleşmenin ne demek
-  olduğunu görmeden verilecek bir karar değildi; varsayılan `after_match`
-  zaten herkese açık değil ve açık rıza, "Herkese açık"a geçiş anında
-  profilde alınıyor.
+- **Sahip görünürlüğü kayıtta sorulmuyor.** Keşfette görünür başlar;
+  checkbox bunu söyler ve `public_profile_consent` orada yazılır. Kapatmak
+  Sahip profili ayarından.
 
 ## Kapsam dışı (sonraki faz)
 
@@ -69,7 +68,7 @@ Marka adı **PetMatch** olarak sabittir. Resmi işaret, asset kuralları ve pale
 Kullanıcı iki ayrı ayar tutar:
 
 - **`owner_visibility`** — *benim* sahip profilim karşı tarafa ne zaman görünür:
-  `hidden` · `after_match` (varsayılan) · `public`
+  `hidden` · `after_match` · `public` (varsayılan)
 - **`require_visible_owner`** — *benim* koyduğum zorunluluk: sadece sahibi
   görünen petleri göster.
 
@@ -92,8 +91,10 @@ kümesindeki değişim okunarak gösterilmeyen bir bilginin (gizli sahibin yaş�
 
 Sahip fotoğrafı private `owner-avatars` bucket'ındadır. Yalnızca sahibi,
 public profil adayını gören oturum veya aktif eşleşmedeki karşı taraf kısa
-ömürlü signed URL üretebilir. `after_match` seçeneği aktif sohbet içinde sahip
-fotoğrafı, bio ve izin verilen yaş/cinsiyet özetini açar.
+ömürlü signed URL üretebilir. `after_match` seçeneği aktif sohbette sahip fotoğrafı, bio ve yaş/cinsiyet
+özetini açar. Keşfette `public` sahibin yaş kovası ve cinsiyeti izleyici
+gizli olsa da gösterilir (`0068`); yaş/cinsiyet **filtresi** hâlâ karşılıklı
+public açıklama ister.
 
 ## Pet-first sosyal tanışma
 

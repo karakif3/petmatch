@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AccessibilityInfo, Dimensions, Text } from "react-native";
+import { AccessibilityInfo, Dimensions, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import type { SwipeDirection } from "../core/domain/types";
+import { likeHaptic, passHaptic } from "../core/ui/haptics";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -81,6 +82,8 @@ export function SwipeableCard({ children, disabled, onSwipe, resetKey, fill }: P
   }, [resetKey, translateX, translateY]);
 
   const finish = (direction: SwipeDirection) => {
+    if (direction === "like") likeHaptic();
+    else passHaptic();
     onSwipe(direction);
   };
 
@@ -140,35 +143,45 @@ export function SwipeableCard({ children, disabled, onSwipe, resetKey, fill }: P
     opacity: Math.min(1, Math.max(0, -translateX.value) / STAMP_FULL_AT),
   }));
 
-  return (
-    <GestureDetector gesture={pan}>
-      <Animated.View style={cardStyle} className={fill ? "flex-1" : undefined}>
-        {children}
+  const card = (
+    <Animated.View
+      style={[
+        cardStyle,
+        fill ? { flex: 1, backgroundColor: "#FDEADF" } : undefined,
+      ]}
+      className={fill ? "flex-1" : undefined}
+    >
+      {children}
 
-        {/*
-          Damgalar `pointerEvents="none"`: kartın üstündeki güvenlik
-          düğmesine dokunmayı engellememeleri gerekiyor.
-        */}
-        <Animated.View
-          pointerEvents="none"
-          style={likeStamp}
-          className="absolute left-5 top-6 -rotate-12 rounded-xl border-[3px] border-accent px-4 py-1.5"
-        >
-          <Text className="text-2xl font-extrabold tracking-wider text-accent">
-            BEĞEN
-          </Text>
-        </Animated.View>
-
-        <Animated.View
-          pointerEvents="none"
-          style={passStamp}
-          className="absolute right-5 top-6 rotate-12 rounded-xl border-[3px] border-text-tertiary px-4 py-1.5"
-        >
-          <Text className="text-2xl font-extrabold tracking-wider text-text-tertiary">
-            GEÇ
-          </Text>
-        </Animated.View>
+      {/*
+        Damgalar `pointerEvents="none"`: kartın üstündeki güvenlik
+        düğmesine dokunmayı engellememeleri gerekiyor.
+      */}
+      <Animated.View
+        pointerEvents="none"
+        style={likeStamp}
+        className="absolute left-5 top-6 -rotate-12 rounded-xl border-[3px] border-accent px-4 py-1.5"
+      >
+        <Text className="text-2xl font-extrabold tracking-wider text-accent">
+          BEĞEN
+        </Text>
       </Animated.View>
-    </GestureDetector>
+
+      <Animated.View
+        pointerEvents="none"
+        style={passStamp}
+        className="absolute right-5 top-6 rotate-12 rounded-xl border-[3px] border-text-tertiary px-4 py-1.5"
+      >
+        <Text className="text-2xl font-extrabold tracking-wider text-text-tertiary">
+          GEÇ
+        </Text>
+      </Animated.View>
+    </Animated.View>
+  );
+
+  return (
+    <View style={fill ? { flex: 1 } : undefined}>
+      <GestureDetector gesture={pan}>{card}</GestureDetector>
+    </View>
   );
 }

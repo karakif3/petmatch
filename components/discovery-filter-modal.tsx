@@ -417,8 +417,9 @@ export function DiscoveryFilterModal({
               Kimlerle buluşmakta rahatsın?
             </Text>
             <Text className="mb-3 text-xs leading-5 text-text-secondary">
-              Yaş ve cinsiyet seçimleri hesabında saklanmaz. Bu filtreler yalnızca
-              kendi bilgilerini karşılıklı paylaşan profiller arasında çalışır.
+              Yaş ve cinsiyet seçimleri hesabında saklanmaz. Bu süzgeçler
+              yalnızca sen de keşfette görünürken çalışır. Kartta yaş aralığı
+              ayrı: sahibi görünürse, sen gizli olsan da çıkar.
             </Text>
 
             {canFilterOwnerDetails ? (

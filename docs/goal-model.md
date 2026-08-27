@@ -69,8 +69,8 @@ Aradığımız özellik şemada zaten var — `profiles.owner_visibility`:
 | Değer | Anlamı |
 |---|---|
 | `hidden` | Sadece pet görünür |
-| `after_match` *(varsayılan)* | Eşleşince sahibi de görünür |
-| `public` | Sahip fotoğrafı ve kısa bio kartta görünür |
+| `after_match` | Eşleşince sahibi de görünür |
+| `public` *(varsayılan)* | Sahip fotoğrafı ve kısa bio kartta görünür |
 
 Kullanıcı kendini gösterip göstermeyeceğini ve petiyle birlikte yeni insanlarla
 tanışmaya açık olup olmadığını seçer. Karşı taraf “sahibini de gösterenler”,

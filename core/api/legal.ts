@@ -31,7 +31,13 @@ export async function recordRequiredLegalAcceptances(): Promise<void> {
 }
 
 export async function recordOptionalConsent(
-  consentType: "location_consent" | "public_profile_consent",
+  consentType:
+    | "location_consent"
+    | "public_profile_consent"
+    // Yalnızca altyapı — aydınlatma metni yazılıp cinsiyet filtresi
+    // (`FEATURES.genderPreferenceFilter`) açılana kadar hiçbir ekrandan
+    // çağrılmıyor (`0066`).
+    | "gender_preference_consent",
   accepted: boolean,
 ): Promise<void> {
   const { error } = await requireSupabaseClient().rpc(
