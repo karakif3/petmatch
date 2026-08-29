@@ -156,8 +156,9 @@ Bu turdan açık kalanlar:
 - **"Tanışma amacı" sorusunun yeri** — sahip profili formunun içinde
   gömük; sonucun göründüğü yer Keşfet (görünürlük anahtarındaki gibi).
 - **Sekme çubuğuna `expo-blur`** — native bağımlılık, ayrı derleme.
-- **Test verisini gerçek fotoğraflarla seed et** — yer tutucu görseller
-  her görsel değerlendirmeyi zorlaştırıyor (bkz. §13).
+- **Test verisini gerçek fotoğraflarla seed et — tamamlandı (2026-08-29).**
+  Canlı QA hesaplarındaki 15 yer tutucu gerçek pet fotoğraflarıyla değiştirildi;
+  tekrar çalıştırılabilir yol `npm run seed:qa-photos`.
 
 **2026-08-24 — Keşfet tek katmana indi + sahip filtresi sızıntısı kapandı
 (`0059`).** Kod denetiminde çıkan iki bulgu, ikisi de aynı fonksiyonda:
@@ -315,9 +316,11 @@ iOS bölümüne yazıldı.
   prebuild çalışsaydı bile Türkçe bir uygulamada sistem dialogu İngilizce
   çıkacaktı. Türkçe metin `app.json`'a eklendi.
 
-- [ ] **Yayın öncesi:** EAS build profillerinde prebuild'in gerçekten
-      koştuğu doğrulanmalı; koşuyorsa bu çökme yalnız yerel makineleri
-      etkiler, koşmuyorsa yayın kapıcısıdır.
+- [x] **EAS prebuild doğrulandı (2026-08-29).** Repo `/ios` ve `/android`'i
+      `.gitignore` ile dışarıda tutan CNG yapısında; EAS bu durumda otomatik
+      `expo prebuild` çalıştırıyor. Aynı temiz iOS prebuild + pod install +
+      `xcodebuild` yerelde sıfırdan başarıyla tamamlandı. Resmi davranış:
+      https://docs.expo.dev/workflow/continuous-native-generation/#usage-with-eas-build
 
 **2026-08-24 — Bulgu: geliştirme hataları canlı hata kütüğünü kirletiyordu.**
 İkon göçünü simülatörde doğrularken moderasyon panelini açtım ve "Son
@@ -370,11 +373,10 @@ yapılacaklar.
 
 ### Sıradaki ürün işleri
 
-9. **Beğeniler ödeme duvarı gerçek olsun.** Bugün istemci tarafı ücretsiz
-   görünümü bulanıklaştırarak simüle ediyor; ödeme altyapısı yok (Faz 0).
-   Süper beğeni sınırsız gönderiliyor — günlük limit de bu ödeme duvarıyla
-   birlikte gelecek doğal kapı. **Kararı bekleyenler**'e taşındı: hangi
-   ödeme sağlayıcısı (RevenueCat vb.) kullanılacağı bir ürün kararı.
+9. **Beğeniler ödeme duvarı gerçek olsun.** Pilot yüzey artık ödeme altyapısı
+   varmış veya yakında gelecekmiş gibi davranmıyor: kimlik karşılıklı beğenide
+   açılıyor. Ücretli "Kim beğendi" ve süper beğeni günlük limiti ancak gerçek
+   sağlayıcı seçilip satın alma akışı tamamlandığında açılacak.
 
 **2026-08-07 turunda kapananlar (6, 7, 8, 10, 11, 12):** buluşma yanıtı artık
 canlı (`meetups` realtime publication'a eklendi, `0045`) · geri bildirim
@@ -395,11 +397,11 @@ karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
 
 ### Kararı bekleyenler
 
-- **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Bugün
-  istemci tarafı ücretsiz görünümü bulanıklaştırarak simüle ediyor; ödeme
-  altyapısı yok (Faz 0). Süper beğeni sınırsız gönderiliyor — günlük limit
-  de bu ödeme duvarıyla birlikte gelecek doğal kapı. Hangi sağlayıcı
-  (RevenueCat vb.) kullanılacağı ürün kararı, kod kararı değil.
+- **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Pilot bugün
+  yalnızca gelen ilgi sayısını gösteriyor; anonim kartın dili karşılıklı
+  beğeniyi anlatıyor ve satın alma vaadi vermiyor. Süper beğeni sınırsız;
+  ücretli kimlik açma ve günlük limit için sağlayıcı (RevenueCat vb.) seçimi
+  hâlâ ürün kararı.
 - **"Tanışma amacı" sorusu — yeniden ele alınacak (2026-08-09'da ertelendi).**
   Bu turda yalnızca başarısızlık anı düzeltildi (ön koşullar seçim anında
   listeleniyor). Asıl sorular açık: soru nerede sorulmalı (bugün sahip

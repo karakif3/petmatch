@@ -10,6 +10,18 @@ Simülatör push tokenı üretmediği için yayın onayı olarak kabul edilmez.
 - Bildirim izni iki cihazda açık.
 - Test başlangıcında hesaplar arasında aktif eşleşme ve engel yok.
 
+### Hazır QA çifti
+
+- Cihaz A: `nisa@petmatch.test` — Ada
+- Cihaz B: `cem@petmatch.test` — Fındık
+- Şifre: `Petmatch2026!`
+
+Bu çift 2026-08-29'da iki yönde de Keşfet destesinden doğrulandı. Senaryo
+başlamadan hemen önce iki hesapta da karşı petin hâlâ görünmesi kontrol edilir;
+bir önceki koşum ilişkiyi tükettiyse `defne@petmatch.test` (Toprak) yedek
+hesaptır. Test hesapları yayın gününde silineceği için bu bilgiler production
+hesabı veya kalıcı credential değildir.
+
 ## Akış
 
 | # | Cihaz A | Cihaz B | Kabul kanıtı |

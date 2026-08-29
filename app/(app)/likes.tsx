@@ -63,7 +63,7 @@ export default function LikesScreen() {
       <View className="px-5 pb-4 pt-4">
         <Text className="text-2xl font-bold text-text-primary">Beğeniler</Text>
         <Text className="mt-1 text-sm text-text-secondary">
-          Petini beğenenler burada — kimlikleri şimdilik gizli.
+          Petine gelen ilgiyi gör; kimlikler karşılıklı beğenide açılır.
         </Text>
       </View>
 

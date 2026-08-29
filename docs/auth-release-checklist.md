@@ -41,6 +41,10 @@
 > Tohum fotoğrafları **metin içermez** ve `storage_path` başka petle paylaşılmaz.
 > 2026-08-27 ilk tohum Fındık/Ada/Mira/Rüzgar/Palamut/Toprak'ı eski petlerin
 > dosyasına bağladı; Fındık kartında Pamuk yazısının kaynağı buydu.
+> 2026-08-29'da eski düz renk + gömülü isim placeholder'ları gerçek pet
+> fotoğraflarıyla değiştirildi. Tekrar gerekirse `PETMATCH_SEED_PASSWORD=...`
+> ile `npm run seed:qa-photos` çalıştırılır; script service-role kullanmaz,
+> her dosyayı ilgili QA hesabının kendi oturumuyla günceller.
 >
 > Silerken `auth.users` satırını kaldırmak yeterli (pets, pet_photos ve
 > profiles FK ile cascade oluyor), ama **storage nesneleri cascade

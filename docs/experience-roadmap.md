@@ -520,9 +520,9 @@ Yeni kart Tinder/Hinge diline geçti:
 
 - **Beğeniler ızgarasının `w-[48%]` hesaplaması** gözden geçirilmedi —
   fonksiyonel olarak çalışıyor, tek dişli son satırda solda kalıyor
-  (masonry ızgaralarda yaygın, kırık değil). Kilitli karta dokunma yanıtı
-  (`Alert.alert` ile kısa açıklama) eklendi, gerçek ödeme duvarı hâlâ §9'daki
-  aynı "kararı bekleyenler" maddesine bağlı.
+  (masonry ızgaralarda yaygın, kırık değil). Anonim karta dokunma yanıtı
+  karşılıklı beğenide kimliğin açıldığını anlatıyor; gerçek satın alma akışı
+  olmadan ödeme duvarı vaat edilmiyor. Monetizasyon hâlâ §9'daki karara bağlı.
 - **Süper beğeniyle gelen eşleşmede liste satırı rozeti** kod tarafında
   yapılamadı: `list_my_conversations` RPC'si `is_super` döndürmüyor. Yeni
   migration gerektiriyor, bu tur istemci-only kapsamdaydı.

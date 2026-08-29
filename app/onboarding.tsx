@@ -38,7 +38,7 @@ import { ensureImageLibraryAccess } from "../core/media/image-library";
 import { useAuthStore } from "../stores/auth";
 import { errorMessage } from "../core/domain/error-message";
 
-type Step = 0 | 1 | 2;
+type Step = 0 | 1 | 2 | 3;
 type FieldError =
   | "ownerBirthDate"
   | "region"
@@ -56,7 +56,7 @@ type FieldError =
 type LocalPhoto = OnboardingPhoto & { id: string };
 
 type OnboardingDraft = {
-  version: 1;
+  version: 2;
   step: Step;
   displayName: string;
   ownerBirthDate: string;
@@ -160,9 +160,14 @@ export default function OnboardingScreen() {
     void AsyncStorage.getItem(draftKey)
       .then((value) => {
         if (!active || !value) return;
-        const draft = JSON.parse(value) as Partial<OnboardingDraft>;
-        if (draft.version !== 1) return;
-        if (draft.step === 0 || draft.step === 1 || draft.step === 2) setStep(draft.step);
+        const draft = JSON.parse(value) as Partial<Omit<OnboardingDraft, "version">> & {
+          version?: 1 | 2;
+        };
+        if (draft.version !== 1 && draft.version !== 2) return;
+        if (draft.step === 0) setStep(0);
+        if (draft.step === 1) setStep(draft.version === 1 ? 2 : 1);
+        if (draft.step === 2) setStep(draft.version === 1 ? 3 : 2);
+        if (draft.step === 3) setStep(3);
         if (typeof draft.displayName === "string") setDisplayName(draft.displayName);
         if (typeof draft.ownerBirthDate === "string") setOwnerBirthDate(draft.ownerBirthDate);
         if (typeof draft.city === "string") setCity(draft.city);
@@ -192,7 +197,7 @@ export default function OnboardingScreen() {
     if (!draftKey || !draftHydrated.current) return;
     const timeout = setTimeout(() => {
       const draft: OnboardingDraft = {
-        version: 1,
+        version: 2,
         step,
         displayName,
         ownerBirthDate,
@@ -213,7 +218,7 @@ export default function OnboardingScreen() {
     return () => clearTimeout(timeout);
   }, [city, coordinates, displayName, draftKey, gender, notifyWhenRegionOpens, ownerBirthDate, petAge, petName, photos, regionSlug, species, step]);
 
-  const progress = useMemo(() => `${step + 1} / 3`, [step]);
+  const progress = useMemo(() => `${step + 1} / 4`, [step]);
 
   // Adım geçişi öncesinde anlıktı — çubuk bir kareden diğerine sıçrıyordu.
   // `swipeable-card.tsx`'teki aynı kalıp: hareket azaltma açıkken animasyon
@@ -228,9 +233,9 @@ export default function OnboardingScreen() {
       active = false;
     };
   }, []);
-  const progressWidth = useSharedValue(((step + 1) / 3) * 100);
+  const progressWidth = useSharedValue(((step + 1) / 4) * 100);
   useEffect(() => {
-    const target = ((step + 1) / 3) * 100;
+    const target = ((step + 1) / 4) * 100;
     progressWidth.value = reduceMotion ? target : withTiming(target, { duration: 260 });
   }, [step, reduceMotion, progressWidth]);
   const progressBarStyle = useAnimatedStyle(() => ({
@@ -277,20 +282,24 @@ export default function OnboardingScreen() {
       if (needsManualCity && city.trim().length < 2) {
         return setFieldErrors({ city: "Bulunduğun ilçe veya şehri yazmalısın." });
       }
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
       if (coordinates && !locationConsent) {
         return setFieldErrors({
           locationConsent:
             "Yaklaşık konum için açık rıza vermeli veya konumu kaldırmalısın.",
         });
       }
-      setStep(1);
+      setStep(2);
       return;
     }
-    if (step === 1) {
+    if (step === 2) {
       if (!petName.trim()) {
         return setFieldErrors({ petName: "Petinin adını yazmalısın." });
       }
-      setStep(2);
+      setStep(3);
     }
   };
 
@@ -440,10 +449,12 @@ export default function OnboardingScreen() {
               </Text>
               <Text className="mt-1 text-2xl font-bold text-text-primary">
                 {step === 0
-                  ? "Seni tanıyalım"
+                  ? "Sen ve bölgen"
                   : step === 1
-                    ? "Petini tanıyalım"
-                    : "Son dokunuşlar"}
+                    ? "Yaklaşık konum"
+                    : step === 2
+                      ? "Petini tanıyalım"
+                      : "Son dokunuşlar"}
               </Text>
             </View>
           </View>
@@ -597,16 +608,11 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
-            {/*
-              Konum bölgeyle AYNI blokta duruyor.
-              Ayrı adımlardayken kullanıcıya "nerede yaşıyorsun" iki kez
-              sorulmuş gibi geliyordu. Aynı şey değiller — bölge zorunlu ve
-              Keşfet havuzunun kendisi, konum ise opsiyonel ve yalnızca
-              aynı bölge içinde mesafe filtresi/sıralama için — ama bu ayrım
-              ancak yan yana dururken anlaşılıyor. Konum bölgeden
-              TÜRETİLEMİYOR: izni vermeyen kullanıcı yine kendi bölgesinde
-              keşfeder, mesafe etiketi görmez.
-            */}
+          </>
+        ) : null}
+
+        {step === 1 ? (
+          <>
             <Text className="mb-1 text-sm font-semibold text-text-primary">
               Yaklaşık konum (opsiyonel)
             </Text>
@@ -674,7 +680,7 @@ export default function OnboardingScreen() {
           </>
         ) : null}
 
-        {step === 1 ? (
+        {step === 2 ? (
           <>
             <Field
               label="Petinin adı"
@@ -741,7 +747,7 @@ export default function OnboardingScreen() {
           </>
         ) : null}
 
-        {step === 2 ? (
+        {step === 3 ? (
           <>
             <Text className="mb-2 text-sm font-semibold text-text-primary">
               Pet fotoğrafları
@@ -819,14 +825,14 @@ export default function OnboardingScreen() {
             </AppPressable>
           ) : null}
           <AppPressable
-            onPress={step === 2 ? submit : next}
+            onPress={step === 3 ? submit : next}
             disabled={busy}
             className="flex-[2] items-center rounded-xl bg-brand py-4 disabled:opacity-50"
           >
             {busy ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text className="font-bold text-white">{step === 2 ? "Profili tamamla" : "Devam"}</Text>
+              <Text className="font-bold text-white">{step === 3 ? "Profili tamamla" : "Devam"}</Text>
             )}
           </AppPressable>
       </View>

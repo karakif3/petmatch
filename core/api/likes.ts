@@ -13,11 +13,10 @@ export type PendingLike = {
 };
 
 /**
- * "Kim beğendi" — monetization.md'deki katman ayrımı burada, iki ayrı
- * SECURITY DEFINER fonksiyon çağrısında yaşıyor: sayı her zaman gerçek,
- * kartlar bugün için de erişilebilir (ödeme altyapısı yok, Faz 0). İstemci
- * tarafı "ücretsiz" görünümü kartları bulanıklaştırarak simüle ediyor —
- * bkz. `components/pending-like-card.tsx`.
+ * "Kim beğendi" iki ayrı SECURITY DEFINER fonksiyon çağrısında yaşıyor:
+ * sayı her zaman gerçek, kartlar karşılıklı beğeni öncesi anonimleştirilmek
+ * üzere istemciye gelir. Gerçek bir satın alma akışı eklenene kadar bu yüzey
+ * ücretli özellik veya yaklaşan ödeme duvarı vaat etmez.
  */
 export async function loadPendingLikesCount(): Promise<number> {
   const { data, error } = await requireSupabaseClient().rpc("pending_likes_count");

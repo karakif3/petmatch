@@ -132,12 +132,11 @@ function FilledSlot({
   const placed = useRef(false);
 
   useEffect(() => {
-    const target = lifted ? originFrame : frame;
     if (!placed.current) {
-      left.value = target.x;
-      top.value = target.y;
-      boxW.value = target.w;
-      boxH.value = target.h;
+      left.value = lifted ? originFrame.x : frame.x;
+      top.value = lifted ? originFrame.y : frame.y;
+      boxW.value = lifted ? originFrame.w : frame.w;
+      boxH.value = lifted ? originFrame.h : frame.h;
       placed.current = true;
       return;
     }

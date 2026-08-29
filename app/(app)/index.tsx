@@ -46,7 +46,7 @@ import {
 import { loadProfileCompletion } from "../../core/api/profile-completion";
 import { blockUser } from "../../core/api/safety";
 import { FEATURES } from "../../core/features";
-import type { OwnerVisibility, SwipeDirection } from "../../core/domain/types";
+import type { SwipeDirection } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
 import {
   setDiscoverProfileSession,
@@ -390,37 +390,6 @@ export default function DiscoverScreen() {
       setFilterBusy(false);
     }
   };
-
-  /**
-   * Görünürlük Keşfet başlığında yok — gizlemeyi oradan teşvik etmiyoruz.
-   * Ayar sahip profilinde. Bu alert, public kullanıcıya `0068` tek yön
-   * kuralını bir kez söyler.
-   */
-  const ownerVisibility: OwnerVisibility =
-    deck.data?.ownerSettings.visibility ?? "after_match";
-
-  /**
-   * `0068` gösterimi tek yönlü yaptı: public sahibin yaş kovası / cinsiyeti
-   * gizli izleyiciye de çıkıyor. Mevcut public kullanıcılara sessiz kural
-   * değişmesin diye bir kez söylüyoruz. Filtre hâlâ karşılıklı.
-   */
-  useEffect(() => {
-    if (!user || !deck.data || showSwipeHint) return;
-    if (ownerVisibility !== "public") return;
-    let cancelled = false;
-    const key = `petmatch:seen-age-display-one-way:${user.id}`;
-    void AsyncStorage.getItem(key).then((value) => {
-      if (cancelled || value) return;
-      void AsyncStorage.setItem(key, "1");
-      Alert.alert(
-        "Yaş aralığın keşfette görünür",
-        "Keşfette görünürken yaş aralığın ve cinsiyetin, karşı taraf kendi profilini gizlemiş olsa da kartta çıkar. Desteyi yaşa veya cinsiyete göre daraltmak hâlâ senin de görünür olmanı ister.",
-      );
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user, deck.data, ownerVisibility, showSwipeHint]);
 
   const toggleNewCandidateNotification = async () => {
     if (!deck.data) return;

@@ -7,8 +7,9 @@ import { lightHaptic } from "../core/ui/haptics";
 import { AppPressable } from "./ui/pressable";
 
 /**
- * "Kim beğendi" tuzeri — monetization.md: ücretsiz katman yalnızca SAYI
- * verir, kimlik ücretli katmana kadar açılmaz.
+ * "Kim beğendi" yüzeyi — pilotta yalnızca SAYI verir, kimlik karşılıklı
+ * beğeniye kadar açılmaz. Gerçek bir satın alma akışı olmadan ücretli özellik
+ * varmış gibi davranmıyoruz.
  *
  * Bilinçli bir yumuşatma var: sahibi `socialOpen` ise (yani zaten Keşfet'te
  * adı + fotoğrafıyla görünüyor — 0021 bunu `public` görünürlük + ad + avatar
@@ -75,18 +76,14 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
   }
 
   return (
-    // Öncesinde kilitli kart tamamen ölüydü: bulanık duruyordu, dokunmak
-    // hiçbir şey yapmıyordu. Gerçek ödeme duvarı henüz yok (bkz.
-    // docs/backlog.md "kararı bekleyenler") — ama en azından dokunuşa bir
-    // yanıt vermek, "kilit neden burada" sorusunu cevaplıyor.
     <AppPressable
       accessibilityRole="button"
-      accessibilityLabel="Kilitli beğeni, ne zaman açılacağını görmek için dokun"
+      accessibilityLabel="Gizli beğeni, kimliğin nasıl açılacağını görmek için dokun"
       onPress={() => {
         lightHaptic();
         Alert.alert(
-          "Kimlik kilitli",
-          "Bu profilin adı ve fotoğrafı ödeme duvarı geldiğinde açılacak. Şimdilik yalnızca kaç kişinin petini beğendiğini görebiliyorsun.",
+          "Karşılıklı olunca tanışın",
+          "Bu pet Keşfet akışında karşına çıktığında sen de beğenirsen eşleşir ve kimliği açılır. Şimdilik yalnızca petine gelen ilgiyi görüyorsun.",
         );
       }}
       className="aspect-[3/4] w-[48%] overflow-hidden rounded-2xl bg-bg-tertiary"
