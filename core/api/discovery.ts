@@ -153,6 +153,7 @@ export function mapDiscoveryRow(
 
 export async function ownerSummary(
   row: Omit<DiscoveryRow, "previously_passed">,
+  extraPhotoUrls: string[] = [],
 ): Promise<DiscoveryDeckCard["owner"]> {
   // `owner_profile_shown` sunucuda zaten "bu satırda alanlar dolu mu" demek
   // (bkz. 0047) — burada ayrıca kalan boşluk kontrolü, sahibi `public` ama
@@ -184,6 +185,7 @@ export async function ownerSummary(
     socialOpen: row.owner_social_open,
     verified: row.owner_verified,
     interests: ownerInterests(row.owner_interests ?? []),
+    extraPhotoUrls,
   };
 }
 
@@ -288,7 +290,42 @@ export async function loadDiscoveryDeck(
   if (discoveryError) throw discoveryError;
 
   const candidates = (rows ?? []).map(mapDiscoveryRow);
-  const owners = await Promise.all((rows ?? []).map(ownerSummary));
+  const visibleOwnerIds = [
+    ...new Set(
+      (rows ?? [])
+        .filter((row) => row.owner_profile_shown)
+        .map((row) => row.owner_id),
+    ),
+  ];
+  const extraOwnerPhotosById = new Map<string, string[]>();
+  if (visibleOwnerIds.length) {
+    const { data: ownerPhotos, error: ownerPhotosError } = await sb
+      .from("owner_photos")
+      .select("owner_id,storage_path,position")
+      .in("owner_id", visibleOwnerIds)
+      .gt("position", 0)
+      .order("position");
+    if (ownerPhotosError) throw ownerPhotosError;
+    const paths = (ownerPhotos ?? []).map((photo) => photo.storage_path);
+    if (paths.length) {
+      const { data: signedPhotos, error: signedPhotosError } = await sb.storage
+        .from(STORAGE_BUCKETS.ownerAvatars)
+        .createSignedUrls(paths, 60 * 30);
+      if (signedPhotosError) throw signedPhotosError;
+      (ownerPhotos ?? []).forEach((photo, index) => {
+        const signedUrl = signedPhotos[index]?.signedUrl;
+        if (!signedUrl) return;
+        const current = extraOwnerPhotosById.get(photo.owner_id) ?? [];
+        current.push(signedUrl);
+        extraOwnerPhotosById.set(photo.owner_id, current);
+      });
+    }
+  }
+  const owners = await Promise.all(
+    (rows ?? []).map((row) =>
+      ownerSummary(row, extraOwnerPhotosById.get(row.owner_id) ?? []),
+    ),
+  );
   const ownerById = new Map(
     (rows ?? []).map((row, index) => [row.id, owners[index]]),
   );

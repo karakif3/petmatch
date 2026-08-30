@@ -26,15 +26,22 @@ export function OwnerDiscoverPill({
   owner,
   variant,
   onPress,
+  pageIndex = 0,
 }: {
   owner: OwnerDiscoverPillOwner;
   /** overlay = foto üstü cam; preview = açık kart üzerindeki koyu hap. */
   variant: "overlay" | "preview";
   onPress?: () => void;
+  /** Pet karusel sayfasıyla sahip fotoğrafı/ilgilerini birlikte ilerletir. */
+  pageIndex?: number;
 }) {
-  const interestChips = (owner.interests ?? []).slice(0, MAX_OWNER_INTEREST_CHIPS);
+  const interests = owner.interests ?? [];
+  const interestChips = Array.from(
+    { length: Math.min(MAX_OWNER_INTEREST_CHIPS, interests.length) },
+    (_, offset) => interests[(pageIndex * MAX_OWNER_INTEREST_CHIPS + offset) % interests.length],
+  );
   const overlay = variant === "overlay";
-  const avatar = overlay ? 32 : 26;
+  const avatar = overlay ? 38 : 26;
   const body = (
     <>
       {owner.photoUrl ? (

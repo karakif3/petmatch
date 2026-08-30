@@ -29,7 +29,7 @@ export async function loadPendingLikes(): Promise<PendingLike[]> {
   const { data: rows, error } = await sb.rpc("pending_likes", { p_limit: 50 });
   if (error) throw error;
 
-  const owners = await Promise.all((rows ?? []).map(ownerSummary));
+  const owners = await Promise.all((rows ?? []).map((row) => ownerSummary(row)));
   return (rows ?? []).map((row, index) => ({
     card: { ...mapDiscoveryRow(row), owner: owners[index], isSuper: row.is_super },
     likedAt: row.liked_at,

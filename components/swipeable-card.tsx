@@ -147,7 +147,7 @@ export function SwipeableCard({ children, disabled, onSwipe, resetKey, fill }: P
     <Animated.View
       style={[
         cardStyle,
-        fill ? { flex: 1, backgroundColor: "#FDEADF" } : undefined,
+        fill ? { flex: 1, zIndex: 2 } : { zIndex: 2 },
       ]}
       className={fill ? "flex-1" : undefined}
     >

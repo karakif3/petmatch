@@ -11,6 +11,7 @@ import {
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -142,7 +143,21 @@ export default function DiscoverScreen() {
 
   const deck = useQuery({
     queryKey: ["discovery", user?.id, ownerFilters],
-    queryFn: () => loadDiscoveryDeck(user!.id, ownerFilters),
+    queryFn: async () => {
+      const result = await loadDiscoveryDeck(user!.id, ownerFilters);
+      const firstGalleryPhotos = result.cards
+        .slice(0, 4)
+        .flatMap((card) => [
+          ...card.photoUrls,
+          card.owner?.photoUrl,
+          ...(card.owner?.extraPhotoUrls ?? []),
+        ])
+        .filter((url): url is string => Boolean(url));
+      if (firstGalleryPhotos.length) {
+        await Image.prefetch(firstGalleryPhotos, "memory-disk").catch(() => false);
+      }
+      return result;
+    },
     enabled: Boolean(user) && filterReady,
   });
 
@@ -168,6 +183,21 @@ export default function DiscoverScreen() {
   );
   const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
   const currentCard = activeCards[0] ?? null;
+  const stackedCards = activeCards.slice(1, 4);
+
+  useEffect(() => {
+    const upcomingGalleryPhotos = activeCards
+      .slice(0, 4)
+      .flatMap((card) => [
+        ...card.photoUrls,
+        card.owner?.photoUrl,
+        ...(card.owner?.extraPhotoUrls ?? []),
+      ])
+      .filter((url): url is string => Boolean(url));
+    if (upcomingGalleryPhotos.length) {
+      void Image.prefetch(upcomingGalleryPhotos, "memory-disk").catch(() => false);
+    }
+  }, [activeCards]);
 
   useEffect(() => {
     setOwnerSheetVisible(false);
@@ -429,10 +459,10 @@ export default function DiscoverScreen() {
       <ScrollView
         ref={scrollRef}
         contentContainerClassName="flex-grow px-5 pt-4"
-        // Yüzen düğme şeridi, gradyanın şeffaf ucuyla son 36 pt'nin ÜSTÜNE
-        // biniyor (`marginTop: -36`). Kart varken alt boşluk o örtüşmeden
-        // büyük olmalı, yoksa gradyan kartın alt satırını yiyor.
-        contentContainerStyle={{ paddingBottom: currentCard ? 44 : 32 }}
+        // Kart varken alt aksiyon gradyanı zaten kendi güvenli boşluğunu
+        // taşıyor. Burada büyük ikinci bir rezerv bırakmak hero'yu gereksiz
+        // kısaltıyordu.
+        contentContainerStyle={{ paddingBottom: currentCard ? 12 : 32 }}
         refreshControl={
           <RefreshControl
             refreshing={deck.isRefetching}
@@ -721,24 +751,62 @@ export default function DiscoverScreen() {
               durumda sayfa yeniden kaydırılabilir oluyor.
             */}
             <View className="relative flex-1" style={{ minHeight: 320 }}>
-              <SwipeableCard
-                resetKey={currentCard.id}
-                disabled={swipe.isPending}
-                onSwipe={handleSwipe}
-                fill
+              {[...stackedCards].reverse().map((card) => {
+                return (
+                  <View
+                    key={`stack-${card.id}`}
+                    pointerEvents="none"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 0,
+                      overflow: "hidden",
+                      borderRadius: 24,
+                      backgroundColor: "#FDEADF",
+                    }}
+                  >
+                    <DiscoveryCard
+                      card={card}
+                      fill
+                      onOpenProfile={() => undefined}
+                      onOpenOwner={() => undefined}
+                    />
+                  </View>
+                );
+              })}
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                }}
               >
-                <DiscoveryCard
-                  card={currentCard}
+                <SwipeableCard
+                  resetKey={currentCard.id}
+                  disabled={swipe.isPending}
+                  onSwipe={handleSwipe}
                   fill
-                  onOpenProfile={() => openProfile(false)}
-                  onOpenOwner={() => setOwnerSheetVisible(true)}
-                />
-              </SwipeableCard>
+                >
+                  <DiscoveryCard
+                    card={currentCard}
+                    fill
+                    onOpenProfile={() => openProfile(false)}
+                    onOpenOwner={() => setOwnerSheetVisible(true)}
+                  />
+                </SwipeableCard>
+              </View>
               <AppPressable
                 onPress={() => setSafetyVisible(true)}
                 disabled={safetyBusy}
                 accessibilityLabel="Profil güvenliği"
-                className="absolute right-3 top-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
+                style={{ top: 3 }}
+                className="absolute right-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
               >
                 <AppIcon name="ellipsis" color="#FFFFFF" size={23} />
               </AppPressable>
@@ -790,11 +858,11 @@ export default function DiscoverScreen() {
           // gradyanın şeffaf ucu onunla çakışırsa renk dikişi oluşur.
           style={
             showSwipeHint
-              ? { paddingTop: 20 }
-              : { marginTop: -36, paddingTop: 36 }
+              ? { paddingTop: 12 }
+              : { marginTop: -24, paddingTop: 24 }
           }
         >
-          <View className="px-5 pb-4">
+          <View className="px-5 pb-1">
             <DecisionActions
               busy={swipe.isPending}
               pendingAction={swipePendingAction(

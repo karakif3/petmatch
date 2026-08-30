@@ -17,13 +17,8 @@ type Props = {
    * kaymasına yol açıyordu.
    */
   fill?: boolean;
-  /** Lightbox kapatma düğmesi gibi üst kontrollerin tap'ini yememek için. */
+  /** Üst kontrollerin tap alanını karusel gezinmesinden ayırmak için. */
   topTapInset?: number;
-  /**
-   * Verilince sol/sağ sayfa yerine tüm kare bu basışa gider.
-   * Keşfet'te fotoğraf dokunuşu profil açsın diye.
-   */
-  onPress?: () => void;
 };
 
 const CARD_FILL = "#FDEADF";
@@ -49,7 +44,6 @@ export function PhotoCarousel({
   onIndexChange,
   fill = false,
   topTapInset = 0,
-  onPress,
 }: Props) {
   const count = photoUrls.length;
   const current = Math.min(index, Math.max(0, count - 1));
@@ -67,14 +61,10 @@ export function PhotoCarousel({
   }
 
   const go = (next: number) => {
-    // Sınırda dokunuş SESSİZ kalıyor: son fotoğraftayken sağa basmak bir
-    // şey yapmıyor, dolayısıyla titreşim de vermemeli — yoksa haptik
-    // "oldu" derken ekranda hiçbir şey olmuyor.
-    if (next < 0 || next >= count) return;
     // Fotoğraf değişimi küçük bir gezinme adımı: `light`, karar
     // anlarının `medium`'undan bilerek ayrı (bkz. core/ui/haptics.ts).
     lightHaptic();
-    onIndexChange(next);
+    onIndexChange((next + count) % count);
   };
 
   return (
@@ -88,6 +78,8 @@ export function PhotoCarousel({
       <Image
         source={photoUrls[current]}
         contentFit="cover"
+        cachePolicy="memory-disk"
+        priority={fill ? "high" : "normal"}
         recyclingKey={photoUrls[current]}
         transition={fill ? 0 : 160}
         style={
@@ -110,16 +102,7 @@ export function PhotoCarousel({
         </View>
       ) : null}
 
-      {onPress ? (
-        <AppPressable
-          className="absolute inset-0"
-          style={{ top: topTapInset }}
-          disablePressFeedback
-          accessibilityRole="button"
-          accessibilityLabel="Profili aç"
-          onPress={onPress}
-        />
-      ) : count > 1 ? (
+      {count > 1 ? (
         <View className="absolute bottom-0 left-0 right-0 flex-row" style={{ top: topTapInset }}>
           <AppPressable
             className="flex-1"

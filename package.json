@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:db": "node scripts/test-db.mjs",
     "seed:qa-photos": "node scripts/seed-qa-pet-photos.mjs",
+    "reset:qa-discovery": "node scripts/reset-qa-discovery.mjs",
     "gen:types": "node scripts/gen-supabase-types.mjs",
     "db:push": "supabase db push",
     "local:start": "supabase start",

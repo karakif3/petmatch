@@ -129,6 +129,24 @@ export function DiscoveryFilterModal({
     );
   };
 
+  const reset = () => {
+    setSpecies(["cat", "dog"]);
+    setPetGenders(["female", "male"]);
+    setMaxDistanceKm(25);
+    setDistanceFilterEnabled(false);
+    setMinPetAge("");
+    setMaxPetAge("");
+    setRequireVisibleOwner(false);
+    setRequirePhoto(false);
+    setRequireSocial(false);
+    setRequireVerified(false);
+    setNotifyOnNewCandidates(false);
+    setGenders([]);
+    setMinAge("");
+    setMaxAge("");
+    setError(null);
+  };
+
   const apply = () => {
     const parsedPetMin = minPetAge.trim() ? Number(minPetAge) : null;
     const parsedPetMax = maxPetAge.trim() ? Number(maxPetAge) : null;
@@ -192,7 +210,7 @@ export function DiscoveryFilterModal({
         className="flex-1 justify-end bg-black/40"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="max-h-[92%] rounded-t-3xl bg-bg-primary px-5 pb-8 pt-4">
+        <View className="max-h-[92%] rounded-t-3xl bg-bg-primary px-5 pb-5 pt-4">
           <View className="mb-2 flex-row items-center justify-between">
             <View>
               <Text className="text-xl font-bold text-text-primary">Keşfet filtreleri</Text>
@@ -209,7 +227,12 @@ export function DiscoveryFilterModal({
             </Pressable>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView
+            className="min-h-0"
+            contentContainerClassName="pb-4"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
             <Text className="mb-2 mt-4 text-lg font-bold text-text-primary">Petler</Text>
             <Text className="mb-2 text-sm font-semibold text-text-primary">Tür</Text>
             <View className="mb-5 flex-row gap-2">
@@ -494,40 +517,31 @@ export function DiscoveryFilterModal({
               </View>
             ) : null}
 
+          </ScrollView>
+
+          <View className="flex-row gap-3 border-t border-border pt-4">
             <Pressable
-              onPress={() => {
-                setSpecies(["cat", "dog"]);
-                setMaxDistanceKm(25);
-                setMinPetAge("");
-                setMaxPetAge("");
-                setRequireVisibleOwner(false);
-                setRequirePhoto(false);
-                setRequireSocial(false);
-                setRequireVerified(false);
-                setNotifyOnNewCandidates(false);
-                setGenders([]);
-                setMinAge("");
-                setMaxAge("");
-                setError(null);
-              }}
+              onPress={reset}
               disabled={busy}
-              className="mt-5 items-center rounded-xl border border-border bg-surface py-3 disabled:opacity-50"
+              accessibilityRole="button"
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-border bg-surface px-3 disabled:opacity-50"
             >
-              <Text className="font-semibold text-text-secondary">Tüm filtreleri sıfırla</Text>
+              <Text className="text-center font-semibold text-text-secondary">Sıfırla</Text>
             </Pressable>
 
             <Pressable
               onPress={apply}
               disabled={busy}
-              className="mt-5 items-center rounded-xl bg-brand py-4 disabled:opacity-50"
+              accessibilityRole="button"
+              className="min-h-12 flex-[1.5] items-center justify-center rounded-xl bg-brand px-3 disabled:opacity-50"
             >
               {busy ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text className="font-bold text-white">Filtreleri uygula</Text>
+                <Text className="text-center font-bold text-white">Filtreleri uygula</Text>
               )}
             </Pressable>
-          </ScrollView>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

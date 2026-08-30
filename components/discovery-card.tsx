@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,15 +25,6 @@ function activityLabel(bucket: string | null): string | null {
   if (bucket === "this_week") return "Bu hafta aktif";
   if (bucket === "this_month") return "Bu ay aktif";
   return null;
-}
-
-/** Foto üstünde okunabilirlik için tutarlı koyu-cam çip stili. */
-function OverlayChip({ children }: { children: ReactNode }) {
-  return (
-    <View className="rounded-full border border-white/15 bg-black/45 px-2.5 py-1">
-      <Text className="text-[11px] font-semibold text-white">{children}</Text>
-    </View>
-  );
 }
 
 export function DiscoveryCard({
@@ -63,52 +54,41 @@ export function DiscoveryCard({
   const compatibility = Math.round(card.compatibility.total * 100);
   const details = [card.breed, age, sizeLabels[card.size]].filter(Boolean).join(" · ");
 
-  /*
-   * İlk fotoğraf YALNIZCA kimlik: ad, cinsiyet, ırk/yaş/boyut, mesafe.
-   * Enerji, kısırlaştırma, mizaç, bio, sahip sonraki karelere dağılır.
-   * Tek fotoğrafta o ayrıntılar kartta YOK — profil sayfasına gider.
-   */
-  const extraBlocks: ReactNode[] = [];
-
+  // Her fotoğrafa tek, kısa bir ayrıntı satırı düşer. Galeri sayısını aşan
+  // bilgiler kartı kalabalıklaştırmaz; tam profil içinde kalır.
+  const detailRows: string[] = [];
   const factChips: string[] = [];
   if (card.city) factChips.push(card.city);
   factChips.push(`Enerji ${card.energyLevel}/5`);
   if (card.isNeutered) factChips.push("Kısırlaştırılmış");
-  extraBlocks.push(
-    <View key="facts" className="flex-row flex-wrap gap-1.5">
-      {factChips.map((chip) => (
-        <OverlayChip key={chip}>{chip}</OverlayChip>
-      ))}
-    </View>,
-  );
+  detailRows.push(factChips.join(" · "));
 
   if (card.temperaments.length > 0) {
-    extraBlocks.push(
-      <View key="temperament" className="flex-row flex-wrap gap-1.5">
-        {card.temperaments.map((temperament) => (
-          <OverlayChip key={temperament}>{temperamentLabels[temperament]}</OverlayChip>
-        ))}
-      </View>,
+    detailRows.push(
+      card.temperaments.map((temperament) => temperamentLabels[temperament]).join(" · "),
     );
   }
 
   if (card.bio) {
-    extraBlocks.push(
-      <Text key="bio" className="text-[13px] leading-5 text-white/90" numberOfLines={2}>
-        {card.bio}
-      </Text>,
-    );
+    detailRows.push(card.bio);
   }
 
-  const photoCount = Math.max(1, card.photoUrls.length);
-  const extraPageCount = Math.max(0, photoCount - 1);
-  const buckets: ReactNode[][] = Array.from({ length: extraPageCount }, () => []);
-  extraBlocks.forEach((block, i) => {
-    if (extraPageCount === 0) return;
-    buckets[Math.min(i, extraPageCount - 1)].push(block);
-  });
-  const currentExtra =
-    photoIndex === 0 || extraPageCount === 0 ? [] : buckets[photoIndex - 1];
+  // Her kare tam bir satır taşır; galeri yetmezse kalan satırlar profilde.
+  // Sabit yükseklik, kare değişirken pet adının aşağı/yukarı oynamasını önler.
+  const currentDetail = detailRows[photoIndex] ?? detailRows[0];
+  const ownerPhotoUrls = card.owner
+    ? [card.owner.photoUrl, ...(card.owner.extraPhotoUrls ?? [])].filter(
+        (url): url is string => Boolean(url),
+      )
+    : [];
+  const owner = card.owner
+    ? {
+        ...card.owner,
+        photoUrl: ownerPhotoUrls.length
+          ? ownerPhotoUrls[photoIndex % ownerPhotoUrls.length]
+          : null,
+      }
+    : null;
 
   const identity = (
     <>
@@ -135,8 +115,8 @@ export function DiscoveryCard({
 
   return (
     <View
-      className={`relative w-full overflow-hidden rounded-3xl border border-border ${
-        fill ? "flex-1" : ""
+      className={`relative w-full overflow-hidden rounded-3xl ${
+        fill ? "flex-1" : "border border-border"
       }`}
       style={[
         { backgroundColor: "#FDEADF" },
@@ -153,7 +133,6 @@ export function DiscoveryCard({
         fill={fill}
         index={photoIndex}
         onIndexChange={setPhotoIndex}
-        onPress={onOpenProfile}
       />
 
       <LinearGradient
@@ -207,31 +186,23 @@ export function DiscoveryCard({
             className="min-h-11 self-start justify-center"
           >
             {identity}
-            {photoCount === 1 && extraBlocks.length > 0 ? (
-              <Text className="mt-1 text-[11px] font-semibold text-white/70">
-                Profilde daha fazla
-              </Text>
-            ) : null}
           </AppPressable>
         ) : (
           identity
         )}
 
-        {currentExtra.length > 0 ? (
-          <View className="mt-2.5 gap-1.5" pointerEvents="box-none">
-            {currentExtra.map((node, i) => (
-              <View key={i} pointerEvents="box-none">
-                {node}
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <View className="mt-2 h-5 justify-center" pointerEvents="none">
+          <Text className="text-[12px] font-semibold text-white/85" numberOfLines={1}>
+            {currentDetail}
+          </Text>
+        </View>
 
-        {card.owner ? (
+        {owner ? (
           <View className="mt-2.5">
             <OwnerDiscoverPill
               variant="overlay"
-              owner={card.owner}
+              owner={owner}
+              pageIndex={photoIndex}
               onPress={onOpenOwner ?? onOpenProfile}
             />
           </View>
