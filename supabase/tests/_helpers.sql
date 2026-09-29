@@ -136,7 +136,30 @@ $$;
 
 -- Testler `authenticated` rolüne geçtiğinde tablolara erişebilsin diye.
 -- Üretimde bu grant'lar Supabase'in default privilege'larıyla gelir.
+--
+-- Toptan `grant … on all tables` YAPILMAZ: migration'ların kolon düzeyindeki
+-- kısıtlarını (profiles/pets UPDATE, messages INSERT) test ortamında siliyor,
+-- yani o kısıtlar hiç test edilmemiş oluyordu. Bir ayrıcalık türü için kolon
+-- grant'ı varsa bu kasıtlı bir daraltmadır; o türe dokunulmaz.
 grant usage on schema public to authenticated, anon;
-grant select, insert, update, delete on all tables in schema public to authenticated;
+do $$
+declare
+  v_rel regclass;
+  v_priv text;
+begin
+  for v_rel in
+    select c.oid::regclass
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p', 'v')
+  loop
+    foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE'] loop
+      if not has_any_column_privilege('authenticated', v_rel, v_priv) then
+        execute format('grant %s on %s to authenticated', v_priv, v_rel);
+      end if;
+    end loop;
+  end loop;
+end;
+$$;
 grant usage on schema tests to authenticated;
 grant execute on all functions in schema tests to authenticated;

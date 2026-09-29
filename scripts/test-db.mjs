@@ -36,32 +36,34 @@ function sh(command, options = {}) {
 const PINNED_IMAGE = "public.ecr.aws/supabase/postgres:17.6.1.111";
 
 /**
- * Önce yerel imajlara bakıyoruz: bazı ağlarda registry'ye TLS çıkışı engelli
- * ve `docker pull` düşüyor; geliştiricinin makinesinde imaj varsa koşum yine
- * de çalışmalı. Yerelde yoksa (CI'ın temiz runner'ı) sabitlenmiş sürümü
- * çekiyoruz.
+ * Sonuç deterministik olsun diye her zaman sabit sürüm. Eskiden yerelde
+ * bulunan İLK `supabase/postgres:*` ya da düz `postgres:*` imajı alınıyordu;
+ * düz postgres'te Supabase rolleri yok, farklı sürüm farklı davranış demek.
+ *
+ * Bazı ağlarda registry'ye TLS çıkışı engelli: imaj yerelde varsa (herhangi
+ * bir registry önekiyle) çekmeden kullanılır. CI'da çekme ara sıra geçici
+ * olarak düşüyor (2026-08-29) — üç deneme.
  */
 function resolvePostgresImage() {
+  const pinnedTag = PINNED_IMAGE.split("/").pop();
   const images = sh('docker images --format "{{.Repository}}:{{.Tag}}"')
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const supabase = images.find((image) => /supabase\/postgres:/.test(image));
-  if (supabase) return supabase;
+  const local = images.find((image) => image.split("/").pop() === pinnedTag);
+  if (local) return local;
 
-  const plain = images.find((image) => /^postgres:/.test(image));
-  if (plain) return plain;
-
-  try {
-    console.log(`${DIM}yerel imaj yok, çekiliyor: ${PINNED_IMAGE}${RESET}`);
-    sh(`docker pull ${PINNED_IMAGE}`, { stdio: "inherit" });
-    return PINNED_IMAGE;
-  } catch {
-    throw new Error(
-      `Postgres imajı bulunamadı ve çekilemedi.\n  docker pull ${PINNED_IMAGE}`,
-    );
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      console.log(`${DIM}imaj çekiliyor (${attempt}/3): ${PINNED_IMAGE}${RESET}`);
+      sh(`docker pull ${PINNED_IMAGE}`, { stdio: "inherit" });
+      return PINNED_IMAGE;
+    } catch {
+      if (attempt < 3) sh(`sleep ${attempt * 10}`);
+    }
   }
+  throw new Error(`Postgres imajı çekilemedi.\n  docker pull ${PINNED_IMAGE}`);
 }
 
 /**
