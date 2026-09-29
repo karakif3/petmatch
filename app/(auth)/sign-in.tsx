@@ -84,7 +84,12 @@ export default function SignInScreen() {
       className="flex-1 bg-bg-primary"
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12">
+      {/* handled: klavye açıkken düğmeye ilk dokunuş yalnızca klavyeyi
+          kapatıyordu; gönderim ikinci dokunuşa kalıyordu. */}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerClassName="flex-grow justify-center px-6 py-12"
+      >
         <View className="mb-6">
           <BrandMark size={82} />
         </View>

@@ -1,18 +1,28 @@
 import { useCallback } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { AppIcon } from "../../components/ui/icon";
 // SafeAreaView react-native'den DEĞİL buradan geliyor: deprecated olan
 // sürüm iOS 26'da KeyboardAvoidingView zinciriyle birlikte içeriği sıfır
 // yüksekliğe düşürüyor ve ekran boş render ediliyordu.
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CloudOff, Heart } from "lucide-react-native";
-import { useFocusEffect } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { router, useFocusEffect } from "expo-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PendingLikeCard } from "../../components/pending-like-card";
 import { EmptyState } from "../../components/ui/empty-state";
 import { LikeCardSkeleton } from "../../components/ui/skeleton";
-import { loadPendingLikes, loadPendingLikesCount } from "../../core/api/likes";
+import { loadConversationIdForMatch } from "../../core/api/conversations";
+import { swipePet } from "../../core/api/discovery";
+import {
+  loadMyActivePetId,
+  loadPendingLikes,
+  loadPendingLikesCount,
+} from "../../core/api/likes";
+import { errorMessage } from "../../core/domain/error-message";
+import type { SwipeDirection } from "../../core/domain/types";
+import { successHaptic } from "../../core/ui/haptics";
+import { useAuthStore } from "../../stores/auth";
 
 export default function LikesScreen() {
   /*
@@ -40,6 +50,49 @@ export default function LikesScreen() {
   const likes = useQuery({
     queryKey: ["pending-likes", "cards"],
     queryFn: loadPendingLikes,
+  });
+
+  const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const activePet = useQuery({
+    queryKey: ["active-pet-id", user?.id],
+    queryFn: () => loadMyActivePetId(user!.id),
+    enabled: Boolean(user),
+  });
+
+  const decide = useMutation({
+    mutationFn: async ({ toPetId, direction }: { toPetId: string; direction: SwipeDirection }) => {
+      if (!activePet.data) throw new Error("Aktif pet bulunamadı.");
+      const matchId = await swipePet({ fromPetId: activePet.data, toPetId, direction });
+      return { matchId, direction };
+    },
+    onSuccess: async ({ matchId, direction }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["pending-likes"] }),
+        queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+        queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+      ]);
+      if (direction !== "like" || !matchId) return;
+      successHaptic();
+      const conversationId = await loadConversationIdForMatch(matchId).catch(() => null);
+      Alert.alert(
+        "Eşleştiniz! 🐾",
+        "Karşılıklı beğeni — artık mesajlaşabilirsiniz.",
+        conversationId
+          ? [
+              { text: "Sonra", style: "cancel" },
+              {
+                text: "Mesaj gönder",
+                onPress: () =>
+                  router.push({ pathname: "/chat/[conversationId]", params: { conversationId } }),
+              },
+            ]
+          : undefined,
+      );
+    },
+    onError: (error) => {
+      Alert.alert("Karar kaydedilemedi", errorMessage(error, "Bağlantını kontrol edip tekrar dene."));
+    },
   });
 
   const isLoading = count.isLoading || likes.isLoading;
@@ -100,7 +153,7 @@ export default function LikesScreen() {
               <EmptyState
                 icon={Heart}
                 title="Henüz beğeni yok"
-                description="Petin birini beğendiğinde burada göreceksin."
+                description="Biri petini beğendiğinde burada görünecek."
               />
             </View>
           ) : (
@@ -108,12 +161,21 @@ export default function LikesScreen() {
               <View className="mb-4 flex-row items-center rounded-2xl border border-brand/25 bg-brand/5 p-3.5">
                 <AppIcon name="heart" color="#F97362" size={20} />
                 <Text className="ml-2.5 flex-1 text-sm font-semibold text-text-primary">
-                  {count.data} kişi petini beğendi
+                  Petin {count.data} beğeni aldı
                 </Text>
               </View>
               <View className="flex-row flex-wrap justify-between gap-y-3">
                 {(likes.data ?? []).map(({ card, likedAt }) => (
-                  <PendingLikeCard key={`${card.id}-${likedAt}`} card={card} />
+                  <PendingLikeCard
+                    key={`${card.id}-${likedAt}`}
+                    card={card}
+                    busy={decide.isPending && decide.variables?.toPetId === card.id}
+                    onDecide={
+                      activePet.data
+                        ? (direction) => decide.mutate({ toPetId: card.id, direction })
+                        : undefined
+                    }
+                  />
                 ))}
               </View>
             </>

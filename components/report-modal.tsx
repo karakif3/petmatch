@@ -32,19 +32,22 @@ export function ReportModal({
   onClose: () => void;
   onReported: () => void;
 }) {
-  const [reason, setReason] = useState<ReportReason>("spam");
+  // Hazır seçim yok: "spam" önceden seçili geliyordu, kullanıcı sebebi
+  // değiştirmeden gönderince moderasyon kuyruğu yanlış sınıflanıyordu.
+  const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
-    setReason("spam");
+    setReason(null);
     setNote("");
     setError(null);
   }, [visible]);
 
   const submit = async () => {
+    if (!reason) return;
     setBusy(true);
     setError(null);
     try {
@@ -95,6 +98,8 @@ export function ReportModal({
                 <Pressable
                   key={option.value}
                   onPress={() => setReason(option.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: reason === option.value }}
                   className={`flex-row items-center rounded-xl border px-4 py-3 ${
                     reason === option.value
                       ? "border-brand bg-brand/10"
@@ -138,7 +143,7 @@ export function ReportModal({
 
             <Pressable
               onPress={submit}
-              disabled={busy}
+              disabled={busy || !reason}
               className="mt-4 items-center rounded-xl bg-danger py-4 disabled:opacity-50"
             >
               {busy ? (

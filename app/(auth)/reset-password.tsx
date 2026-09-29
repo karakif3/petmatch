@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { AppIcon } from "../../components/ui/icon";
+import { AppPressable } from "../../components/ui/pressable";
 
 import { translateAuthError } from "../../core/domain/auth-errors";
 import {
@@ -26,6 +27,7 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const rules = passwordRules(password);
@@ -69,18 +71,28 @@ export default function ResetPasswordScreen() {
       <Text className="text-text-secondary mb-8">
         Hesabın için yeni bir şifre seç.
       </Text>
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Yeni şifre"
-        placeholderTextColor="#C4B7AE"
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="new-password"
-        textContentType="newPassword"
-        className="bg-surface border border-border rounded-lg px-4 py-3.5 text-text-primary mb-3"
-      />
+      <View className="mb-3 flex-row items-center rounded-lg border border-border bg-surface">
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Yeni şifre"
+          placeholderTextColor="#C4B7AE"
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          className="flex-1 px-4 py-3.5 text-text-primary"
+        />
+        <AppPressable
+          onPress={() => setShowPassword((value) => !value)}
+          accessibilityRole="button"
+          accessibilityLabel={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+          className="h-11 w-11 items-center justify-center rounded-full"
+        >
+          <AppIcon name={showPassword ? "eye-off" : "eye"} size={19} color="#6B5D55" />
+        </AppPressable>
+      </View>
       {/*
         Kurallar yazarken görünüyor. "Gönder → reddedildi → tekrar dene"
         döngüsü, kuralı baştan göstermenin yerini tutmuyor; şifre alanı
@@ -111,7 +123,7 @@ export default function ResetPasswordScreen() {
         onChangeText={setConfirmation}
         placeholder="Yeni şifreyi tekrar yaz"
         placeholderTextColor="#C4B7AE"
-        secureTextEntry
+        secureTextEntry={!showPassword}
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="new-password"
@@ -130,6 +142,18 @@ export default function ResetPasswordScreen() {
           <Text className="text-white font-bold">Şifreyi güncelle</Text>
         )}
       </Pressable>
+      {/* Kurtarma modunda kalan kullanıcının uygulamayı kapatmadan çıkış
+          yolu yoktu. */}
+      <AppPressable
+        onPress={() => {
+          setRecoveryMode(false);
+          void signOut().then(() => router.replace("/(auth)/sign-in"));
+        }}
+        disabled={busy}
+        className="mt-3 min-h-11 items-center justify-center"
+      >
+        <Text className="font-semibold text-text-secondary">Vazgeç</Text>
+      </AppPressable>
     </KeyboardAvoidingView>
   );
 }

@@ -21,6 +21,7 @@ import {
   type ConversationSummary,
 } from "../../core/api/conversations";
 import { getIntlLocale } from "../../core/i18n";
+import { errorMessage } from "../../core/domain/error-message";
 
 function relativeTime(value: string | null): string {
   if (!value) return "";
@@ -197,9 +198,7 @@ export default function MatchesScreen() {
             Konuşmalar yüklenemedi
           </Text>
           <Text className="mt-2 text-center text-sm text-text-secondary">
-            {conversations.error instanceof Error
-              ? conversations.error.message
-              : "Bağlantını kontrol edip tekrar dene."}
+            {errorMessage(conversations.error, "Bağlantını kontrol edip tekrar dene.")}
           </Text>
           <AppPressable
             onPress={() => conversations.refetch()}
@@ -239,6 +238,12 @@ export default function MatchesScreen() {
               <Text className="mt-2 text-center text-sm leading-5 text-text-secondary">
                 Karşılıklı beğeni olduğunda yeni eşleşmen burada görünecek.
               </Text>
+              <AppPressable
+                onPress={() => router.navigate("/(app)")}
+                className="mt-6 min-h-12 items-center justify-center rounded-xl bg-brand px-6"
+              >
+                <Text className="font-bold text-white">{"Keşfet'e dön"}</Text>
+              </AppPressable>
             </View>
           }
         />

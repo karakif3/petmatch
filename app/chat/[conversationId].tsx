@@ -886,7 +886,16 @@ export default function ChatScreen() {
         subjectPetId={conversation.data?.petId}
         onClose={() => setReportVisible(false)}
         onReported={() =>
-          Alert.alert("Teşekkürler", "Şikâyetin inceleme kuyruğuna alındı.")
+          // Şikâyetten sonra konuşma açık kalıyordu; kişiyi kesmek isteyen
+          // için sonraki adım aynı yerde öneriliyor.
+          Alert.alert(
+            "Teşekkürler",
+            "Şikâyetin inceleme kuyruğuna alındı. İstersen bu kişiyi engelleyebilirsin; konuşma kapanır.",
+            [
+              { text: "Tamam", style: "cancel" },
+              { text: "Engelle", style: "destructive", onPress: () => confirmSafetyAction("block") },
+            ],
+          )
         }
       />
     </SafeAreaView>

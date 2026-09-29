@@ -43,3 +43,18 @@ export async function loadPendingLikes(): Promise<PendingLike[]> {
     likedAt: row.liked_at,
   }));
 }
+
+/**
+ * Beğeniler ekranından karar verebilmek için oturum sahibinin aktif peti.
+ * Keşfet destesini (ağır RPC) yüklemeden tek satır.
+ */
+export async function loadMyActivePetId(userId: string): Promise<string | null> {
+  const { data, error } = await requireSupabaseClient()
+    .from("pets")
+    .select("id")
+    .eq("owner_id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
