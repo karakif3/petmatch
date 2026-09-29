@@ -154,7 +154,13 @@ begin
     where n.nspname = 'public' and c.relkind in ('r', 'p', 'v')
   loop
     foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE'] loop
-      if not has_any_column_privilege('authenticated', v_rel, v_priv) then
+      -- Kolon düzeyinde DELETE yok; o tür için tablo yetkisine bakılır.
+      if not (
+        case when v_priv = 'DELETE'
+          then has_table_privilege('authenticated', v_rel, v_priv)
+          else has_any_column_privilege('authenticated', v_rel, v_priv)
+        end
+      ) then
         execute format('grant %s on %s to authenticated', v_priv, v_rel);
       end if;
     end loop;
