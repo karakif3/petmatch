@@ -1,11 +1,13 @@
-import { createClient } from "npm:@supabase/supabase-js@2.110.8";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.110.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type AdminClient = ReturnType<typeof createClient>;
+// `ReturnType<typeof createClient>` generic'i `never` şemaya çözüyor ve
+// her `.from()` çağrısını tip hatasına düşürüyordu (deno check).
+type AdminClient = SupabaseClient;
 
 /**
  * Önek altındaki TÜM nesneler. `list` sayfalı (100) ve alt klasörlere

@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.110.8";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.110.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,7 +80,7 @@ function petAgeYears(birthDate: string | null): number | null {
 }
 
 async function claimAndSend(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   input: {
     eventType: EventBody["type"];
     eventId: string;
