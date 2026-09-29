@@ -230,8 +230,10 @@ values ('report', '11111111-1111-1111-1111-111111111111',
         '22222222-2222-2222-2222-222222222222', 'bbbb2222-0000-0000-0000-000000000002',
         'harassment');
 
+-- 'photo' türü: 'verification' Storage'da gerçek nesne istiyor (0032),
+-- kural ikisi için aynı — şikâyet dışı her kayıt kullanıcının kendisinin.
 insert into moderation_items (kind, created_by, subject_user_id, subject_pet_id)
-values ('verification', '22222222-2222-2222-2222-222222222222',
+values ('photo', '22222222-2222-2222-2222-222222222222',
         '22222222-2222-2222-2222-222222222222', 'bbbb2222-0000-0000-0000-000000000002');
 
 delete from auth.users where id = '22222222-2222-2222-2222-222222222222';
@@ -249,9 +251,11 @@ select tests.assert(
 
 select tests.assert(
   (select count(*) from moderation_items
-   where kind = 'verification'
-     and coalesce(subject_user_ref, created_by) = '22222222-2222-2222-2222-222222222222') = 0,
-  'silinen kullanıcının kendi doğrulama kaydı siliniyor'
+   where kind = 'photo'
+     and (subject_user_ref = '22222222-2222-2222-2222-222222222222'
+          or subject_pet_ref = 'bbbb2222-0000-0000-0000-000000000002')) = 0
+  and (select count(*) from moderation_items where kind = 'photo') = 0,
+  'silinen kullanıcının şikâyet dışı moderasyon kaydı siliniyor'
 );
 
 rollback;

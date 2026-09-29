@@ -33,9 +33,14 @@ select tests.assert(
   'son sözü karşı taraf söylediyse sıra bende görünüyor'
 );
 
+-- Damgalı kurulum yazması postgres rolünde: istemci `created_at` yazamaz
+-- (20260929120000 messages kolon yetkisi).
+reset role;
 insert into messages (conversation_id, sender_id, body, created_at)
 values (:'conversation_id', '11111111-1111-1111-1111-111111111111', 'Merhaba!',
         now() - interval '9 minutes');
+set local role authenticated;
+select tests.act_as('11111111-1111-1111-1111-111111111111');
 
 select tests.assert(
   not (select awaiting_my_reply from list_my_conversations()),
