@@ -297,6 +297,7 @@ export function subscribeToConversation(
   onChange: () => void,
 ): () => void {
   const sb = requireSupabaseClient();
+  let subscribedOnce = false;
   const channel: RealtimeChannel = sb
     .channel(`conversation:${conversationId}`)
     .on(
@@ -309,7 +310,14 @@ export function subscribeToConversation(
       },
       onChange,
     )
-    .subscribe();
+    // Kanal koptuğunda (ağ değişimi, arka plan) arada gelen mesajlar
+    // postgres_changes ile tekrar gönderilmez. İlk bağlantıdan sonraki her
+    // SUBSCRIBED bir yeniden bağlanmadır: kaçırılanı çekmek için tazele.
+    .subscribe((status) => {
+      if (status !== "SUBSCRIBED") return;
+      if (subscribedOnce) onChange();
+      subscribedOnce = true;
+    });
 
   return () => {
     void sb.removeChannel(channel);

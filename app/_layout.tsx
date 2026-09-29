@@ -3,7 +3,7 @@ import "../global.css";
 
 import { useEffect, useRef } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -20,7 +20,10 @@ import {
   configureForegroundNotifications,
   syncPushRegistration,
 } from "../core/api/notifications";
+import { bindAppLifecycle } from "../core/api/app-lifecycle";
+import { installGlobalErrorCapture } from "../core/api/global-errors";
 import { touchLastActive } from "../core/api/conversations";
+import { queryClient } from "../core/api/query-client";
 import { syncLanguagePreference } from "../core/api/preferences";
 import { getAppLocale, syncAppLocale } from "../core/i18n";
 import { useAuthStore } from "../stores/auth";
@@ -40,10 +43,7 @@ if (__DEV__) {
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 configureForegroundNotifications();
-
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
-});
+installGlobalErrorCapture();
 
 /** Oturum durumuna göre (auth) ↔ (app) yönlendirmesi. */
 function useAuthGate() {
@@ -228,6 +228,8 @@ export default function RootLayout() {
   useEffect(() => {
     init();
   }, [init]);
+
+  useEffect(() => bindAppLifecycle(), []);
 
   useAuthGate();
 

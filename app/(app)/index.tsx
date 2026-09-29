@@ -143,21 +143,10 @@ export default function DiscoverScreen() {
 
   const deck = useQuery({
     queryKey: ["discovery", user?.id, ownerFilters],
-    queryFn: async () => {
-      const result = await loadDiscoveryDeck(user!.id, ownerFilters);
-      const firstGalleryPhotos = result.cards
-        .slice(0, 4)
-        .flatMap((card) => [
-          ...card.photoUrls,
-          card.owner?.photoUrl,
-          ...(card.owner?.extraPhotoUrls ?? []),
-        ])
-        .filter((url): url is string => Boolean(url));
-      if (firstGalleryPhotos.length) {
-        await Image.prefetch(firstGalleryPhotos, "memory-disk").catch(() => false);
-      }
-      return result;
-    },
+    // Fotoğraf ön yüklemesi burada BEKLENMİYOR: 4 kartın tüm galerisi
+    // inene kadar deste hiç görünmüyordu. Aşağıdaki effect aynı işi arka
+    // planda yapıyor; ilk kart kendi yüklemesini zaten gösteriyor.
+    queryFn: () => loadDiscoveryDeck(user!.id, ownerFilters),
     enabled: Boolean(user) && filterReady,
   });
 

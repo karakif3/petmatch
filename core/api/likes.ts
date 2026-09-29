@@ -1,4 +1,9 @@
-import { mapDiscoveryRow, ownerSummary, type DiscoveryDeckCard } from "./discovery";
+import {
+  mapDiscoveryRow,
+  ownerSummary,
+  signOwnerAvatars,
+  type DiscoveryDeckCard,
+} from "./discovery";
 import { requireSupabaseClient } from "./supabase.client";
 
 /** Uyum skoru yok — henüz beğenilmiş, karşılaştırılacak bir kart değil. */
@@ -29,7 +34,10 @@ export async function loadPendingLikes(): Promise<PendingLike[]> {
   const { data: rows, error } = await sb.rpc("pending_likes", { p_limit: 50 });
   if (error) throw error;
 
-  const owners = await Promise.all((rows ?? []).map((row) => ownerSummary(row)));
+  const signedAvatars = await signOwnerAvatars(rows ?? []);
+  const owners = await Promise.all(
+    (rows ?? []).map((row) => ownerSummary(row, [], signedAvatars)),
+  );
   return (rows ?? []).map((row, index) => ({
     card: { ...mapDiscoveryRow(row), owner: owners[index], isSuper: row.is_super },
     likedAt: row.liked_at,
