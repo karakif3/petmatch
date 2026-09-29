@@ -5,6 +5,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type AdminClient = ReturnType<typeof createClient>;
+
+/**
+ * Önek altındaki TÜM nesneler. `list` sayfalı (100) ve alt klasörlere
+ * inmiyor; eskisi yalnızca ilk 100 dosyayı ve tek seviyeyi siliyordu.
+ * Klasör girdileri `id: null` döner.
+ */
+async function listAll(admin: AdminClient, bucket: string, prefix: string): Promise<string[]> {
+  const paths: string[] = [];
+  const pending = [prefix];
+  while (pending.length) {
+    const folder = pending.pop()!;
+    for (let offset = 0; ; offset += 100) {
+      const { data, error } = await admin.storage
+        .from(bucket)
+        .list(folder, { limit: 100, offset });
+      if (error) throw error;
+      for (const entry of data ?? []) {
+        const path = `${folder}/${entry.name}`;
+        if (entry.id === null) pending.push(path);
+        else paths.push(path);
+      }
+      if (!data || data.length < 100) break;
+    }
+  }
+  return paths;
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -35,74 +63,55 @@ Deno.serve(async (request) => {
 
   try {
     const userId = authData.user.id;
+
+    // SIRA: Storage önce, Auth kullanıcısı sonra. Tersi mümkün değil:
+    // Supabase, Storage'da nesnesi olan kullanıcıyı silmeyi reddediyor.
+    // Bedeli: `deleteUser` düşerse hesap fotoğrafsız kalır — istemci
+    // hatayı görür ve tekrar dener; ikinci deneme boş listeyle ilerler.
+    const petPhotoPaths = new Set<string>();
+    const verificationPaths = new Set<string>();
+
     const { data: pets, error: petsError } = await admin
       .from("pets")
       .select("id")
       .eq("owner_id", userId);
     if (petsError) throw petsError;
-
     const petIds = (pets ?? []).map(({ id }) => id);
+
     if (petIds.length) {
       const { data: photos, error: photosError } = await admin
         .from("pet_photos")
         .select("storage_path")
         .in("pet_id", petIds);
       if (photosError) throw photosError;
-      const paths = new Set((photos ?? []).map(({ storage_path }) => storage_path));
-      for (const petId of petIds) {
-        const { data: storedFiles, error: listError } = await admin.storage
-          .from("pet-photos")
-          .list(`${userId}/${petId}`, { limit: 100 });
-        if (listError) throw listError;
-        for (const file of storedFiles ?? []) {
-          paths.add(`${userId}/${petId}/${file.name}`);
-        }
-      }
-      if (paths.size) {
-        const { error: storageError } = await admin.storage
-          .from("pet-photos")
-          .remove([...paths]);
-        if (storageError) throw storageError;
-      }
-
-      const verificationPaths = new Set<string>();
-      for (const petId of petIds) {
-        const { data: verificationFiles, error: verificationListError } =
-          await admin.storage
-            .from("verification-photos")
-            .list(`${userId}/${petId}`, { limit: 100 });
-        if (verificationListError) throw verificationListError;
-        for (const file of verificationFiles ?? []) {
-          verificationPaths.add(`${userId}/${petId}/${file.name}`);
-        }
-      }
-      if (verificationPaths.size) {
-        const { error: verificationDeleteError } = await admin.storage
-          .from("verification-photos")
-          .remove([...verificationPaths]);
-        if (verificationDeleteError) throw verificationDeleteError;
-      }
+      for (const { storage_path } of photos ?? []) petPhotoPaths.add(storage_path);
     }
+    for (const path of await listAll(admin, "pet-photos", userId)) petPhotoPaths.add(path);
+    for (const path of await listAll(admin, "verification-photos", userId)) {
+      verificationPaths.add(path);
+    }
+    const avatarPaths = await listAll(admin, "owner-avatars", userId);
 
-    const { data: avatarFiles, error: avatarListError } = await admin.storage
-      .from("owner-avatars")
-      .list(userId, { limit: 100 });
-    if (avatarListError) throw avatarListError;
-    if (avatarFiles?.length) {
-      const { error: avatarDeleteError } = await admin.storage
-        .from("owner-avatars")
-        .remove(avatarFiles.map(({ name }) => `${userId}/${name}`));
-      if (avatarDeleteError) throw avatarDeleteError;
+    const removals: [string, string[]][] = [
+      ["pet-photos", [...petPhotoPaths]],
+      ["verification-photos", [...verificationPaths]],
+      ["owner-avatars", avatarPaths],
+    ];
+    for (const [bucket, paths] of removals) {
+      for (let index = 0; index < paths.length; index += 100) {
+        const { error: removeError } = await admin.storage
+          .from(bucket)
+          .remove(paths.slice(index, index + 100));
+        if (removeError) throw removeError;
+      }
     }
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
     if (deleteError) throw deleteError;
     return json({ deleted: true });
   } catch (error) {
+    // İç hata metni (tablo/kolon adları, Storage yolları) istemciye dönmez.
     console.error(error);
-    return json(
-      { error: error instanceof Error ? error.message : "Account deletion failed" },
-      500,
-    );
+    return json({ error: "Account deletion failed" }, 500);
   }
 });

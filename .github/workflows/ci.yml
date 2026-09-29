@@ -54,3 +54,19 @@ jobs:
       # doğrular. Aynı zamanda şemanın baştan kurulabilir olduğunu kanıtlar.
       - name: Veritabanı testleri
         run: npm run test:db
+
+  edge-functions:
+    name: Edge function tip kontrolü
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # tsconfig ve eslint supabase/functions'ı dışarıda bırakıyor (Deno
+      # çalışma zamanı); bu iş olmadan iki fonksiyon hiçbir kontrolden
+      # geçmeden deploy ediliyordu.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: deno check
+        run: deno check supabase/functions/*/index.ts

@@ -105,9 +105,13 @@ async function claimAndSend(
       .from("discovery_preferences")
       .select("notify_on_match,notify_on_message,notify_on_new_candidates")
       .eq("user_id", input.recipientId)
-      .single();
+      .maybeSingle();
     if (preferenceError) throw preferenceError;
-    enabled = Boolean((preferences as Record<string, unknown>)[preferenceColumn]);
+    // Tercih satırı yoksa `.single()` hata verip 500 dönüyordu. Satır yoksa
+    // kullanıcı hiçbir şeyi kapatmamıştır — kolon varsayılanları açık.
+    enabled = preferences
+      ? Boolean((preferences as Record<string, unknown>)[preferenceColumn])
+      : true;
   }
   const { data: tokens, error: tokenError } = await admin
     .from("push_tokens")
@@ -122,8 +126,29 @@ async function claimAndSend(
     recipient_id: input.recipientId,
     status: shouldSkip ? "skipped" : "processing",
   });
-  if (claimError?.code === "23505") return "duplicate";
-  if (claimError) throw claimError;
+  if (claimError?.code === "23505") {
+    // Tekilleştirme retry'ı da engelliyordu: `failed` ya da yarıda kalmış
+    // (`processing`, 10 dk'dan eski) kayıt bir daha asla gönderilmiyordu.
+    // Koşullu UPDATE atomik: eşzamanlı iki çağrıdan yalnız biri satırı
+    // yeniden sahiplenir, diğeri tazelenmiş `attempted_at`'e takılır.
+    const staleBefore = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { data: reclaimed, error: reclaimError } = await admin
+      .from("notification_deliveries")
+      .update({
+        status: shouldSkip ? "skipped" : "processing",
+        attempted_at: new Date().toISOString(),
+        last_error: null,
+      })
+      .eq("event_type", input.eventType)
+      .eq("event_id", input.eventId)
+      .eq("recipient_id", input.recipientId)
+      .or(`status.eq.failed,and(status.eq.processing,attempted_at.lt.${staleBefore})`)
+      .select("event_id");
+    if (reclaimError) throw reclaimError;
+    if (!reclaimed?.length) return "duplicate";
+  } else if (claimError) {
+    throw claimError;
+  }
   if (shouldSkip) return "skipped";
 
   try {
@@ -555,10 +580,8 @@ Deno.serve(async (request) => {
     );
     return json({ status: results });
   } catch (error) {
+    // İç hata metni istemciye dönmez; ayrıntı fonksiyon logunda.
     console.error(error);
-    return json(
-      { error: error instanceof Error ? error.message : "Notification failed" },
-      500,
-    );
+    return json({ error: "Notification failed" }, 500);
   }
 });
