@@ -336,6 +336,63 @@ ikinci kanala gerek yok.
       satırlar temizlenmeli — aksi halde ilk gerçek hata, aylardır biriken
       gürültünün içinde kaybolur.
 
+**2026-09-30 — Altyapı + UX denetimi (`hardening/audit-fixes`).** Üç paralel
+denetim (backend, istemci, UX), bulgular kaynakta doğrulandıktan sonra dört
+fazda kapandı. Migration: `20260929120000_abuse_and_storage_hardening.sql`
+— **canlıya henüz uygulanmadı.**
+
+- **Güvenlik:** `pet-photos` anon LIST politikası kaldırıldı · iki bucket'a
+  12 MB + image MIME · `messages` kolon yetkisi (istemci `created_at` /
+  `read_at` yazamaz) · şikâyet kanıtı hesap silmede kalır (özne izi
+  `subject_*_ref`) · rate limit: mesaj 30/dk, swipe 120/dk, süper beğeni
+  20/gün (spam tavanı, monetizasyon kararı DEĞİL), şikâyet 10/saat,
+  olay/hata kütüğü sessizce düşer · 18+, yeni pet damgası, fotoğraf yolu
+  sahipliği doğrudan tablo yazmasında da · env yedeği ve QA görüntüleri
+  git'ten çıktı.
+- **Test altyapısı bulgusu:** `_helpers.sql` migration'lardan sonra toptan
+  grant veriyordu; `profiles`/`pets` kolon kısıtları bu yüzden HİÇ test
+  edilmemişti. Düzeltilince iki test üretimde olmayan yetkiyle koştuğunu
+  gösterdi. `test:db` imajı ECR kotasına takılıyordu — önce Docker Hub.
+- **İstemci:** hesap değişince önbellek + realtime + profil geçişi temizlenir
+  · AppState → auto refresh + focusManager · sorgu/mutation hataları
+  `client_errors`'a, kalıcı hatalar tekrar denenmez · global JS hata
+  işleyicisi · bilinen kodlar Türkçe · deste fotoğraf ön yüklemesini
+  beklemez · avatarlar tek istekte imzalanır · okundu yalnız gerektiğinde ·
+  realtime yeniden bağlanınca tazeler.
+- **UX:** iyimser karar + hata olursa kart geri gelir · hata şeridi boş
+  destede de · onboarding'de tür/cinsiyet hazır seçili değil, güvenli alan,
+  Android geri · Beğeniler'de açık karta Beğen/Geç · şikâyet sonrası
+  engelleme önerisi · buluşma iptali onaylı · şifre yenilemede Vazgeç.
+- **Operasyon:** bildirim teslimatı `failed`/bayat `processing`'den yeniden
+  sahipleniyor · hesap silme listelemesi sayfalı + alt klasör · CI'da
+  `deno check`.
+
+Bu turdan **açık kalanlar** (sırayla):
+
+- [ ] Migration'ı canlıya uygula (`supabase db push`) ve iki edge
+      function'ı yeniden deploy et.
+- [ ] Simülatör/fiziksel cihazda Faz 3 akışlarını gez: swipe hatasında kart
+      dönüşü, Beğeniler'den eşleşme, onboarding zorunlu seçim.
+- [ ] Native crash raporlama (Sentry vb.) — hesap/DSN kararı gerekiyor;
+      bugünkü global işleyici yalnız JS hatalarını görüyor.
+- [ ] Push tetiklemeyi istemciden sunucuya taşı (DB webhook / `pg_net`);
+      `new_candidate` alıcı seçimini Keşfet RPC'siyle aynı SQL'e al (bugün
+      sırasız `.limit(500)` + JS filtresi — 0059'un "önce kes sonra filtrele"
+      hatası).
+- [ ] `hooks/` katmanı + kullanıcıya göre sorgu anahtarları; `owner.tsx` /
+      `index.tsx` / sohbet ekranını bölmek; liste satırlarında `memo`.
+- [ ] İmzalı URL'ler için expo-image `cacheKey` (URL her fetch'te değiştiği
+      için disk önbelleği ıskalıyor).
+- [ ] Sekme ekranlarında `SafeAreaView edges={["top"]}` ve sohbette klavye
+      boşluğu — görsel doğrulamayla birlikte yapılmalı.
+- [ ] Expo SDK 54 → 57 (ayrı dal, native rebuild).
+- [ ] Karar: onboarding'deki "sahip profilim keşfette görünür başlar"
+      rızası zorunlu yasal kutuya bağlı — KVKK açısından ayrı ve isteğe
+      bağlı olmalı mı; `tagOpenMinded` ("Açık görüşlüyüm") metni.
+- [ ] Git geçmişinde eski `.env.bak` ve QA görüntüleri duruyor (repo
+      public). Anon key silinmiş projeye ait; geçmişi temizlemek force-push
+      gerektirir — sahibinin kararı.
+
 ### ⛔ Yayın kapıcıları — sırayla
 
 1. **`require_owner_photo` çift yönlü — tamamlandı (`0054`).** Filtre yalnız

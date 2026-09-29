@@ -6,12 +6,24 @@
 app/          expo-router ekranları — platforma bağlı
 components/   RN bileşenleri — platforma bağlı
 stores/       zustand — RN'e hafif bağlı (expo-linking)
-hooks/        TanStack Query sarmalayıcıları
 core/
   domain/     ← saf TypeScript. RN/Expo importu YOK. Web'e olduğu gibi taşınır.
   api/        ← Supabase erişimi; platform farkı tek dosyada izole
+                query-client.ts: tek QueryClient (oturum değişince temizlenir)
 supabase/     migration'lar + edge functions
 ```
+
+> `hooks/` katmanı henüz YOK — sorgular ekranların içinde tanımlı. Sorgu
+> anahtarları da kullanıcıya göre ayrılmamış; bu yüzden hesap değişince
+> `stores/auth.ts` önbelleği ve realtime kanallarını tamamen temizliyor.
+> Katman kurulduğunda anahtarlar `user.id` ile başlamalı.
+
+## Migration adlandırma
+
+Yeni migration'lar **zaman damgasıyla** açılır (`supabase migration new`).
+Repoda üç adet `2026…` önekli dosya var; yerel sırada `0068`'den sonra
+çalışıyorlar. `0069_*` gibi bir ad temiz kurulumda onlardan ÖNCE koşar ve
+oradaki fonksiyon yeniden tanımları yeni sürümü ezebilir.
 
 ## Web'e taşıma yolu
 
