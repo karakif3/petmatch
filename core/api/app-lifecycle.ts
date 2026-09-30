@@ -26,7 +26,10 @@ export function bindAppLifecycle(): () => void {
     else void auth.stopAutoRefresh();
   };
 
-  apply(AppState.currentState);
+  // Açılışta yalnız odak durumu: `autoRefreshToken: true` yenilemeyi zaten
+  // başlatıyor. Burada ikinci kez başlatmak, ağ yokken `getSession`'ın
+  // yeniden denemeleriyle auth kilidi için yarışıyordu.
+  focusManager.setFocused(AppState.currentState === "active");
   const subscription = AppState.addEventListener("change", apply);
   return () => subscription.remove();
 }

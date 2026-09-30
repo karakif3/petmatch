@@ -219,6 +219,7 @@ export default function RootLayout() {
   const onboardingStatusError = useAuthStore((s) => s.onboardingStatusError);
   const retryOnboardingStatus = useAuthStore((s) => s.retryOnboardingStatus);
   const signOut = useAuthStore((s) => s.signOut);
+  const authLoading = useAuthStore((s) => s.loading);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -308,6 +309,21 @@ export default function RootLayout() {
               <Stack.Screen name="moderation/index" />
                 </Stack>
                 <InAppNotificationBanner enabled={Boolean(user && onboarded)} />
+                {/*
+                  Oturum okunurken Stack mount'lu kalıyor (yönlendirme
+                  navigator'a ihtiyaç duyar) ama ÜSTÜ örtülü: ağ yokken
+                  Supabase ~30 sn yeniden deniyor ve bu sürede varsayılan
+                  rota (Keşfet) oturumsuz haliyle "Henüz bir petin yok"
+                  gösteriyordu.
+                */}
+                {authLoading ? (
+                  <View
+                    className="absolute inset-0 items-center justify-center bg-bg-primary"
+                    accessibilityLabel="Yükleniyor"
+                  >
+                    <ActivityIndicator color="#F97362" />
+                  </View>
+                ) : null}
               </>
             )}
           </QueryClientProvider>

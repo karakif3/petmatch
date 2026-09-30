@@ -523,7 +523,10 @@ export default function DiscoverScreen() {
         */}
         <ProfileCompletionCard data={completion.data} />
 
-        {deck.isLoading ? <DiscoveryCardSkeleton /> : null}
+        {/* `isPending`: sorgu henüz BAŞLAMAMIŞKEN de (oturum/filtre okunuyor)
+            iskelet. `isLoading` o anda false; aşağıdaki "petin yok" durumu
+            ağ yokken ~30 sn boyunca yanlışlıkla görünüyordu. */}
+        {deck.isPending ? <DiscoveryCardSkeleton /> : null}
 
         {deck.isError ? (
           <View className="flex-1 items-center justify-center rounded-3xl border border-danger/20 bg-danger/5 px-8 py-16">
@@ -545,7 +548,7 @@ export default function DiscoverScreen() {
           Destesi yok; ona boş bir deste göstermek yerine huninin girişini
           gösteriyoruz — sahiplenir, sonra ana döngüye girer.
         */}
-        {!deck.isLoading && !deck.isError && !deck.data?.viewer ? (
+        {deck.isSuccess && !deck.data.viewer ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
             <AppIcon name="house" color="#F97362" size={54} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
@@ -635,7 +638,7 @@ export default function DiscoverScreen() {
           </AppPressable>
         ) : null}
 
-        {!deck.isLoading && !deck.isError && deck.data?.viewer && !currentCard ? (
+        {deck.isSuccess && deck.data.viewer && !currentCard ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
             <AppIcon name="search" color="#2FB8A6" size={56} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
