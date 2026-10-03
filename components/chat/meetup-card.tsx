@@ -218,7 +218,23 @@ export function MeetupCard({
                 </>
               )}
             </Pressable>
-            <Pressable onPress={onCancel} accessibilityRole="button" hitSlop={8}>
+            {/* Onaylanmış buluşma tek dokunuşla geri dönüşsüz iptal
+                ediliyordu; küçük hedef + hitSlop yanlış dokunuşa açık. */}
+            <Pressable
+              onPress={() =>
+                Alert.alert(
+                  "Buluşma iptal edilsin mi?",
+                  "Karşı tarafa iptal edildiği görünür. Yeni bir zaman önerebilirsin.",
+                  [
+                    { text: "Vazgeç", style: "cancel" },
+                    { text: "İptal et", style: "destructive", onPress: onCancel },
+                  ],
+                )
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Buluşmayı iptal et"
+              hitSlop={8}
+            >
               <Text className="ml-3 text-xs font-semibold text-danger">İptal</Text>
             </Pressable>
           </View>

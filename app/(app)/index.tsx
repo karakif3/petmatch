@@ -41,6 +41,7 @@ import {
   loadDiscoveryDeck,
   swipePet,
   updateDiscoveryFilters,
+  type DiscoveryDeckCard,
   type DiscoveryFilterSettings,
   type OwnerDiscoveryFilterInput,
 } from "../../core/api/discovery";
@@ -143,21 +144,10 @@ export default function DiscoverScreen() {
 
   const deck = useQuery({
     queryKey: ["discovery", user?.id, ownerFilters],
-    queryFn: async () => {
-      const result = await loadDiscoveryDeck(user!.id, ownerFilters);
-      const firstGalleryPhotos = result.cards
-        .slice(0, 4)
-        .flatMap((card) => [
-          ...card.photoUrls,
-          card.owner?.photoUrl,
-          ...(card.owner?.extraPhotoUrls ?? []),
-        ])
-        .filter((url): url is string => Boolean(url));
-      if (firstGalleryPhotos.length) {
-        await Image.prefetch(firstGalleryPhotos, "memory-disk").catch(() => false);
-      }
-      return result;
-    },
+    // Fotoğraf ön yüklemesi burada BEKLENMİYOR: 4 kartın tüm galerisi
+    // inene kadar deste hiç görünmüyordu. Aşağıdaki effect aynı işi arka
+    // planda yapıyor; ilk kart kendi yüklemesini zaten gösteriyor.
+    queryFn: () => loadDiscoveryDeck(user!.id, ownerFilters),
     enabled: Boolean(user) && filterReady,
   });
 
@@ -296,10 +286,16 @@ export default function DiscoverScreen() {
       });
       return { direction, matchId, toPetId };
     },
+    // İyimser: kart karar anında desteden çıkar. Eskiden ancak sunucu
+    // başarı dönünce çıkıyordu; hata olursa kaydırılan kart ekran dışında
+    // kalıyor, kullanıcı arkadaki kartı görüp düğmelerle GÖRÜNMEYEN karta
+    // karar veriyordu. Hata olursa kart geri gelir ve konumu sıfırlanır.
+    onMutate: ({ toPetId }) => {
+      setError(null);
+      setDismissedIds((ids) => (ids.includes(toPetId) ? ids : [...ids, toPetId]));
+    },
     onSuccess: ({ direction, matchId, toPetId }) => {
       const swipedCard = deck.data?.cards.find((card) => card.id === toPetId);
-      setDismissedIds((ids) => [...ids, toPetId]);
-      setError(null);
       // Karşı taraf zaten beni beğenmişse bu karar (eşleşme ya da geçme)
       // "Beğeniler" sekmesindeki bekleyen listeden onu düşürür.
       void queryClient.invalidateQueries({ queryKey: ["pending-likes"] });
@@ -321,9 +317,10 @@ export default function DiscoverScreen() {
 
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     },
-    onError: (mutationError) => {
+    onError: (mutationError, { toPetId }) => {
+      setDismissedIds((ids) => ids.filter((id) => id !== toPetId));
       setError(
-        errorMessage(mutationError, "Beğeni kaydedilemedi."),
+        errorMessage(mutationError, "Karar kaydedilemedi. Kart geri geldi, tekrar dene."),
       );
     },
   });
@@ -361,12 +358,12 @@ export default function DiscoverScreen() {
     await deck.refetch();
   };
 
-  const confirmBlock = () => {
-    if (!currentCard) return;
+  const confirmBlock = (card: DiscoveryDeckCard | null = currentCard) => {
+    if (!card) return;
     setSafetyVisible(false);
     Alert.alert(
       "Kullanıcı engellensin mi?",
-      `${currentCard.name} ve sahibi artık keşfette görünmez. Varsa konuşmalarınız kapanır.`,
+      `${card.name} ve sahibi artık keşfette görünmez. Varsa konuşmalarınız kapanır.`,
       [
         { text: "Vazgeç", style: "cancel" },
         {
@@ -374,9 +371,9 @@ export default function DiscoverScreen() {
           style: "destructive",
           onPress: () => {
             setSafetyBusy(true);
-            void blockUser(currentCard.ownerId)
+            void blockUser(card.ownerId)
               .then(async () => {
-                setDismissedIds((ids) => [...ids, currentCard.id]);
+                setDismissedIds((ids) => (ids.includes(card.id) ? ids : [...ids, card.id]));
                 setError(null);
                 await Promise.all([
                   queryClient.invalidateQueries({ queryKey: ["discovery"] }),
@@ -413,9 +410,11 @@ export default function DiscoverScreen() {
       setFilterVisible(false);
       await queryClient.invalidateQueries({ queryKey: ["discovery", user.id] });
     } catch (filterError) {
-      setError(
-        errorMessage(filterError, "Filtreler kaydedilemedi."),
-      );
+      const message = errorMessage(filterError, "Filtreler kaydedilemedi.");
+      // Filtre sayfası açıkken Keşfet'in hata şeridi sayfanın ARKASINDA
+      // kalıyordu: spinner duruyor, mesaj görünmüyordu.
+      if (filterVisible) Alert.alert("Filtreler kaydedilemedi", message);
+      else setError(message);
     } finally {
       setFilterBusy(false);
     }
@@ -440,19 +439,22 @@ export default function DiscoverScreen() {
     );
   };
 
-  const activeFilterCount =
-    Number(deck.data?.filterSettings.species.length !== 2) +
-    Number(deck.data?.filterSettings.maxDistanceKm !== 25) +
-    Number(
-      deck.data?.filterSettings.minPetAgeYears !== null ||
-      deck.data?.filterSettings.maxPetAgeYears !== null,
-    ) +
-    Number(deck.data?.filterSettings.requireVisibleOwner) +
-    Number(deck.data?.filterSettings.requirePhoto) +
-    Number(deck.data?.filterSettings.requireSocial) +
-    Number(deck.data?.filterSettings.requireVerified) +
-    Number(ownerFilters.genders.length > 0) +
-    Number(ownerFilters.minAge !== null || ownerFilters.maxAge !== null);
+  const filterSettings = deck.data?.filterSettings;
+  // Deste yüklenmeden sayaç 0: `undefined !== 2` true döndüğü için eskiden
+  // yükleme sırasında olmayan filtreler sayılıyordu. Pet cinsiyeti filtresi
+  // (0064) sayaca hiç girmiyordu.
+  const activeFilterCount = filterSettings
+    ? Number(filterSettings.species.length !== 2) +
+      Number(filterSettings.petGenders.length !== 2) +
+      Number(filterSettings.maxDistanceKm !== 25) +
+      Number(filterSettings.minPetAgeYears !== null || filterSettings.maxPetAgeYears !== null) +
+      Number(filterSettings.requireVisibleOwner) +
+      Number(filterSettings.requirePhoto) +
+      Number(filterSettings.requireSocial) +
+      Number(filterSettings.requireVerified) +
+      Number(ownerFilters.genders.length > 0) +
+      Number(ownerFilters.minAge !== null || ownerFilters.maxAge !== null)
+    : 0;
 
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">
@@ -521,7 +523,10 @@ export default function DiscoverScreen() {
         */}
         <ProfileCompletionCard data={completion.data} />
 
-        {deck.isLoading ? <DiscoveryCardSkeleton /> : null}
+        {/* `isPending`: sorgu henüz BAŞLAMAMIŞKEN de (oturum/filtre okunuyor)
+            iskelet. `isLoading` o anda false; aşağıdaki "petin yok" durumu
+            ağ yokken ~30 sn boyunca yanlışlıkla görünüyordu. */}
+        {deck.isPending ? <DiscoveryCardSkeleton /> : null}
 
         {deck.isError ? (
           <View className="flex-1 items-center justify-center rounded-3xl border border-danger/20 bg-danger/5 px-8 py-16">
@@ -543,7 +548,7 @@ export default function DiscoverScreen() {
           Destesi yok; ona boş bir deste göstermek yerine huninin girişini
           gösteriyoruz — sahiplenir, sonra ana döngüye girer.
         */}
-        {!deck.isLoading && !deck.isError && !deck.data?.viewer ? (
+        {deck.isSuccess && !deck.data.viewer ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
             <AppIcon name="house" color="#F97362" size={54} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
@@ -633,7 +638,7 @@ export default function DiscoverScreen() {
           </AppPressable>
         ) : null}
 
-        {!deck.isLoading && !deck.isError && deck.data?.viewer && !currentCard ? (
+        {deck.isSuccess && deck.data.viewer && !currentCard ? (
           <View className="flex-1 items-center justify-center px-8 py-20">
             <AppIcon name="search" color="#2FB8A6" size={56} />
             <Text className="mt-4 text-center text-xl font-bold text-text-primary">
@@ -805,19 +810,30 @@ export default function DiscoverScreen() {
                 onPress={() => setSafetyVisible(true)}
                 disabled={safetyBusy}
                 accessibilityLabel="Profil güvenliği"
-                style={{ top: 3 }}
-                className="absolute right-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
+                // `style` VERİLMEZ: aynı öğede className + style olunca
+                // NativeWind'in sınıfları düşüyordu (absolute/boyut dahil) —
+                // düğme akışa geçip kartın ARKASINDA kalıyor, şikâyet/engelle
+                // menüsüne Keşfet'ten hiç ulaşılamıyordu (simülatörde bulundu).
+                className="absolute right-3 top-[3px] z-10 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
               >
                 <AppIcon name="ellipsis" color="#FFFFFF" size={23} />
               </AppPressable>
             </View>
-
-            {error ? (
-              <View className="mt-4 rounded-xl border border-danger/30 bg-danger/10 p-3">
-                <Text className="text-center text-sm text-danger">{error}</Text>
-              </View>
-            ) : null}
           </>
+        ) : null}
+
+        {/*
+          Kart bloğunun DIŞINDA: boş destedeki eylemlerin (bildirim izni,
+          mesafe filtresini kapat, filtreleri temizle) hataları eskiden hiç
+          görünmüyordu, çünkü şerit yalnızca kart varken render ediliyordu.
+        */}
+        {error ? (
+          <View
+            accessibilityLiveRegion="polite"
+            className="mt-4 rounded-xl border border-danger/30 bg-danger/10 p-3"
+          >
+            <Text className="text-center text-sm text-danger">{error}</Text>
+          </View>
         ) : null}
       </ScrollView>
 
@@ -890,7 +906,7 @@ export default function DiscoverScreen() {
           setSafetyVisible(false);
           setReportVisible(true);
         }}
-        onBlock={confirmBlock}
+        onBlock={() => confirmBlock()}
       />
       <ReportModal
         visible={reportVisible}
@@ -898,8 +914,23 @@ export default function DiscoverScreen() {
         subjectPetId={currentCard?.id}
         onClose={() => setReportVisible(false)}
         onReported={() => {
+          // Şikâyet edilen profil destede kalmasın; kalıcı olarak görmemek
+          // isteyen için engelleme aynı anda öneriliyor.
+          const reported = currentCard;
           setError(null);
-          Alert.alert("Teşekkürler", "Şikâyetin inceleme kuyruğuna alındı.");
+          if (reported) {
+            setDismissedIds((ids) => (ids.includes(reported.id) ? ids : [...ids, reported.id]));
+          }
+          Alert.alert(
+            "Teşekkürler",
+            "Şikâyetin inceleme kuyruğuna alındı. Bu profili bir daha görmek istemiyorsan sahibini engelleyebilirsin.",
+            reported
+              ? [
+                  { text: "Tamam", style: "cancel" },
+                  { text: "Engelle", style: "destructive", onPress: () => confirmBlock(reported) },
+                ]
+              : undefined,
+          );
         }}
       />
       {deck.data ? (

@@ -3,7 +3,7 @@ import "../global.css";
 
 import { useEffect, useRef } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -20,7 +20,10 @@ import {
   configureForegroundNotifications,
   syncPushRegistration,
 } from "../core/api/notifications";
+import { bindAppLifecycle } from "../core/api/app-lifecycle";
+import { installGlobalErrorCapture } from "../core/api/global-errors";
 import { touchLastActive } from "../core/api/conversations";
+import { queryClient } from "../core/api/query-client";
 import { syncLanguagePreference } from "../core/api/preferences";
 import { getAppLocale, syncAppLocale } from "../core/i18n";
 import { useAuthStore } from "../stores/auth";
@@ -40,10 +43,7 @@ if (__DEV__) {
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 configureForegroundNotifications();
-
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
-});
+installGlobalErrorCapture();
 
 /** Oturum durumuna göre (auth) ↔ (app) yönlendirmesi. */
 function useAuthGate() {
@@ -219,6 +219,7 @@ export default function RootLayout() {
   const onboardingStatusError = useAuthStore((s) => s.onboardingStatusError);
   const retryOnboardingStatus = useAuthStore((s) => s.retryOnboardingStatus);
   const signOut = useAuthStore((s) => s.signOut);
+  const authLoading = useAuthStore((s) => s.loading);
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -228,6 +229,8 @@ export default function RootLayout() {
   useEffect(() => {
     init();
   }, [init]);
+
+  useEffect(() => bindAppLifecycle(), []);
 
   useAuthGate();
 
@@ -306,6 +309,21 @@ export default function RootLayout() {
               <Stack.Screen name="moderation/index" />
                 </Stack>
                 <InAppNotificationBanner enabled={Boolean(user && onboarded)} />
+                {/*
+                  Oturum okunurken Stack mount'lu kalıyor (yönlendirme
+                  navigator'a ihtiyaç duyar) ama ÜSTÜ örtülü: ağ yokken
+                  Supabase ~30 sn yeniden deniyor ve bu sürede varsayılan
+                  rota (Keşfet) oturumsuz haliyle "Henüz bir petin yok"
+                  gösteriyordu.
+                */}
+                {authLoading ? (
+                  <View
+                    className="absolute inset-0 items-center justify-center bg-bg-primary"
+                    accessibilityLabel="Yükleniyor"
+                  >
+                    <ActivityIndicator color="#F97362" />
+                  </View>
+                ) : null}
               </>
             )}
           </QueryClientProvider>

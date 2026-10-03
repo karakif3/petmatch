@@ -1,8 +1,9 @@
-import { Alert, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { AppIcon } from "./ui/icon";
 
 import type { PendingLikeCard as PendingLikeCardData } from "../core/api/likes";
+import type { SwipeDirection } from "../core/domain/types";
 import { lightHaptic } from "../core/ui/haptics";
 import { AppPressable } from "./ui/pressable";
 
@@ -41,7 +42,20 @@ function SuperBadge() {
   );
 }
 
-export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
+export function PendingLikeCard({
+  card,
+  busy = false,
+  onDecide,
+}: {
+  card: PendingLikeCardData;
+  busy?: boolean;
+  /**
+   * Açık kartta karşılık verme. Eskiden kullanıcı kendisini beğeneni görüp
+   * hiçbir şey yapamıyordu; "Keşfet'te karşına çıkınca" demek, bölgeye
+   * kilitli destede o kartın ne zaman çıkacağını bilmemek demekti.
+   */
+  onDecide?: (direction: SwipeDirection) => void;
+}) {
   const photoUrl = card.photoUrls[0] ?? null;
   const unlocked = card.owner?.socialOpen ?? false;
 
@@ -68,6 +82,30 @@ export function PendingLikeCard({ card }: { card: PendingLikeCardData }) {
             <Text className="text-[11px] text-white/85" numberOfLines={1}>
               {card.owner.displayName}
             </Text>
+          ) : null}
+          {onDecide ? (
+            <View className="mt-2 flex-row gap-2">
+              <AppPressable
+                onPress={() => onDecide("pass")}
+                disabled={busy}
+                accessibilityLabel={`${card.name} için geç`}
+                className="h-9 flex-1 items-center justify-center rounded-full bg-white/90 disabled:opacity-50"
+              >
+                <AppIcon name="x" size={18} color="#1F1A17" />
+              </AppPressable>
+              <AppPressable
+                onPress={() => onDecide("like")}
+                disabled={busy}
+                accessibilityLabel={`${card.name} beğen ve eşleş`}
+                className="h-9 flex-1 items-center justify-center rounded-full bg-brand disabled:opacity-50"
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <AppIcon name="heart" size={18} color="#FFFFFF" />
+                )}
+              </AppPressable>
+            </View>
           ) : null}
         </View>
         {card.isSuper ? <SuperBadge /> : null}

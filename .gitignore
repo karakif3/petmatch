@@ -7,10 +7,12 @@ web-build/
 /ios
 /android
 
-# Sırlar
-.env
-.env.local
-.env.*.local
+# Sırlar — .env ile başlayan her şey (yedekler dahil); yalnız örnek izlenir
+.env*
+!.env.example
+
+# Yerel QA ekran görüntüleri
+/.qa-*.png
 
 # Supabase yerel
 supabase/.temp/

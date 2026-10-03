@@ -1,4 +1,9 @@
-import { mapDiscoveryRow, ownerSummary, type DiscoveryDeckCard } from "./discovery";
+import {
+  mapDiscoveryRow,
+  ownerSummary,
+  signOwnerAvatars,
+  type DiscoveryDeckCard,
+} from "./discovery";
 import { requireSupabaseClient } from "./supabase.client";
 
 /** Uyum skoru yok — henüz beğenilmiş, karşılaştırılacak bir kart değil. */
@@ -29,9 +34,27 @@ export async function loadPendingLikes(): Promise<PendingLike[]> {
   const { data: rows, error } = await sb.rpc("pending_likes", { p_limit: 50 });
   if (error) throw error;
 
-  const owners = await Promise.all((rows ?? []).map((row) => ownerSummary(row)));
+  const signedAvatars = await signOwnerAvatars(rows ?? []);
+  const owners = await Promise.all(
+    (rows ?? []).map((row) => ownerSummary(row, [], signedAvatars)),
+  );
   return (rows ?? []).map((row, index) => ({
     card: { ...mapDiscoveryRow(row), owner: owners[index], isSuper: row.is_super },
     likedAt: row.liked_at,
   }));
+}
+
+/**
+ * Beğeniler ekranından karar verebilmek için oturum sahibinin aktif peti.
+ * Keşfet destesini (ağır RPC) yüklemeden tek satır.
+ */
+export async function loadMyActivePetId(userId: string): Promise<string | null> {
+  const { data, error } = await requireSupabaseClient()
+    .from("pets")
+    .select("id")
+    .eq("owner_id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
 }

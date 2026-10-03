@@ -151,9 +151,38 @@ export function mapDiscoveryRow(
   };
 }
 
+/**
+ * Görünür sahiplerin avatarlarını TEK istekte imzalar. Eskiden her kart
+ * kendi `createSignedUrl` isteğini atıyordu — 50 kartlık destede 50
+ * paralel HTTP.
+ */
+export async function signOwnerAvatars(
+  rows: Omit<DiscoveryRow, "previously_passed">[],
+): Promise<Map<string, string>> {
+  const paths = [
+    ...new Set(
+      rows
+        .filter((row) => row.owner_profile_shown && row.owner_avatar_path)
+        .map((row) => row.owner_avatar_path as string),
+    ),
+  ];
+  const signed = new Map<string, string>();
+  if (!paths.length) return signed;
+  const { data, error } = await requireSupabaseClient()
+    .storage.from(STORAGE_BUCKETS.ownerAvatars)
+    .createSignedUrls(paths, 60 * 30);
+  // Avatar süsleme; imzalanamazsa kart fotoğrafsız sahip hapıyla açılır.
+  if (error) return signed;
+  data.forEach((entry, index) => {
+    if (entry.signedUrl) signed.set(paths[index], entry.signedUrl);
+  });
+  return signed;
+}
+
 export async function ownerSummary(
   row: Omit<DiscoveryRow, "previously_passed">,
   extraPhotoUrls: string[] = [],
+  signedAvatars?: Map<string, string>,
 ): Promise<DiscoveryDeckCard["owner"]> {
   // `owner_profile_shown` sunucuda zaten "bu satırda alanlar dolu mu" demek
   // (bkz. 0047) — burada ayrıca kalan boşluk kontrolü, sahibi `public` ama
@@ -165,7 +194,9 @@ export async function ownerSummary(
     return null;
   }
   let photoUrl: string | null = null;
-  if (row.owner_avatar_path) {
+  if (row.owner_avatar_path && signedAvatars) {
+    photoUrl = signedAvatars.get(row.owner_avatar_path) ?? null;
+  } else if (row.owner_avatar_path) {
     const { data, error } = await requireSupabaseClient().storage
       .from(STORAGE_BUCKETS.ownerAvatars)
       .createSignedUrl(row.owner_avatar_path, 60 * 30);
@@ -321,9 +352,10 @@ export async function loadDiscoveryDeck(
       });
     }
   }
+  const signedAvatars = await signOwnerAvatars(rows ?? []);
   const owners = await Promise.all(
     (rows ?? []).map((row) =>
-      ownerSummary(row, extraOwnerPhotosById.get(row.owner_id) ?? []),
+      ownerSummary(row, extraOwnerPhotosById.get(row.owner_id) ?? [], signedAvatars),
     ),
   );
   const ownerById = new Map(

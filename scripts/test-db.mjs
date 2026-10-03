@@ -33,13 +33,20 @@ function sh(command, options = {}) {
   return execSync(command, { encoding: "utf8", stdio: "pipe", ...options });
 }
 
-const PINNED_IMAGE = "public.ecr.aws/supabase/postgres:17.6.1.111";
+const PINNED_TAG = "postgres:17.6.1.111";
+// Aynı imaj iki registry'de. ECR public anonim çekmeyi kotaya bağlıyor ve
+// GitHub runner'larının paylaşılan IP'lerinde "toomanyrequests: Data limit
+// exceeded" veriyor (2026-08-29 ve 2026-09-29 CI düşüşleri) — önce Docker Hub.
+const IMAGE_SOURCES = [`supabase/${PINNED_TAG}`, `public.ecr.aws/supabase/${PINNED_TAG}`];
 
 /**
- * Önce yerel imajlara bakıyoruz: bazı ağlarda registry'ye TLS çıkışı engelli
- * ve `docker pull` düşüyor; geliştiricinin makinesinde imaj varsa koşum yine
- * de çalışmalı. Yerelde yoksa (CI'ın temiz runner'ı) sabitlenmiş sürümü
- * çekiyoruz.
+ * Sonuç deterministik olsun diye her zaman sabit sürüm. Eskiden yerelde
+ * bulunan İLK `supabase/postgres:*` ya da düz `postgres:*` imajı alınıyordu;
+ * düz postgres'te Supabase rolleri yok, farklı sürüm farklı davranış demek.
+ *
+ * Bazı ağlarda registry'ye TLS çıkışı engelli: imaj yerelde varsa (herhangi
+ * bir registry önekiyle) çekmeden kullanılır. Yoksa kaynaklar sırayla,
+ * her biri iki kez denenir.
  */
 function resolvePostgresImage() {
   const images = sh('docker images --format "{{.Repository}}:{{.Tag}}"')
@@ -47,21 +54,21 @@ function resolvePostgresImage() {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const supabase = images.find((image) => /supabase\/postgres:/.test(image));
-  if (supabase) return supabase;
+  const local = images.find((image) => image.split("/").pop() === PINNED_TAG);
+  if (local) return local;
 
-  const plain = images.find((image) => /^postgres:/.test(image));
-  if (plain) return plain;
-
-  try {
-    console.log(`${DIM}yerel imaj yok, çekiliyor: ${PINNED_IMAGE}${RESET}`);
-    sh(`docker pull ${PINNED_IMAGE}`, { stdio: "inherit" });
-    return PINNED_IMAGE;
-  } catch {
-    throw new Error(
-      `Postgres imajı bulunamadı ve çekilemedi.\n  docker pull ${PINNED_IMAGE}`,
-    );
+  for (const image of IMAGE_SOURCES) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        console.log(`${DIM}imaj çekiliyor (${attempt}/2): ${image}${RESET}`);
+        sh(`docker pull ${image}`, { stdio: "inherit" });
+        return image;
+      } catch {
+        if (attempt < 2) sh("sleep 10");
+      }
+    }
   }
+  throw new Error(`Postgres imajı çekilemedi.\n  docker pull ${IMAGE_SOURCES[0]}`);
 }
 
 /**

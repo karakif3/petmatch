@@ -53,5 +53,12 @@ export async function deleteAccount(): Promise<void> {
   const { error } = await requireSupabaseClient().functions.invoke("delete-account", {
     body: {},
   });
-  if (error) throw error;
+  // supabase-js'in hata metni ("Edge Function returned a non-2xx status
+  // code") İngilizce ve ne yapılacağını söylemiyor; sunucu da iç ayrıntıyı
+  // bilerek döndürmüyor.
+  if (error) {
+    throw new Error(
+      "Hesabın silinemedi. Bağlantını kontrol edip tekrar dene; sorun sürerse destekle iletişime geç.",
+    );
+  }
 }

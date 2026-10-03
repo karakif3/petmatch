@@ -139,8 +139,9 @@ başka bir projeye ait olabilir; çakışırsa `--port` ver.
   yerel native proje bayat demektir.
 - **`ios/Podfile.properties.json` içinde `ios.useFrameworks: static`.**
   Kullanılmayan `@react-native-google-signin/google-signin` bağımlılığı
-  AppCheckCore → GoogleUtilities zincirini getiriyor. **Bu dosya
-  `expo prebuild` ile sıfırlanır.**
+  AppCheckCore → GoogleUtilities zincirini getiriyordu. **Bağımlılık
+  2026-09-30'da kaldırıldı** — bir sonraki temiz prebuild'de bu tuzak
+  tamamen ortadan kalkmalı.
 
   > 2026-08-24 notu: bu tuzak o gün **tekrar üretilemedi** — dosyada
   > `useFrameworks` yokken hem `pod install` (124 pod) hem `xcodebuild`

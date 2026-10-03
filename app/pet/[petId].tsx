@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -227,6 +235,14 @@ export default function PetProfileScreen() {
         return;
       }
       router.back();
+    },
+    // Eskiden onError yoktu: karar kaydedilemediğinde düğme spinner'ı
+    // duruyor, kullanıcı hiçbir şey öğrenmiyordu.
+    onError: (mutationError) => {
+      Alert.alert(
+        "Karar kaydedilemedi",
+        errorMessage(mutationError, "Bağlantını kontrol edip tekrar dene."),
+      );
     },
   });
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { AppIcon } from "../components/ui/icon";
 
@@ -44,6 +46,8 @@ type FieldError =
   | "region"
   | "city"
   | "petName"
+  | "species"
+  | "gender"
   | "photos"
   | "legal"
   | "locationConsent";
@@ -64,8 +68,8 @@ type OnboardingDraft = {
   regionSlug: string | null;
   notifyWhenRegionOpens: boolean;
   petName: string;
-  species: Species;
-  gender: "male" | "female";
+  species: Species | null;
+  gender: "male" | "female" | null;
   petAge: string;
   coordinates: Coordinates | null;
   photos: LocalPhoto[];
@@ -85,6 +89,8 @@ function Choice({
   return (
     <AppPressable
       onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
       className={`rounded-xl border px-4 py-3 ${
         active ? "border-brand bg-brand/10" : "border-border bg-surface"
       }`}
@@ -134,8 +140,11 @@ export default function OnboardingScreen() {
   const [notifyWhenRegionOpens, setNotifyWhenRegionOpens] = useState(true);
 
   const [petName, setPetName] = useState("");
-  const [species, setSpecies] = useState<Species>("dog");
-  const [gender, setGender] = useState<"male" | "female">("female");
+  // Varsayılan seçim YOK: tür ve cinsiyet kayıt anında 6 ay kilitleniyor
+  // (0067). "Köpek · Dişi" önceden seçili geliyordu; fark etmeyen kullanıcı
+  // 6 ay yanlış profille kalıyordu.
+  const [species, setSpecies] = useState<Species | null>(null);
+  const [gender, setGender] = useState<"male" | "female" | null>(null);
   const [petAge, setPetAge] = useState<string>(PET_AGE_UNKNOWN);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [photos, setPhotos] = useState<LocalPhoto[]>([]);
@@ -219,6 +228,18 @@ export default function OnboardingScreen() {
   }, [city, coordinates, displayName, draftKey, gender, notifyWhenRegionOpens, ownerBirthDate, petAge, petName, photos, regionSlug, species, step]);
 
   const progress = useMemo(() => `${step + 1} / 4`, [step]);
+  const insets = useSafeAreaInsets();
+
+  // Android geri tuşu adım geri alır; eskiden uygulamadan çıkıyordu.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (step === 0 || busy) return busy;
+      setStep((step - 1) as Step);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [busy, step]);
 
   // Adım geçişi öncesinde anlıktı — çubuk bir kareden diğerine sıçrıyordu.
   // `swipeable-card.tsx`'teki aynı kalıp: hareket azaltma açıkken animasyon
@@ -299,6 +320,8 @@ export default function OnboardingScreen() {
       if (!petName.trim()) {
         return setFieldErrors({ petName: "Petinin adını yazmalısın." });
       }
+      if (!species) return setFieldErrors({ species: "Petinin türünü seçmelisin." });
+      if (!gender) return setFieldErrors({ gender: "Petinin cinsiyetini seçmelisin." });
       setStep(3);
     }
   };
@@ -370,6 +393,15 @@ export default function OnboardingScreen() {
 
   const submit = async () => {
     if (!user) return;
+    // Adım 2 ikisini zorunlu tutuyor; bu, eski sürümün taslağından dönen
+    // oturum için son savunma.
+    if (!species || !gender) {
+      setStep(2);
+      setFieldErrors(
+        species ? { gender: "Petinin cinsiyetini seçmelisin." } : { species: "Petinin türünü seçmelisin." },
+      );
+      return;
+    }
     if (photos.length === 0) {
       setFieldErrors({ photos: "En az bir pet fotoğrafı eklemelisin." });
       return;
@@ -438,7 +470,10 @@ export default function OnboardingScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         scrollEnabled={!photoDragging}
-        contentContainerClassName="px-6 pb-32 pt-12"
+        contentContainerClassName="px-6 pb-32"
+        // Sabit `pt-12` (48pt) Dynamic Island'lı iPhone'larda güvenli alanın
+        // (~59pt) altında kalıyor, başlık durum çubuğuna giriyordu.
+        contentContainerStyle={{ paddingTop: insets.top + 16 }}
       >
         <View className="mb-7 flex-row items-center justify-between">
           <View className="mr-4 flex-1 flex-row items-center">
@@ -700,34 +735,56 @@ export default function OnboardingScreen() {
                 <Choice
                   active={species === "dog"}
                   label="Köpek"
-                  onPress={() => setSpecies("dog")}
+                  onPress={() => {
+                    setSpecies("dog");
+                    clearFieldError("species");
+                  }}
                 />
               </View>
               <View className="flex-1">
                 <Choice
                   active={species === "cat"}
                   label="Kedi"
-                  onPress={() => setSpecies("cat")}
+                  onPress={() => {
+                    setSpecies("cat");
+                    clearFieldError("species");
+                  }}
                 />
               </View>
             </View>
+            {fieldErrors.species ? (
+              <Text className="-mt-2 mb-4 text-xs font-semibold text-danger">
+                {fieldErrors.species}
+              </Text>
+            ) : null}
             <Text className="mb-2 text-sm font-semibold text-text-primary">Cinsiyeti</Text>
             <View className="mb-4 flex-row gap-2">
               <View className="flex-1">
                 <Choice
                   active={gender === "female"}
                   label="Dişi"
-                  onPress={() => setGender("female")}
+                  onPress={() => {
+                    setGender("female");
+                    clearFieldError("gender");
+                  }}
                 />
               </View>
               <View className="flex-1">
                 <Choice
                   active={gender === "male"}
                   label="Erkek"
-                  onPress={() => setGender("male")}
+                  onPress={() => {
+                    setGender("male");
+                    clearFieldError("gender");
+                  }}
                 />
               </View>
             </View>
+            {fieldErrors.gender ? (
+              <Text className="-mt-2 mb-4 text-xs font-semibold text-danger">
+                {fieldErrors.gender}
+              </Text>
+            ) : null}
             <Text className="mb-4 text-xs leading-4 text-text-tertiary">
               Tür ve cinsiyet kayıtta kilitlenir. Petin değişirse 6 ayda bir
               profilden güncelleyebilirsin.
@@ -814,7 +871,10 @@ export default function OnboardingScreen() {
 
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 flex-row gap-3 border-t border-border bg-bg-primary px-6 pb-6 pt-3">
+      <View
+        className="absolute bottom-0 left-0 right-0 flex-row gap-3 border-t border-border bg-bg-primary px-6 pt-3"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) + 12 }}
+      >
           {step > 0 ? (
             <AppPressable
               onPress={() => setStep((step - 1) as Step)}

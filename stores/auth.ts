@@ -3,9 +3,23 @@ import type { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 
 import { unregisterCurrentPushToken } from "../core/api/notifications";
+import { queryClient } from "../core/api/query-client";
 import { getSupabaseClient, requireSupabaseClient } from "../core/api/supabase.client";
 import { LEGAL_DOCUMENT_VERSION } from "../core/domain/legal";
 import { errorMessage } from "../core/domain/error-message";
+import { clearDiscoverProfileSession } from "./discover-profile";
+
+/**
+ * Hesap değişince (çıkış, başka hesapla giriş, oturum süresinin dolması)
+ * önceki kullanıcıya ait her şey düşer: sorgu önbelleği, açık realtime
+ * kanalları ve Keşfet → profil geçişinin imzalı URL'li kartı. Token
+ * yenilemesi hesap değişikliği değildir; orada çağrılmaz.
+ */
+function resetSessionScopedState() {
+  queryClient.clear();
+  void getSupabaseClient()?.removeAllChannels();
+  clearDiscoverProfileSession();
+}
 
 type AccountStatus = {
   onboarded: boolean;
@@ -121,6 +135,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ session, user: nextUser });
         return;
       }
+
+      // State'ten ÖNCE: React yeni kullanıcıyla render etmeden eski
+      // önbellek ve kanallar gitmiş olmalı.
+      if ((nextUser?.id ?? null) !== currentUserId) resetSessionScopedState();
 
       set({
         session,
@@ -248,7 +266,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // engellenmez. Sonraki girişte token yeni kullanıcıya yeniden atanır.
       console.error("Push tokenı kaldırılamadı:", error);
     }
-    await sb?.auth.signOut();
+    const { error } = (await sb?.auth.signOut()) ?? { error: null };
+    if (error) console.error("Oturum kapatılamadı:", error);
+    // signOut ağ hatasında bile yerel oturumu siliyor; önbellek de gitmeli.
+    resetSessionScopedState();
     set({
       session: null,
       user: null,

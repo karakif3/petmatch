@@ -45,14 +45,19 @@ select tests.assert_raises(
   'taze pette tür değişimi reddedilir'
 );
 
--- İstemci damgayı geriye alamasın.
-update pets
-set species_gender_changed_at = now() - interval '1 year'
-where id = 'aaaa1111-0000-0000-0000-000000000001';
-
+-- İstemci damgayı geriye alamasın. İki kat koruma: kolon `0012`'nin UPDATE
+-- grant'ında yok (üretimde yazma trigger'a bile ulaşmaz), olsaydı da trigger
+-- eski damgayı geri koyardı. Test yardımcısı eskiden toptan grant verdiği
+-- için yalnızca ikinci katı görüyordu.
 select tests.assert(
-  (select species_gender_changed_at from pets
-   where id = 'aaaa1111-0000-0000-0000-000000000001') > now() - interval '1 hour',
+  not has_column_privilege('authenticated', 'pets', 'species_gender_changed_at', 'UPDATE'),
+  'authenticated damga kolonuna yazamaz'
+);
+
+select tests.assert_raises(
+  $$update pets
+    set species_gender_changed_at = now() - interval '1 year'
+    where id = 'aaaa1111-0000-0000-0000-000000000001'$$,
   'authenticated damgayı geriye çekemez'
 );
 

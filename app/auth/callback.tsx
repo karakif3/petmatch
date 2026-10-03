@@ -2,7 +2,7 @@
  * OAuth deep link dönüşü. Supabase client `detectSessionInUrl` ile web'de
  * kendi halleder; mobilde token'lar URL fragment'ında gelir ve burada kurulur.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -19,8 +19,14 @@ export default function AuthCallback() {
     error_description?: string;
   }>();
   const setRecoveryMode = useAuthStore((state) => state.setRecoveryMode);
+  // Kod tek kullanımlık: yeniden render effect'i ikinci kez koşturursa
+  // `exchangeCodeForSession` düşer ve başarılı girişi "Bağlantı geçersiz"
+  // ile sign-in'e atardı.
+  const handled = useRef(false);
 
   useEffect(() => {
+    if (handled.current) return;
+    handled.current = true;
     const sb = getSupabaseClient();
     if (!sb) {
       router.replace("/(auth)/sign-in");
