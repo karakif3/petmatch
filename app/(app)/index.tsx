@@ -810,8 +810,11 @@ export default function DiscoverScreen() {
                 onPress={() => setSafetyVisible(true)}
                 disabled={safetyBusy}
                 accessibilityLabel="Profil güvenliği"
-                style={{ top: 3 }}
-                className="absolute right-3 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
+                // `style` VERİLMEZ: aynı öğede className + style olunca
+                // NativeWind'in sınıfları düşüyordu (absolute/boyut dahil) —
+                // düğme akışa geçip kartın ARKASINDA kalıyor, şikâyet/engelle
+                // menüsüne Keşfet'ten hiç ulaşılamıyordu (simülatörde bulundu).
+                className="absolute right-3 top-[3px] z-10 h-11 w-11 items-center justify-center rounded-full bg-black/45 disabled:opacity-50"
               >
                 <AppIcon name="ellipsis" color="#FFFFFF" size={23} />
               </AppPressable>
