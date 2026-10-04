@@ -90,6 +90,8 @@ L1 döneminde SQL testi **commit edilmez**; rapor içinde kod bloğu olarak duru
 2. `is`'te tek komut: `cp /tmp/petmatch-otonom/<id>.test.sql supabase/tests/zz_otonom_<id>.test.sql && npm run test:db; rm -f supabase/tests/zz_otonom_<id>.test.sql`
 3. `git status` boş olmalı. Çıktının ilgili satırları (FAIL/ERROR ve özet satırı) rapora girer.
 
+Komut `is` mutlak yoluyla yazılır (oturum dizini `merkez`; göreli yol `merkez`'e çözülür ve deny'e takılır): `cp /tmp/petmatch-otonom/<id>.test.sql ~/Desktop/cursor_claude/_otonom/petmatch/is/supabase/tests/zz_otonom_<id>.test.sql`. `settings.local.json`'da `supabase/tests/**` Edit/Write deny'i yalnız `merkez` içindir; `is`'te koruma hook'tadır (sahip kararı 2026-10-04 — deny kalıbında istisna yazılamıyor, `[!z]*` desteklenmiyor).
+
 Hook `supabase/(migrations|functions|tests)/` içine Bash ile yazmayı (`cp`, `mv`, `tee`, `>`, `sed -i`, `rm` …) engeller; tek istisna `supabase/tests/zz_otonom_*` adıdır. `_helpers.sql`, `_bootstrap.sql` ve mevcut test dosyaları asla değişmez.
 
 ## L0 yollar (ajan dokunmaz; okuyabilir, çalıştıramaz)
