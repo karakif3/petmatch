@@ -339,7 +339,8 @@ ikinci kanala gerek yok.
 **2026-09-30 — Altyapı + UX denetimi (`hardening/audit-fixes`).** Üç paralel
 denetim (backend, istemci, UX), bulgular kaynakta doğrulandıktan sonra dört
 fazda kapandı. Migration: `20260929120000_abuse_and_storage_hardening.sql`
-— **canlıya henüz uygulanmadı.**
+— **canlıya 2026-10-03'te uygulandı**; edge function'lar aynı gün deploy
+edildi (send-notification v4, delete-account v2).
 
 - **Güvenlik:** `pet-photos` anon LIST politikası kaldırıldı · iki bucket'a
   12 MB + image MIME · `messages` kolon yetkisi (istemci `created_at` /
@@ -369,10 +370,17 @@ fazda kapandı. Migration: `20260929120000_abuse_and_storage_hardening.sql`
 
 Bu turdan **açık kalanlar** (sırayla):
 
-- [ ] Migration'ı canlıya uygula (`supabase db push`) ve iki edge
-      function'ı yeniden deploy et.
-- [ ] Simülatör/fiziksel cihazda Faz 3 akışlarını gez: swipe hatasında kart
-      dönüşü, Beğeniler'den eşleşme, onboarding zorunlu seçim.
+- [x] Migration'ı canlıya uygula ve iki edge function'ı deploy et
+      (2026-10-03). Uzak migration geçmişinde 0067/0068 farklı sürüm
+      numarasıyla (`20260827094458`/`20260827113336`) kayıtlıydı; içerik
+      canlıyla birebir karşılaştırıldı, `migration repair` ile hizalandı.
+- [x] Supabase free-tier duraklamasına karşı keep-alive
+      (`.github/workflows/supabase-keep-alive.yml`, iki günde bir). Kalıcı
+      çözüm Pro plan.
+- [ ] Simülatör/fiziksel cihazda kalan Faz 3 akışları: Beğeniler'de açık
+      karttan eşleşme (QA hesabında açık kart yok), onboarding zorunlu seçim
+      (yeni hesap gerekir). Keşfet, güvenlik menüsü, şikâyet, Mesajlar,
+      sohbet, Profil 2026-10-03'te simülatörde gezildi.
 - [ ] Native crash raporlama (Sentry vb.) — hesap/DSN kararı gerekiyor;
       bugünkü global işleyici yalnız JS hatalarını görüyor.
 - [ ] Push tetiklemeyi istemciden sunucuya taşı (DB webhook / `pg_net`);
