@@ -50,7 +50,8 @@ Repo tavanı `repos.yaml`'da **L3**. **Seviye artışı (sahip):** A17 + A18 sah
 1. **Disk:** `df -g ~` → boş alan **< 15 GB** ise günlüğe `takıldı: disk (<n> GB boş)` yaz ve dur.
 2. **Sır kontrolü (iki sabit komut, aynen):** yalnız dosya adı listeler, içerik okumaz.
    - `find ~/Desktop/cursor_claude/_otonom/petmatch/merkez ~/Desktop/cursor_claude/_otonom/petmatch/is -maxdepth 1 -name '.e*' ! -name '*example*'`
-   - `find ~/Desktop/cursor_claude/_otonom/petmatch/merkez ~/Desktop/cursor_claude/_otonom/petmatch/is -maxdepth 3 -path '*supabase/.temp*'`
+   - `find ~/Desktop/cursor_claude/_otonom/petmatch/merkez ~/Desktop/cursor_claude/_otonom/petmatch/is -maxdepth 2 -type d -name '.temp' -path '*supabase*'`
+   (Komut metninde `supabase/` + `.temp` yan yana yazılmaz: deny listesindeki `Bash(*supabase/.temp*)` kuralı komut metnine bakar ve kontrolün kendisini engeller — 2026-10-04 14:30 koşusu bu yüzden durdu. Deny gevşetilmez.)
    İkisinden biri boş değilse (`.env`, `.env.local`, `supabase/.temp/project-ref` …) günlüğe `takıldı: sır (<ad>)` yaz ve dur. Dosyayı okuma, silme, taşıma — sahip kaldırır. (Bu worktree'lerde `.env` ve `supabase/.temp/` olmaması = Supabase CLI'ın proje ref'siz kalması; canlıya ulaşamamanın asıl güvencesi budur. `.env.example` serbest ama okunmaz.)
 3. **`test:db` kilidi (guvenlik-test maddesi seçilecekse):** `pgrep -fl 'test-db[.]mjs'` (köşeli parantez, komutun kendi kabuğunu eşleştirmemesi için) → çıktı boş değilse (sahip ya da başka oturum `npm run test:db` koşuyor) guvenlik-test bu tetiklemede atlanır, sıradaki hatta geçilir. Sebep: script sabit `petmatch_test_db` container'ını önce/sonra `docker rm -f` ile siler; iki koşu birbirini bozar. `docker ps` kullanılmaz (docker deny'de).
 
