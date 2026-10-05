@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sendMessage } from "./conversations";
 
 /**
@@ -45,6 +45,10 @@ function buildClient(result: { data: unknown; error: unknown }) {
 }
 
 describe("sendMessage", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     mocks.requireSupabaseClient.mockReset();
     mocks.trackProductEvent.mockReset();
@@ -79,9 +83,10 @@ describe("sendMessage", () => {
     expect(client.from).toHaveBeenCalledWith("messages");
     expect(client.insert).toHaveBeenCalledTimes(1);
     // Gizli bağ: 20260929120000_abuse_and_storage_hardening.sql kolon grant'ı
-    // messages insert'ini yalnız bu üç kolonla sınırlar. Yüke created_at /
-    // read_at eklenirse prod'da reddedilir. İstemci `id` de göndermiyor
-    // (idempotency yok; mevcut davranış kilitli). Bu yüzden tam eşitlik.
+    // messages insert'ine 4 kolon açar: id, conversation_id, sender_id, body
+    // (id bilerek açık: istemci UUID'li güvenli yeniden deneme / idempotency).
+    // İstemci bugün id göndermiyor (mevcut davranış); bu yüzden üç kolon tam
+    // eşitlikle kilitli. created_at / read_at eklenirse prod'da reddedilir.
     expect(client.insert).toHaveBeenCalledWith({
       conversation_id: "conv-1",
       sender_id: "user-1",
@@ -119,9 +124,6 @@ describe("sendMessage", () => {
     await sendMessage({ conversationId: "conv-1", senderId: "user-1", body: "Merhaba" });
 
     expect(mocks.requestNotificationDelivery).toHaveBeenCalledTimes(1);
-    expect(mocks.requestNotificationDelivery).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "message" }),
-    );
     expect(mocks.requestNotificationDelivery).toHaveBeenCalledWith({
       type: "message",
       messageId: "msg-1",
@@ -151,7 +153,6 @@ describe("sendMessage", () => {
 
     expect(message.id).toBe("msg-1");
     expect(errorSpy).toHaveBeenCalled();
-    errorSpy.mockRestore();
   });
 
   it("insert hatasında aynı hatayı fırlatır; bildirim ve analytics çağrılmaz", async () => {
