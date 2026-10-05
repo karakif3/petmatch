@@ -32,7 +32,7 @@ Ortak: çıktı `docs/otonom/raporlar/` altında rapor + `otonom/guvenlik-test/<
 
 ## app-test (L2)
 
-- **T01 · app-test · `core/api` test iskeleti + `conversations` sözleşmesi** · durum: **hazır** (sahip onayı 2026-10-04; ilk gün)
+- **T01 · app-test · `core/api` test iskeleti + `conversations` sözleşmesi** · durum: **yapılıyor** (2026-10-05 14:30; branch `otonom/app-test/T01-conversations-sozlesme`) (sahip onayı 2026-10-04; ilk gün)
   Kabul: `core/api/conversations.test.ts` (yeni) yeşil, toplam test > 93. `vi.mock("./supabase.client")`, `vi.mock("./observability")`, `vi.mock("./notifications")` (+ gerekirse `./legal`) — 2026-10-03 denendi. Kilitler: `sendMessage` boş/boşluk gövde → "Mesaj boş olamaz." ve insert çağrılmaz; insert yükü **yalnız** `conversation_id`, `sender_id`, `body` (trim'li); hata → fırlatır, bildirim/analytics çağrılmaz; başarı → `requestNotificationDelivery({type:"message"})` bir kez. Mock kalıbı dosya başında yorumla belgelenir.
   Gizli bağ: `supabase/migrations/20260929120000_abuse_and_storage_hardening.sql:60-61` kolon grant'ı — insert'e `created_at`/`read_at` eklenirse prod'da reddedilir; test bunu yorumla anar. İstemci `id` göndermiyor (`conversations.ts:245-251`; idempotency önerisi `öneriler`'de) — mevcut davranış kilitlenir.
   Kapsam: okunur `core/api/conversations.ts` (392), `core/api/notifications.ts`, `core/api/observability.ts` · yazılır yalnız `core/api/conversations.test.ts` · bağlam `app/chat/[conversationId].tsx`
