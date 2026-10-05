@@ -25,7 +25,7 @@ Ortak: çıktı `docs/otonom/raporlar/` altında rapor + `otonom/guvenlik-test/<
   Kapsam: okuma `supabase/migrations/0001*` (`:28`), `0018*`, `0025_legal_acceptances.sql`, `0066_connection_signal_and_consent.sql`, `20260827204345_owner_visibility_default_public.sql`, `0012*`, `core/api/onboarding.ts`, `core/api/legal.ts`, `core/api/profile.ts`, `app/onboarding.tsx`, `app/profile/owner.tsx` · yazma yalnız rapor
   Boy: M · Risk: yok · **Ürün kararı sahipte;** rapor seçenek + öneri sunar, karar vermez.
 
-- **G03 · guvenlik-test · engelleme sonrası erişim: `blocks` UPDATE/DELETE + realtime kanal** · durum: **hazır** (sahip onayı 2026-10-04)
+- **G03 · guvenlik-test · engelleme sonrası erişim: `blocks` UPDATE/DELETE + realtime kanal** · durum: **yapılıyor** (2026-10-06 00:00; branch `otonom/guvenlik-test/G03-engel-sonrasi-erisim`) (sahip onayı 2026-10-04)
   Kabul: `docs/otonom/raporlar/engel-sonrasi-erisim-<tarih>.md`: SQL taslağı + kırmızı çıktı: engelleyen `update blocks set blocked_id=…` yapamaz (bugün yapar: `0006:230-232` `for all`); engellenen taraf `can_access_conversation_realtime('conversation:<id>:ephemeral')` false (bugün true: `0031:28-33`); DELETE (sessiz engel kaldırma) istemcide yolu yok (`core/api/safety.ts` yalnız `block_user` RPC) → kapatılmalı mı karar notu. Düzeltme taslağı: policy'yi select/insert'e böl; fonksiyona aktif eşleşme + `blocked_user_ids()`.
   Kapsam: okuma `supabase/migrations/0003*` (`:153`), `0005*` (`:118`), `0006*` (`:225-250`), `0020*` (`:11`), `0031*`, `supabase/tests/safety.test.sql`, `core/api/safety.ts` · yazma yalnız rapor
   Boy: S-M · Risk: yok
