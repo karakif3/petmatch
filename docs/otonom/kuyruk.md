@@ -13,7 +13,7 @@ Ortak: çıktı `docs/otonom/raporlar/` altında rapor + `otonom/guvenlik-test/<
   Kapsam: okuma `supabase/migrations/0001*,0008*,0012*,0021*,0035*`, `supabase/tests/_helpers.sql` (`:140-170` kolon grant'ına dokunmuyor — gizli bağ), `owner-age-gender-display.test.sql`, `core/api/profile.ts`, `discovery.ts`, `profile-completion.ts`, `stores/auth.ts`, `supabase/functions/send-notification/index.ts:395-440` · yazma yalnız rapor
   Boy: M · Risk: yok (kod değişmez)
 
-- **G02 · guvenlik-test · A18 rıza öncesi public: kırmızı test + KVKK uyumlu görünürlük planı** · durum: **hazır** (sahip onayı 2026-10-04)
+- **G02 · guvenlik-test · A18 rıza öncesi public: kırmızı test + KVKK uyumlu görünürlük planı** · durum: **yapılıyor** (2026-10-05 11:30; branch `otonom/guvenlik-test/G02-a18-riza-oncesi-public`) (sahip onayı 2026-10-04)
   **Sahip ürün yönü (2026-10-04, bağlayıcı; rapor bunu merkeze alır, yeniden tartışmaz):** "Pet profili eşleşmeden önce görünür; insan profili varsayılan resimli görünür, ama kullanıcı resimsize ya da yalnız eşleşince'ye çekebilir."
   Kabul: `docs/otonom/raporlar/a18-riza-oncesi-public-<tarih>.md`:
   (1) **SQL taslağı + kırmızı çıktı:** `auth.users` insert → `handle_new_user` profili `public` değil (`after_match`); `public_profile_consent` kaydı olmayan kullanıcı `owner_visibility='public'` yapamaz (RPC ve doğrudan UPDATE — `owner_visibility` istemciye UPDATE açık, `0012:22`); rıza geri çekilince görünürlük `after_match`'e düşer (karar maddesi olarak işaretli). `test:db` çıktısında yalnız yeni assert'ler FAIL.
