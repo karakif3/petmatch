@@ -39,7 +39,7 @@ Ortak: çıktı `docs/otonom/raporlar/` altında rapor + `otonom/guvenlik-test/<
   Test kalıbı: `core/domain/*.test.ts` (vitest) + README `vi.mock` · Yüklenebilirlik: ✓ (mock'la, 2026-10-03)
   Veri: yok · Arayüz: hayır · Boy: S · Risk: düşük (yalnız test)
 
-- **T02 · app-test · konum ve yaş saf modülleri** · durum: **yapılıyor** (2026-10-06 11:30; branch `otonom/app-test/T02-konum-yas`) (sahip onayı 2026-10-04)
+- **T02 · app-test · konum ve yaş saf modülleri** · durum: **onay-bekliyor** (2026-10-06 11:30; branch `otonom/app-test/T02-konum-yas`, taslak PR https://github.com/karakif3/petmatch/pull/10; 102 → 125 test, diff yalnız `core/domain/distance.test.ts` + `age.test.ts`; reviewer 2 tur — tur 1 yanıltıcı test adı düzeltildi + negatif yarım değer kilitlendi, tur 2 temiz; CI static + edge-functions yeşil, database koşuyordu; reviewer: güvenle merge edilebilir. Açık sorular PR'da: `age.ts:11` 365.25 gün → yeni yaş ~1 gün geç; `coarsenCoordinates` negatif yarımda JS -28.98 / PG -28.99) (sahip onayı 2026-10-04)
   Kabul: `core/domain/distance.test.ts`, `core/domain/age.test.ts` (yeni) yeşil. Kilitler: `coarsenCoordinates` 2 basamak varsayılanı sunucu yuvarlamasıyla aynı (`supabase/migrations/0007_location_privacy.sql:28,31` `round(…,2)`) — gizli bağ yorumla; `distanceKm` simetrik, aynı nokta 0, bilinen iki İstanbul noktası ±0.1 km; `distanceBucket` sınırları (null, 0.99, 1, 3, 25, 25.01); `ageInYears`/`formatAge` doğum günü öncesi/sonrası, null, gelecekteki tarih (`now` parametresi sabit).
   Kapsam: okunur `core/domain/distance.ts` (55), `core/domain/age.ts` (25) · yazılır iki `.test.ts` · bağlam `core/api/discovery.ts`, `app/pet/[petId].tsx`, `components/discovery-card.tsx`
   Test kalıbı: `core/domain/pet-age.test.ts` · Yüklenebilirlik: ✓ (saf)
@@ -67,6 +67,8 @@ Ortak: çıktı `docs/otonom/raporlar/` altında rapor + `otonom/guvenlik-test/<
 - `app-kucuk-is` (2. faz): `core/api/profile.ts:216-219,374-377` — `"owner_photos"` geçen her hata yutuluyor; önce kırmızı test.
 - `app-kucuk-is` (2. faz): mesaj gönderiminde istemci `id` (idempotency) — `core/api/conversations.ts:245-251`; grant izin veriyor (`20260929120000:61`).
 - `app-kucuk-is` (2. faz): `saveOwnerProfile` rıza sırası — `core/api/profile.ts:395`, `:616` (G02 ile birlikte).
+- `app-kucuk-is` (2. faz, T02'den): `core/domain/age.ts:11` yılı 365.25 günle hesaplıyor → doğum gününde yaş ~1 gün geç artıyor (PR #10 testi mevcut davranışı kilitliyor; düzeltmede test de değişir).
+- `app-kucuk-is` (2. faz, T02'den): `coarsenCoordinates` negatif yarım değerde JS `Math.round` (-28.98) ↔ PG `round(numeric,2)` (-28.99) farkı (`0007_location_privacy.sql:28,31`); TR'de pratik etkisi düşük.
 - `denetim`: `types/database.ts` (08-28) ↔ migration'lar tip drift raporu (çevrimdışı karşılaştırma; `gen:types` L0).
 - `edge-test` (2. faz): `send-notification` `.limit(500)` + `Promise.all` alıcı sınırı (backlog:384).
 - **Sahip / L0:** A17/A18 düzeltmesi, `repos.yaml` kuyruk yolu (`docs/otonom/kuyruk.md`) ve SQL test sayısı (24) düzeltmesi (OC tarafı).
