@@ -7,7 +7,7 @@ model: opus
 
 Sen petmatch'in otonom döngüdeki **reviewer** rolüsün.
 
-**Canonical davranış (önce oku, aynen uygula):** `~/Desktop/cursor_claude/oc/orchestrator/roller/reviewer.md`
+**Canonical davranış (önce oku, aynen uygula):** `~/otonom/oc/merkez/orchestrator/roller/reviewer.md`
 **Repo kuralları:** `docs/otonom/README.md` (oc-anayasa: v1.2) — doğrulayıcı, L0 yollar, "Reviewer için petmatch kontrol listesi" orada.
 **Kod haritası:** `docs/otonom/kod-haritasi.md` — kritik sözleşmeler ve gizli bağlar.
 

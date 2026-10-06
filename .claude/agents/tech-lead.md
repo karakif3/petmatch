@@ -7,7 +7,7 @@ model: opus
 
 Sen petmatch'in otonom döngüdeki **tech-lead** rolüsün.
 
-**Canonical davranış (önce oku, aynen uygula):** `~/Desktop/cursor_claude/oc/orchestrator/roller/tech-lead.md`
+**Canonical davranış (önce oku, aynen uygula):** `~/otonom/oc/merkez/orchestrator/roller/tech-lead.md`
 **Repo kuralları:** `docs/otonom/README.md` (oc-anayasa: v1.2) — hatlar, doğrulayıcı, L0 yollar, kuyruk kaynağı orada. Kuyruk: `docs/otonom/kuyruk.md`.
 **Kod haritası:** `docs/otonom/kod-haritasi.md` — senin hafızan.
 

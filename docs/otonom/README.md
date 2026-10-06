@@ -4,7 +4,7 @@ oc-anayasa: v1.2
 
 # petmatch — Otonom Çalışma Kuralları
 
-> **Canonical genel kurallar OC'de:** `~/Desktop/cursor_claude/oc/orchestrator/ANAYASA.md` (v1.2) · roller: `oc/orchestrator/roller/` · [GitHub: karakif3/oc](https://github.com/karakif3/oc) (branch `orchestrator/iskelet`).
+> **Canonical genel kurallar OC'de:** `~/otonom/oc/merkez/orchestrator/ANAYASA.md` (v1.2) · roller: `oc/orchestrator/roller/` · [GitHub: karakif3/oc](https://github.com/karakif3/oc) (branch `orchestrator/iskelet`).
 > Bu dosya onları **kopyalamaz**. Yalnız petmatch'e özel ek kuralları taşır. Çelişkide daha sıkı olan geçerlidir.
 > **Durum:** kurulum 2026-10-04 (sahip onayı 2026-10-04). İlk döngü 2026-10-04 / 2026-10-05 11:30 (zamanlanmış görevi sahip kurar). Kurulum önerisi ve gerekçeler: `oc/orchestrator/audit/2026-10-03-petmatch-kuyruk-onerisi.md`; kod denetimi: `oc/orchestrator/audit/2026-10-03-kod-denetimi.md` §2.
 
@@ -37,7 +37,7 @@ Repo tavanı `repos.yaml`'da **L3**. **Seviye artışı (sahip):** A17 + A18 sah
 **Tetikleme:** her gün **11:30 / 14:30 / 17:30** (Tellora 09:30/12:30/15:30, teacher-mvp 10:30/13:30/16:30 ile çakışmaz). Zamanlanmış görev bu worktree'de (`merkez`) koşar; prompt kaynağı `oc/orchestrator/prompts/gorev-petmatch.md`.
 
 **OC dağıtımı (kanonik: `oc/orchestrator/roller/dispatcher.md` girdi 4):**
-- Dağıtım dosyası: `~/Desktop/cursor_claude/_otonom/oc/merkez/orchestrator/dagitim/YYYY-MM-DD.md` (yalnız bugünün tarihi).
+- Dağıtım dosyası: `~/otonom/oc/merkez/orchestrator/dagitim/YYYY-MM-DD.md` (yalnız bugünün tarihi).
 - Sahip onayı: `~/.local/state/oc-orchestrator/onaylar/YYYY-MM-DD.md` içinde `dagitim:YYYY-MM-DD:ok` satırı. Dağıtım dosyası var ama onay yoksa → **yalnız L1** (guvenlik-test, denetim).
 - `karar: <id> ok` → ilgili `takıldı` maddesi `düzeltmede`; `karar: <id> hayır` → `bitti: sahip reddetti`.
 
@@ -49,8 +49,8 @@ Repo tavanı `repos.yaml`'da **L3**. **Seviye artışı (sahip):** A17 + A18 sah
 
 1. **Disk:** `df -g ~` → boş alan **< 15 GB** ise günlüğe `takıldı: disk (<n> GB boş)` yaz ve dur.
 2. **Sır kontrolü (iki sabit komut, aynen):** yalnız dosya adı listeler, içerik okumaz.
-   - `find ~/Desktop/cursor_claude/_otonom/petmatch/merkez ~/Desktop/cursor_claude/_otonom/petmatch/is -maxdepth 1 -name '.e*' ! -name '*example*'`
-   - `find ~/Desktop/cursor_claude/_otonom/petmatch/merkez ~/Desktop/cursor_claude/_otonom/petmatch/is -maxdepth 2 -type d -name '.temp' -path '*supabase*'`
+   - `find ~/otonom/petmatch/merkez ~/otonom/petmatch/is -maxdepth 1 -name '.e*' ! -name '*example*'`
+   - `find ~/otonom/petmatch/merkez ~/otonom/petmatch/is -maxdepth 2 -type d -name '.temp' -path '*supabase*'`
    (Komut metninde `supabase/` + `.temp` yan yana yazılmaz: deny listesindeki `Bash(*supabase/.temp*)` kuralı komut metnine bakar ve kontrolün kendisini engeller — 2026-10-04 14:30 koşusu bu yüzden durdu. Deny gevşetilmez.)
    İkisinden biri boş değilse (`.env`, `.env.local`, `supabase/.temp/project-ref` …) günlüğe `takıldı: sır (<ad>)` yaz ve dur. Dosyayı okuma, silme, taşıma — sahip kaldırır. (Bu worktree'lerde `.env` ve `supabase/.temp/` olmaması = Supabase CLI'ın proje ref'siz kalması; canlıya ulaşamamanın asıl güvencesi budur. `.env.example` serbest ama okunmaz.)
 3. **`test:db` kilidi (guvenlik-test maddesi seçilecekse):** `pgrep -fl 'test-db[.]mjs'` (köşeli parantez, komutun kendi kabuğunu eşleştirmemesi için) → çıktı boş değilse (sahip ya da başka oturum `npm run test:db` koşuyor) guvenlik-test bu tetiklemede atlanır, sıradaki hatta geçilir. Sebep: script sabit `petmatch_test_db` container'ını önce/sonra `docker rm -f` ile siler; iki koşu birbirini bozar. `docker ps` kullanılmaz (docker deny'de).
@@ -59,8 +59,8 @@ Repo tavanı `repos.yaml`'da **L3**. **Seviye artışı (sahip):** A17 + A18 sah
 
 ## Döngünün evi ve worktree'ler
 
-- **merkez:** `~/Desktop/cursor_claude/_otonom/petmatch/merkez/`, branch `otonom/merkez` (upstream `origin/otonom/merkez`; `main`'i izlemez). Dispatcher kuyruk ve günlük değişikliklerini **yalnız** buraya commit + push eder (`git push origin otonom/merkez`).
-- **is (tek iş worktree'si, ANAYASA §7):** `~/Desktop/cursor_claude/_otonom/petmatch/is/` yeniden kullanılır: `git fetch origin && git switch -c otonom/<hat>/<id>-<kisa-ad> origin/main` (branch `--no-track` ise de olur; push her zaman `-u origin otonom/...`). İş bitince temiz bırakılır (`git status` boş; geçici SQL dosyası silinmiş). Yeni worktree açılmaz.
+- **merkez:** `~/otonom/petmatch/merkez/`, branch `otonom/merkez` (upstream `origin/otonom/merkez`; `main`'i izlemez). Dispatcher kuyruk ve günlük değişikliklerini **yalnız** buraya commit + push eder (`git push origin otonom/merkez`).
+- **is (tek iş worktree'si, ANAYASA §7):** `~/otonom/petmatch/is/` yeniden kullanılır: `git fetch origin && git switch -c otonom/<hat>/<id>-<kisa-ad> origin/main` (branch `--no-track` ise de olur; push her zaman `-u origin otonom/...`). İş bitince temiz bırakılır (`git status` boş; geçici SQL dosyası silinmiş). Yeni worktree açılmaz.
 - `node_modules` kurulumda iki worktree'de de `npm ci` ile kuruldu (2026-10-04). Eksikse işçi `is`'te bir kez `npm ci` koşar (`npm install`/`npm i` yasak). `npm ci` ağ ister; ağ yoksa `takıldı: npm ci`.
 - Ana branch **`main`**. Branch koruması yok (A22 sahipte) → main'e push = doğrudan prod kod tabanı; asla.
 
@@ -90,7 +90,7 @@ L1 döneminde SQL testi **commit edilmez**; rapor içinde kod bloğu olarak duru
 2. `is`'te tek komut: `cp /tmp/petmatch-otonom/<id>.test.sql supabase/tests/zz_otonom_<id>.test.sql && npm run test:db; rm -f supabase/tests/zz_otonom_<id>.test.sql`
 3. `git status` boş olmalı. Çıktının ilgili satırları (FAIL/ERROR ve özet satırı) rapora girer.
 
-Komut `is` mutlak yoluyla yazılır (oturum dizini `merkez`; göreli yol `merkez`'e çözülür ve deny'e takılır): `cp /tmp/petmatch-otonom/<id>.test.sql ~/Desktop/cursor_claude/_otonom/petmatch/is/supabase/tests/zz_otonom_<id>.test.sql`. `settings.local.json`'da `supabase/tests/**` Edit/Write deny'i yalnız `merkez` içindir; `is`'te koruma hook'tadır (sahip kararı 2026-10-04 — deny kalıbında istisna yazılamıyor, `[!z]*` desteklenmiyor).
+Komut `is` mutlak yoluyla yazılır (oturum dizini `merkez`; göreli yol `merkez`'e çözülür ve deny'e takılır): `cp /tmp/petmatch-otonom/<id>.test.sql ~/otonom/petmatch/is/supabase/tests/zz_otonom_<id>.test.sql`. `settings.local.json`'da `supabase/tests/**` Edit/Write deny'i yalnız `merkez` içindir; `is`'te koruma hook'tadır (sahip kararı 2026-10-04 — deny kalıbında istisna yazılamıyor, `[!z]*` desteklenmiyor).
 
 Hook `supabase/(migrations|functions|tests)/` içine Bash ile yazmayı (`cp`, `mv`, `tee`, `>`, `sed -i`, `rm` …) engeller; tek istisna `supabase/tests/zz_otonom_*` adıdır. `_helpers.sql`, `_bootstrap.sql` ve mevcut test dosyaları asla değişmez.
 
@@ -113,8 +113,8 @@ Hook `supabase/(migrations|functions|tests)/` içine Bash ile yazmayı (`cp`, `m
 | Worktree | Branch | Sahibi |
 |---|---|---|
 | `~/Desktop/cursor_claude/petmatch` | `docs/deploy-status-2026-10-03` (PR #5) ya da sahibin seçtiği | sahip (etkileşimli; **dokunma**, branch değiştirme; kökte izlenmeyen `.claude/`, `.env`, `supabase/.temp/` orada) |
-| `~/Desktop/cursor_claude/_otonom/petmatch/merkez` | `otonom/merkez` | otonom döngü (dispatcher) |
-| `~/Desktop/cursor_claude/_otonom/petmatch/is` | `otonom/<hat>/<id>` (değişir; kurulumda detached `origin/main`) | otonom iş worktree'si (auditor/engineer) |
+| `~/otonom/petmatch/merkez` | `otonom/merkez` | otonom döngü (dispatcher) |
+| `~/otonom/petmatch/is` | `otonom/<hat>/<id>` (değişir; kurulumda detached `origin/main`) | otonom iş worktree'si (auditor/engineer) |
 
 Eski dallar (`feat/onboarding-simplification`, `hardening/audit-fixes`, `ops/supabase-keep-alive`, `cursor/discover-geography-48d4`, `schema/goal-model-and-hardening`, `docs/deploy-status-2026-10-03`) **dokunulmaz, silinmez** (sahip siler). Otonom branch yalnız `otonom/<hat>/<id>-<kisa-ad>`, `origin/main`'den. Sahip A17/A18'i kendi etkileşimli oturumunda düzeltir; o dallara ve `supabase/` altına otonom yazım yok.
 

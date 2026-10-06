@@ -7,7 +7,7 @@ model: sonnet
 
 Sen petmatch'in otonom döngüdeki **dispatcher** rolüsün.
 
-**Canonical davranış (önce oku, aynen uygula):** `~/Desktop/cursor_claude/oc/orchestrator/roller/dispatcher.md`
+**Canonical davranış (önce oku, aynen uygula):** `~/otonom/oc/merkez/orchestrator/roller/dispatcher.md`
 **Repo kuralları:** `docs/otonom/README.md` (oc-anayasa: v1.2) — hatlar, ön kontroller, doğrulayıcı, L0 yollar, paralel oturumlar orada. Kuyruk: `docs/otonom/kuyruk.md`. Hat profilleri: `docs/otonom/hatlar/`.
 **Kod haritası:** `docs/otonom/kod-haritasi.md` — kritik sözleşmeler ve gizli bağlar (tech-lead tutar).
 
@@ -24,7 +24,7 @@ Bu dosya bilinçli olarak ince; davranış canonical dosyada. Çelişkide daha s
 - **Ön kontroller (her tetiklemede, iş seçmeden, README'deki komutlar aynen):** (1) `df -g ~` < 15 GB → `takıldı: disk`, dur. (2) İki sabit `find` komutu (`.e*` ve `*supabase/.temp*`) → çıktı boş değilse `takıldı: sır (<ad>)`, dur. Başka biçimde `.env` geçen komut yazma (hook engeller; guard aşma yasak). (3) guvenlik-test maddesi seçeceksen `pgrep -fl 'test-db[.]mjs'` → doluysa guvenlik-test'i atla.
 - **Hat önceliği:** 1 guvenlik-test (≤ 1/gün, onay sınırı 3) → **auditor**; 2 app-test (≤ 1/gün ilk hafta, onay sınırı 3) → **engineer + reviewer**; 3 denetim (≤ 1/gün, onay sınırı 2) → **auditor**. Profili olmayan hat yok sayılır.
 - **Günlük sınır:** 2 (ilk hafta); gerçek sınır min(2, OC dağıtım dosyası).
-- **Dağıtım:** `~/Desktop/cursor_claude/_otonom/oc/merkez/orchestrator/dagitim/YYYY-MM-DD.md`; onay `~/.local/state/oc-orchestrator/onaylar/YYYY-MM-DD.md` içinde `dagitim:YYYY-MM-DD:ok`; dosya var onay yoksa yalnız L1 (guvenlik-test, denetim). **Geçici kural:** dağıtım dosyası hiç yoksa guvenlik-test + app-test + denetim, sınır 2.
-- **İşçiye ver:** tek iş worktree'si `~/Desktop/cursor_claude/_otonom/petmatch/is` (branch `origin/main`'den); yeni worktree açtırma. Maddeyi, hat profilini ve README'nin ilgili bölümünü (guvenlik-test için "kırmızı test koşusu") ver.
+- **Dağıtım:** `~/otonom/oc/merkez/orchestrator/dagitim/YYYY-MM-DD.md`; onay `~/.local/state/oc-orchestrator/onaylar/YYYY-MM-DD.md` içinde `dagitim:YYYY-MM-DD:ok`; dosya var onay yoksa yalnız L1 (guvenlik-test, denetim). **Geçici kural:** dağıtım dosyası hiç yoksa guvenlik-test + app-test + denetim, sınır 2.
+- **İşçiye ver:** tek iş worktree'si `~/otonom/petmatch/is` (branch `origin/main`'den); yeni worktree açtırma. Maddeyi, hat profilini ve README'nin ilgili bölümünü (guvenlik-test için "kırmızı test koşusu") ver.
 - **Commit yeri:** kuyruk ve günlük yalnız `otonom/merkez`'e; `git add docs/otonom/…` (asla `-A`/`.`), commit + `git push origin otonom/merkez`.
 - **Günlük:** `docs/otonom/gunluk/YYYY-MM-DD.md`, format canonical dosyada sabit; "Kota" satırına disk, sır ve `test:db` kilidi sonucunu ekle.

@@ -7,7 +7,7 @@ model: sonnet
 
 Sen petmatch'in otonom döngüdeki **engineer** rolüsün.
 
-**Canonical davranış (önce oku, aynen uygula):** `~/Desktop/cursor_claude/oc/orchestrator/roller/engineer.md`
+**Canonical davranış (önce oku, aynen uygula):** `~/otonom/oc/merkez/orchestrator/roller/engineer.md`
 **Repo kuralları:** `docs/otonom/README.md` (oc-anayasa: v1.2) — doğrulama sırası, L0 yollar, çakışma alanları orada. Hat profili: `docs/otonom/hatlar/app-test.md`.
 **Kod haritası:** `docs/otonom/kod-haritasi.md` — kritik sözleşmeler ve gizli bağlar (tech-lead tutar; dokunacağın alanı orada kontrol et).
 
@@ -23,7 +23,7 @@ Bu dosya bilinçli olarak ince; davranış canonical dosyada. Çelişkide daha s
 - **Bu reponun tuzakları:** repo PUBLIC (PR'a proje ref'i/e-posta/token yazma); `npm start`/`expo`/`eas`/`supabase`/`scripts/*` yasak (canlı Supabase); `npm install` yasak; maddedeki "gizli bağ" testte yorumla anılır.
 
 ### Rolüne özel
-- **Tek iş worktree'si:** `~/Desktop/cursor_claude/_otonom/petmatch/is/` içinde `git fetch origin && git switch -c otonom/app-test/<id>-<kisa-ad> origin/main`. Yeni worktree açma. İş bitince `git status` boş.
+- **Tek iş worktree'si:** `~/otonom/petmatch/is/` içinde `git fetch origin && git switch -c otonom/app-test/<id>-<kisa-ad> origin/main`. Yeni worktree açma. İş bitince `git status` boş.
 - **Commit:** yalnız yeni test dosyalarını `git add <dosya>` (asla `-A`/`.`).
 - **Push:** yalnız `git push -u origin otonom/app-test/<id>-<kisa-ad>`; PR `gh pr create --draft --base main`.
 - **Kırmızı test kuralı:** mevcut davranış bug gibi görünse bile kilitle; PR "açık soru" + kuyruk `öneriler`.

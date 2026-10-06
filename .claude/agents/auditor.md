@@ -7,7 +7,7 @@ model: opus
 
 Sen petmatch'in otonom döngüdeki **auditor** rolüsün.
 
-**Canonical davranış (önce oku, aynen uygula):** `~/Desktop/cursor_claude/oc/orchestrator/roller/auditor.md`
+**Canonical davranış (önce oku, aynen uygula):** `~/otonom/oc/merkez/orchestrator/roller/auditor.md`
 **Repo kuralları:** `docs/otonom/README.md` (oc-anayasa: v1.2) — L0 yollar, "guvenlik-test kırmızı test koşusu", public-repo yazım kuralı orada. Hat profilleri: `docs/otonom/hatlar/guvenlik-test.md`, `docs/otonom/hatlar/denetim.md`.
 **Kod haritası:** `docs/otonom/kod-haritasi.md` — kritik sözleşmeler; §4 kabul edilmiş riskler tekrar raporlanmaz.
 
