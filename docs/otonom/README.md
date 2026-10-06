@@ -13,10 +13,10 @@ oc-anayasa: v1.2
 | Dosya | Ne | Kim yazar |
 |---|---|---|
 | `kod-haritasi.md` | Klasör → sorumluluk, yüklenebilirlik, kritik sözleşmeler, kabul edilmiş riskler | tech-lead |
-| `kuyruk.md` | Tüm hatların tek kuyruğu | tech-lead (madde hazırlar), sahip (`hazır` işaretler), dispatcher (durum) |
+| `kuyruk.md` | Tüm hatların tek kuyruğu | tech-lead (madde hazırlar; ölçütü tutan app-test maddesine oto-hazır), sahip (`hazır` işaretler / Telegram butonu), dispatcher (durum) |
 | `hatlar/<hat>.md` | Hat profilleri | kurulum; değişiklik sahip onayıyla |
 | `gunluk/YYYY-MM-DD.md` | Günlük rapor (OC okur, format `roller/dispatcher.md`'de sabit) | dispatcher |
-| `raporlar/` | Güvenlik/denetim raporları, haftalık tech-lead raporu | auditor, tech-lead |
+| `raporlar/` | Güvenlik/denetim raporları (PR'sız, merkez'de), haftalık tech-lead raporu | auditor (yazar), dispatcher (commit), tech-lead |
 
 ## Hatlar ve öncelik
 
@@ -39,9 +39,37 @@ Repo tavanı `repos.yaml`'da **L3**. **Seviye artışı (sahip):** A17 + A18 sah
 **OC dağıtımı (kanonik: `oc/orchestrator/roller/dispatcher.md` girdi 4):**
 - Dağıtım dosyası: `~/otonom/oc/merkez/orchestrator/dagitim/YYYY-MM-DD.md` (yalnız bugünün tarihi).
 - Sahip onayı: `~/.local/state/oc-orchestrator/onaylar/YYYY-MM-DD.md` içinde `dagitim:YYYY-MM-DD:ok` satırı. Dağıtım dosyası var ama onay yoksa → **yalnız L1** (guvenlik-test, denetim).
-- `karar: <id> ok` → ilgili `takıldı` maddesi `düzeltmede`; `karar: <id> hayır` → `bitti: sahip reddetti`.
+- Dağıtım dosyasındaki `karar: <id> ok` → ilgili `takıldı` maddesi `düzeltmede`; `karar: <id> hayır` → `bitti: sahip reddetti`. Telegram butonları aşağıda.
 
 **Geçici kural (sahip onayı 2026-10-04):** dağıtım dosyası **hiç yoksa** `guvenlik-test` + `app-test` + `denetim` çalışır, günlük sınır **2**. Dosya varsa bu kural uygulanmaz.
+
+## L1 raporları (PR'sız; sahip onayı 2026-10-06)
+
+guvenlik-test ve denetim hatlarının çıktısı yalnız rapordur (guvenlik-test'te geçici SQL testi `is`'te koşulur — kırmızı test koşusu ve `test:db` kilidi aynen — ama çıktı yine yalnız rapor):
+1. Auditor raporu Write/Edit ile doğrudan `~/otonom/petmatch/merkez/docs/otonom/raporlar/<ID>-<kisa-ad>-YYYY-MM-DD.md`'ye yazar. Kod okuma `is`'te: `git -C ~/otonom/petmatch/is fetch -q origin && git -C ~/otonom/petmatch/is switch --detach origin/main`. Rapor için branch, push, PR yok. Raporun ilk satırı taban commit (`origin/main` kısa sha). `is` iş bitince temiz.
+2. Raporun son bölümü sabit `## Sahip kararları`: her karar tek satır `- <ID>-K<n>: <soru, ≤90 karakter> · seçenekler: ok|hayir` ya da `· seçenekler: A=<≤25 karakter> | B=<…> | C=<…>` (≤4 seçenek); karar yoksa `- yok`. Telegram karar paketi bu satırları okur — biçim bozulmaz.
+3. Dispatcher raporu kuyruk/günlükle birlikte merkez'de commit'ler (yalnız `docs/otonom/` altı, `git add` dosya adıyla) ve `otonom/merkez`'e push eder. Madde `bitti` + rapor linki `https://github.com/karakif3/petmatch/blob/otonom/merkez/docs/otonom/raporlar/<dosya>`; sahip kararı gereken maddeye `karar-bekliyor: <ID>-K<n>` notu.
+4. L1 hatlarında onay/açık PR sınırı yok (günlük iş sınırı ≤1/gün aynen). Açık eski rapor PR'ları hattı kilitlemez; sahip okuyup kapatır, döngü dokunmaz.
+5. Reviewer (isteğe bağlı) merkez'deki rapor dosyasını sızıntı desenine (token/anahtar, e-posta, proje ref'i, URL) tarar; sonuç günlüğe tek satır, PR yorumu yok.
+
+app-test (L2) değişmez: taslak PR + sahip merge.
+
+## Oto-hazır (app-test; sahip onayı 2026-10-06)
+
+Tech-lead (stok modu ve haftalık) bir app-test maddesini `hazırlandı` yerine doğrudan `hazır` işaretleyebilir, ancak HEPSİ doğruysa:
+- yalnız YENİ test dosyası yazar (mevcut test/üretim dosyası değişmez; "istisna" notu yok);
+- Boy: S · Risk: düşük · Veri: yok · Arayüz: hayır · Yüklenebilirlik ✓ (aynı gün denendi);
+- L0/L3 yol, `supabase/`, `package*.json`, CI/workflow, auth/hukuk dosyası kapsamında değil.
+
+Biçim: `durum: **hazır** (oto-hazır: tech-lead YYYY-MM-DD; ölçüt ✓)`. Günde en fazla 2 oto-hazır. Biri bile tutmuyorsa `hazırlandı` (sahip butonu/işareti bekler). Merge kapısı değişmez (taslak PR, sahip ya da toplu merge). Dispatcher stok modunda tech-lead oto-hazır madde ürettiyse ve günlük pay/hat sınırı izin veriyorsa o maddeyi aynı koşuda alabilir.
+
+## Telegram karar butonları (dispatcher, her koşunun başında, madde seçmeden önce)
+
+Onay botu buton basışlarını `~/.local/state/oc-orchestrator/onaylar/YYYY-MM-DD.md`'ye `- <zaman> | buton | <veri>` satırı olarak yazar. Dispatcher BUGÜN ve DÜN dosyalarındaki petmatch satırlarını uygular:
+- `hazir:petmatch:<ID>` → madde `hazırlandı` ise `hazır (sahip butonu <zaman>)`.
+- `karar:petmatch:<ID>-K<n>:<seçim>` → ilgili maddeye (ya da rapora bağlı kuyruk maddesine) `Sahip kararı <ID>-K<n>: <seçim> (<zaman>)` yazılır. Madde `karar-bekliyor`/`takıldı` ise: `ok` ya da harf → `düzeltmede` (takıldı ise) / `hazır` (karar-bekliyor ise ve kararla netleştiyse; netleşmediyse yalnız not, durum aynı); `hayir` → `bitti: sahip reddetti`.
+- `karar:petmatch:<ID>:ok|hayir` (K'siz) → dağıtım dosyasındaki `karar: <id> ok|hayır` kuralıyla aynı.
+- Uygulanan satırlar günlüğe `## Uygulanan butonlar` altına yazılır; günlükte olan satır ikinci kez uygulanmaz.
 
 ## Her tetiklemenin ön kontrolleri (dispatcher, iş seçmeden önce)
 
@@ -60,7 +88,7 @@ Repo tavanı `repos.yaml`'da **L3**. **Seviye artışı (sahip):** A17 + A18 sah
 ## Döngünün evi ve worktree'ler
 
 - **merkez:** `~/otonom/petmatch/merkez/`, branch `otonom/merkez` (upstream `origin/otonom/merkez`; `main`'i izlemez). Dispatcher kuyruk ve günlük değişikliklerini **yalnız** buraya commit + push eder (`git push origin otonom/merkez`).
-- **is (tek iş worktree'si, ANAYASA §7):** `~/otonom/petmatch/is/` yeniden kullanılır: `git fetch origin && git switch -c otonom/<hat>/<id>-<kisa-ad> origin/main` (branch `--no-track` ise de olur; push her zaman `-u origin otonom/...`). İş bitince temiz bırakılır (`git status` boş; geçici SQL dosyası silinmiş). Yeni worktree açılmaz.
+- **is (tek iş worktree'si, ANAYASA §7):** `~/otonom/petmatch/is/` yeniden kullanılır. L2 (app-test): `git fetch origin && git switch -c otonom/<hat>/<id>-<kisa-ad> origin/main` (branch `--no-track` ise de olur; push her zaman `-u origin otonom/...`). L1: detached `origin/main`, branch/push yok ("L1 raporları"). İş bitince temiz bırakılır (`git status` boş; geçici SQL dosyası silinmiş). Yeni worktree açılmaz.
 - `node_modules` kurulumda iki worktree'de de `npm ci` ile kuruldu (2026-10-04). Eksikse işçi `is`'te bir kez `npm ci` koşar (`npm install`/`npm i` yasak). `npm ci` ağ ister; ağ yoksa `takıldı: npm ci`.
 - Ana branch **`main`**. Branch koruması yok (A22 sahipte) → main'e push = doğrudan prod kod tabanı; asla.
 
@@ -140,5 +168,5 @@ CI'ın yakaladıklarını (lint, typecheck, test, test:db, deno check) tekrar ya
 - `vi.mock` kalıbı: mock'lar dosya başında, yorumlu; gerçek `supabase.client` ya da ağ çağrısı yok; `vi.restoreAllMocks`/`vi.resetAllMocks` her testte.
 - Test mevcut davranışı mı kilitliyor yoksa "olması gereken"i mi? (Kırmızı test kuralı, `hatlar/app-test.md`.)
 - Gizli bağ testte yorumla belirtilmiş mi (ör. T01 insert kolon listesi ↔ `20260929120000:60-61` kolon grant'ı)?
-- L1 PR'larında (guvenlik-test, denetim) diff yalnız `docs/otonom/raporlar/` + kuyruk satırı mı; rapor public-repo yazım kuralına uyuyor mu (proje ref'i, e-posta, token yok)?
+- L1 raporu (guvenlik-test, denetim; PR yok): merkez'deki rapor dosyası public-repo yazım kuralına uyuyor mu (proje ref'i, URL, e-posta, token/anahtar yok)? Sonuç günlüğe tek satır.
 - Kullanıcıya görünen metinler Türkçe; test beklentisi metni birebir kopyalıyorsa kabul (sözleşme budur).

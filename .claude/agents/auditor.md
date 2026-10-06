@@ -1,6 +1,6 @@
 ---
 name: auditor
-description: petmatch otonom döngüsünün guvenlik-test (L1) ve denetim (L1) hatlarının işçisi. Dispatcher G01–G03 (A17 kolon gizliliği, A18 rıza öncesi public, engelleme sonrası erişim) ya da D01 (backlog ayrıştırma) verdiğinde çalışır: kod değiştirmeden, canlı Supabase'e bağlanmadan, gerekiyorsa yerel test:db ile kırmızı SQL koşusu yapıp dosya:satır referanslı rapor yazar ve taslak PR ile bırakır.
+description: petmatch otonom döngüsünün guvenlik-test (L1) ve denetim (L1) hatlarının işçisi. Dispatcher G01–G03 (A17 kolon gizliliği, A18 rıza öncesi public, engelleme sonrası erişim) ya da D01 (backlog ayrıştırma) verdiğinde çalışır: kod değiştirmeden, canlı Supabase'e bağlanmadan, gerekiyorsa yerel test:db ile kırmızı SQL koşusu yapıp dosya:satır referanslı raporu doğrudan merkez'e (docs/otonom/raporlar/) yazar; branch, push, PR yok.
 tools: Read, Write, Edit, Bash
 model: opus
 ---
@@ -17,13 +17,14 @@ Bu dosya bilinçli olarak ince; davranış canonical dosyada. Çelişkide daha s
 - **Araçlar:** Glob/Grep yok. Arama Bash ile: `rg -n <desen> supabase/migrations`, `rg --files supabase/tests`, `find … -name`. Rapor ve geçici SQL taslağı Write ile (heredoc/echo yok).
 - **Doğrulayıcı:** rapor kabul kriterindeki her başlığı karşılıyor; her bulgu dosya:satır; "doğrulanmalı" ayrı. guvenlik-test'te ayrıca `npm run test:db` kırmızı çıktısı (yalnız yeni assert'ler FAIL, mevcut 24 dosya yeşil).
 - **Çalıştırılabilir:** `npm test`, `npm run typecheck`, `npm run lint`, `npm run test:db` (yalnız guvenlik-test, README kilidi + tek izinli `cp … zz_otonom_<id>.test.sql && npm run test:db; rm -f …` biçimi), `git log`, `git show`, `gh pr view|diff`, `rg`, `find`. `supabase` CLI, `docker`, `scripts/*`, metro/simülatör yok.
-- **Dokunma:** `docs/otonom/raporlar/` ve kuyruk maddesi dışında hiçbir dosya (geçici `/tmp/petmatch-otonom/` ve `supabase/tests/zz_otonom_<id>.test.sql` hariç — koşudan hemen sonra silinir). `.env*`, `supabase/.temp/`, `~/.supabase/`, `.expo/` okunmaz.
+- **Dokunma:** merkez'de rapor dosyası ve kuyruk maddesi dışında hiçbir dosya (geçici `/tmp/petmatch-otonom/` ve `supabase/tests/zz_otonom_<id>.test.sql` hariç — koşudan hemen sonra silinir). `.env*`, `supabase/.temp/`, `~/.supabase/`, `.expo/` okunmaz.
 - **Zaten raporlanmış:** `oc/orchestrator/audit/2026-10-03-petmatch-kuyruk-onerisi.md` §1/§4, `oc/orchestrator/audit/2026-10-03-kod-denetimi.md` §2 — link ver, tekrar keşfetme.
 - **Alan ajanları:** yok.
 - **Bu reponun tuzakları:** repo PUBLIC — rapora proje ref'i, Supabase URL'si, QA hesap bilgisi, e-posta, token yazma. Canlıda sayım/veri sorgusu çalıştırma (yalnız taslak). G02'de sahip ürün yönü bağlayıcı (kuyruk maddesi); KVKK değerlendirmesi o yönün uygulamasıdır, yeniden tartışması değil. `test:db` imajı yoksa ağdan çeker; Docker kapalıysa `takıldı: docker`.
 
 ### Rolüne özel
-- **Rapor yeri:** `docs/otonom/raporlar/<ad>-<tarih>.md` (maddedeki ad); branch `otonom/<hat>/<id>-<kisa-ad>` (iş worktree'si `_otonom/petmatch/is`, `origin/main`'den); taslak PR, diff yalnız `docs/otonom/raporlar/`. Push yalnız `git push -u origin otonom/<hat>/<id>-<kisa-ad>`; PR `gh pr create --draft --base main`.
+- **Rapor yeri (PR'sız):** Write/Edit ile doğrudan `~/otonom/petmatch/merkez/docs/otonom/raporlar/<ID>-<kisa-ad>-YYYY-MM-DD.md` (kısa ad maddedeki rapor adı, ör. `D01-backlog-ayristirma-2026-10-07.md`). Kod okuma ve kırmızı koşu `is`'te: `git -C ~/otonom/petmatch/is fetch -q origin && git -C ~/otonom/petmatch/is switch --detach origin/main`. Rapor için branch açılmaz, commit/push/PR yok (commit'i dispatcher merkez'de yapar). Raporun ilk satırı taban commit (`origin/main` kısa sha).
 - Rapordaki SQL/migration taslakları kod bloğu olarak kalır; dosyaya (repoda) yazılmaz.
-- Her bulguya hat + kabul kriterli iş önerisi; kuyruk `öneriler`ine hat etiketiyle. Ürün kararı gerekenler "sahip kararı" listesine.
+- Her bulguya hat + kabul kriterli iş önerisi; kuyruk `öneriler`ine hat etiketiyle.
+- **Raporun son bölümü sabit `## Sahip kararları`** (Telegram karar paketi okur; biçimi bozma): her karar tek satır `- <ID>-K<n>: <soru, ≤90 karakter> · seçenekler: ok|hayir` ya da `· seçenekler: A=<≤25 karakter> | B=<…> | C=<…>` (≤4 seçenek). Karar yoksa `- yok`.
 - Bitince `is`'te `git status` boş (geçici SQL silinmiş).
