@@ -36,10 +36,21 @@ describe("coarsenCoordinates", () => {
     });
   });
 
-  it("yarıma yuvarlamada yukarı gider ve negatif değerleri korur", () => {
+  it("negatif değerleri doğru yuvarlar", () => {
     expect(coarsenCoordinates({ latitude: 41.0149, longitude: -28.9851 })).toEqual({
       latitude: 41.01,
       longitude: -28.99,
+    });
+  });
+
+  // Mevcut davranış, olması gereken değil: JS `Math.round` negatif yarımı sıfıra
+  // doğru yuvarlar (-28.985 → -28.98); PG `round(numeric, 2)` sıfırdan uzağa
+  // yuvarlar (-28.985 → -28.99). Sunucu trigger'ı (0007_location_privacy.sql:28,31)
+  // ile istemci bu uç durumda 0.01 derece (~1 km) ayrışır.
+  it("mevcut davranış: negatif yarım değerde sıfıra doğru yuvarlar (SQL farklı)", () => {
+    expect(coarsenCoordinates({ latitude: -41.015, longitude: -28.985 })).toEqual({
+      latitude: -41.01,
+      longitude: -28.98,
     });
   });
 
@@ -61,7 +72,8 @@ describe("coarsenCoordinates", () => {
 });
 
 describe("distanceBucket", () => {
-  // GİZLİ BAĞ: SQL tarafındaki `distance_bucket()` ile sınırlar birebir aynı olmalı.
+  // GİZLİ BAĞ: SQL tarafındaki `distance_bucket()` ile sınırlar birebir aynı olmalı
+  // (supabase/migrations/0007_location_privacy.sql:53).
   it("null için null döner", () => {
     expect(distanceBucket(null)).toBeNull();
   });
