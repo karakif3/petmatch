@@ -39,7 +39,7 @@ Ortak: çıktı `docs/otonom/raporlar/` altında rapor + `otonom/guvenlik-test/<
   Test kalıbı: `core/domain/*.test.ts` (vitest) + README `vi.mock` · Yüklenebilirlik: ✓ (mock'la, 2026-10-03)
   Veri: yok · Arayüz: hayır · Boy: S · Risk: düşük (yalnız test)
 
-- **T02 · app-test · konum ve yaş saf modülleri** · durum: **hazır** (sahip onayı 2026-10-04)
+- **T02 · app-test · konum ve yaş saf modülleri** · durum: **yapılıyor** (2026-10-06 11:30; branch `otonom/app-test/T02-konum-yas`) (sahip onayı 2026-10-04)
   Kabul: `core/domain/distance.test.ts`, `core/domain/age.test.ts` (yeni) yeşil. Kilitler: `coarsenCoordinates` 2 basamak varsayılanı sunucu yuvarlamasıyla aynı (`supabase/migrations/0007_location_privacy.sql:28,31` `round(…,2)`) — gizli bağ yorumla; `distanceKm` simetrik, aynı nokta 0, bilinen iki İstanbul noktası ±0.1 km; `distanceBucket` sınırları (null, 0.99, 1, 3, 25, 25.01); `ageInYears`/`formatAge` doğum günü öncesi/sonrası, null, gelecekteki tarih (`now` parametresi sabit).
   Kapsam: okunur `core/domain/distance.ts` (55), `core/domain/age.ts` (25) · yazılır iki `.test.ts` · bağlam `core/api/discovery.ts`, `app/pet/[petId].tsx`, `components/discovery-card.tsx`
   Test kalıbı: `core/domain/pet-age.test.ts` · Yüklenebilirlik: ✓ (saf)
