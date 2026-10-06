@@ -48,9 +48,15 @@ X='(^|[;&|(]|\$\()[[:space:]]*\./scripts/'
 # 9. Edge deploy
 [[ "$cmd" =~ ${C}(deno[[:space:]]+deploy|deployctl)${E} ]] && block "edge deploy"
 # 10. supabase/{migrations,functions,tests} içine Bash ile yazma — tek istisna supabase/tests/zz_otonom_* (README kırmızı koşu)
-W="${S}(cp|mv|tee|ln|install|truncate|rm|touch|dd|patch)${E}|${S}(sed|perl)[[:space:]]+-[a-zA-Z]*i|[>]"
-if [[ "$cmd" =~ supabase/(migrations|functions|tests)/ && "$cmd" =~ $W ]]; then
-  rest="$(python3 -c 'import re,sys; print(re.sub(r"supabase/tests/zz_otonom_[A-Za-z0-9_-]+\.test\.sql","",sys.argv[1]))' "$cmd")"
+W="${S}(cp|mv|tee|ln|install|truncate|rm|touch|dd|patch)${E}|${S}(sed|perl)[[:space:]]+-[a-zA-Z]*i|(^|[^0-9=!<>-])[0-9]*>{1,2}[[:space:]]*[^=&>[:space:][:digit:]]"
+# -m/--body/--title metinleri ayıklanır: PR yorumunda yol anmak yazma değildir (2026-10-05 yanlış pozitifi)
+body_free="$(python3 -c '
+import re,sys
+c=sys.argv[1]
+c=re.sub(r"(?:^|\s)(?:-m|-t|-b|--title|--body|--message)(?:\s+|=)(\"(?:[^\"\\]|\\.)*\"|'"'"'[^'"'"']*'"'"')","",c)
+print(c)' "$cmd")"
+if [[ "$body_free" =~ supabase/(migrations|functions|tests)/ && "$body_free" =~ $W ]]; then
+  rest="$(python3 -c 'import re,sys; print(re.sub(r"supabase/tests/zz_otonom_[A-Za-z0-9_-]+\.test\.sql","",sys.argv[1]))' "$body_free")"
   [[ "$rest" =~ supabase/(migrations|functions|tests)/ ]] && block "supabase/ şema/fonksiyon/test dosyasına yazma (yalnız zz_otonom_* geçici test)"
 fi
 # Ek: kabuk içinden komut (guard aşma yolu) ve bağımlılık ekleme
