@@ -47,7 +47,7 @@ Ortak: çıktı merkez'de `docs/otonom/raporlar/<ID>-<kisa-ad>-<tarih>.md` (PR y
 
 ## denetim (L1)
 
-- **D01 · denetim · backlog → kuyruk ayrıştırma** · durum: **yapılıyor** (2026-10-07 11:30; auditor, L1 rapor PR'sız; PR #5 merge edildi → girdi notu gerekmez) (sahip onayı 2026-10-04)
+- **D01 · denetim · backlog → kuyruk ayrıştırma** · durum: **bitti** (2026-10-07 11:30; rapor https://github.com/karakif3/petmatch/blob/otonom/merkez/docs/otonom/raporlar/D01-backlog-ayristirma-2026-10-07.md, taban `a65d8e9`; §2'nin 10 bulgusu da açık; 8 bayat işaret, ~50 açık, 12 bilinmiyor; 4 aday: T03, T04, G04, D02) · karar-bekliyor: D01-K1, D01-K2, D01-K3, D01-K4, D01-K5, D01-K6 (sahip onayı 2026-10-04)
   Kabul: `docs/otonom/raporlar/backlog-ayristirma-<tarih>.md`: `docs/backlog.md` (başlık 08-08; `main`'de 748 satır, PR #5 dalında 756) ve `docs/experience-roadmap.md`'deki her `[ ]` / açık P0-P1 maddesi için açık / kapanmış / bilinmiyor + dosya:satır kanıtı; "Güncel durum" bölümünün bayatlığı; kod denetimi §2'deki 10 bulgunun bugünkü durumu (`oc/orchestrator/audit/2026-10-03-petmatch-kuyruk-onerisi.md` §1 doğrulamaları başlangıç); sonda hat + kabul kriterli aday listesi ve "sahip kararı" listesi. Kanıtsız madde önerilmez.
   **Girdi notu:** girdi `origin/main`'deki backlog. PR #5 (`docs/deploy-status-2026-10-03`, backlog güncellemesi) merge edilmeden alınırsa raporun başına "PR #5 merge edilmemiş; 2026-10-03 deploy durumu eksik olabilir" notu düşülür (PR #5 diff'i `gh pr diff 5` ile okunabilir, yazılmaz).
   Kapsam: okuma `docs/*.md`, ilgili `core/`, `app/`, `supabase/` · yazma yalnız rapor + bu madde
@@ -71,4 +71,5 @@ Ortak: çıktı merkez'de `docs/otonom/raporlar/<ID>-<kisa-ad>-<tarih>.md` (PR y
 - `app-kucuk-is` (2. faz, T02'den): `coarsenCoordinates` negatif yarım değerde JS `Math.round` (-28.98) ↔ PG `round(numeric,2)` (-28.99) farkı (`0007_location_privacy.sql:28,31`); TR'de pratik etkisi düşük.
 - `denetim`: `types/database.ts` (08-28) ↔ migration'lar tip drift raporu (çevrimdışı karşılaştırma; `gen:types` L0).
 - `edge-test` (2. faz): `send-notification` `.limit(500)` + `Promise.all` alıcı sınırı (backlog:384).
+- D01 adayları (2026-10-07; ayrıntı ve kabul kriterleri raporun §6'sında): `app-test` T03 `profile.ts` hata yutma + rıza sırası (D01-K4) · `app-test` T04 `safety.ts` sözleşmesi, yüklenebilirlik tech-lead denemeli (D01-K4) · `guvenlik-test` G04 eşleşme dışı/pasif pet erişimi kırmızı testi (D01-K2, D01-K3) · `denetim` D02 i18n sabit metin envanteri (D01-K6).
 - **Sahip / L0:** A17/A18 düzeltmesi, `repos.yaml` kuyruk yolu (`docs/otonom/kuyruk.md`) ve SQL test sayısı (24) düzeltmesi (OC tarafı).
