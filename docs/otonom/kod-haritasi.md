@@ -30,6 +30,7 @@
 | `core/domain/*` | ✓ | doğrudan | `legal.ts` L0 (okunur, test edilebilir ama sürüm sabiti değişmez) |
 | `core/api/conversations.ts` | ✓ (mock'la) | `vi.mock("./supabase.client")`, `./observability`, `./notifications` | T01 |
 | `core/api/profile.ts` | ✓ (mock'la) | + `vi.mock("./legal")` | owner_photos hata yutma önerisi |
+| `core/api/likes.ts`, `discovery.ts`, `safety.ts` | ✓ (mock'la, 2026-10-07) | `./supabase.client`, `./observability`, `./notifications` (+ `./legal` zararsız) | `likes.ts` → `discovery.ts` import eder; `config.ts` saf. T05/T06; T04 adayı (D01-K4) için de geçerli |
 | Diğer `core/api/*` | denenmedi | aynı dört mock ile dene; yüklenmezse `takıldı: kapsam eksik → tech-lead` | tech-lead madde hazırlarken dener |
 | `core/api/supabase.client.ts`, `notifications.ts` | ✗ doğrudan | `react-native` parse hatası | Mock'lanır, test edilmez |
 | `app/`, `components/`, `stores/` | ✗ | RN render altyapısı yok | Test edilmez (altyapı `package.json` ister → L0) |
@@ -43,6 +44,8 @@
 | Engelleme | `blocks_own` `for all` (`0006:230-232`); `can_access_conversation_realtime` (`0031:7-35`) yalnız katılımcılık | G03 |
 | Mesaj insert | `conversations.ts:237-262` `sendMessage`; kolon grant'ı `20260929120000:60-61` (`id` dahil izinli, istemci göndermiyor) | T01; idempotency önerisi |
 | Konum kabalaştırma | `core/domain/distance.ts:29` `coarsenCoordinates(…, 2)` ↔ `0007_location_privacy.sql:28,31` `round(…,2)` | T02; biri değişirse istemci/sunucu mesafe kovası ayrışır |
+| Beğeniler ("kim beğendi") | `pending_likes` SECURITY DEFINER gerçek kartları döner; anonim/bulanık görünüm yalnız istemcide (`0042_likes_tab.sql:5-8`); son tanım `0068:317`. `likes.ts` sahip özetini `discovery.ts` `ownerSummary`/`signOwnerAvatars` ile paylaşır | Ödeme duvarı sahip kararı; T05 mevcut davranışı kilitler |
+| Keşif yazma RPC'leri | `swipe_pet` ve `update_my_discovery_filters` son tanımı `0064_pet_gender_filter.sql:335,461`; `types/database.ts:1519` `update_my_discovery_filters` union tip (drift) | T06, D03 |
 | Hata yutma | `profile.ts:216-219,374-377` `"owner_photos"` geçen her hata | `öneriler` (app-kucuk-is) |
 | Bildirim | `send-notification` service role (`:403,434`), `.limit(500)` + `Promise.all` | A17 düzeltmesinden etkilenmez (G01 doğrular); alıcı sınırı önerisi |
 | `test:db` | `scripts/test-db.mjs`: sabit container `petmatch_test_db`, `docker rm -f` önce/sonra; imaj `supabase/postgres:17.6.1.111` | Tek kilit (README) |
