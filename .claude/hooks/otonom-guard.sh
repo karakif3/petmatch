@@ -5,6 +5,23 @@
 set -euo pipefail
 cmd="$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("command",""))')"
 block(){ echo "otonom-guard: engellendi — $1. Bkz. docs/otonom/README.md (L0)." >&2; exit 2; }
+# Yazma hedefleri komut ayrıştırılarak çıkarılır (yazma_hedefleri.py, 2026-10-07): tırnak içi `>`/`<`, `2>/dev/null`,
+# `2>&1`, `sed -n`/`sed 's…'` okuması yazma değildir. Ayrıştırıcı emin olamazsa `?` → sıkı: komutta korunan yol geçiyorsa engelle.
+yazma_kontrol(){ # $1 korunan yol regex'i · $2 mesaj · $3 muaf hedef regex'i (isteğe bağlı)
+  local h c
+  while IFS= read -r h; do
+    [[ -z "$h" ]] && continue
+    if [[ "$h" == "?" ]]; then
+      c="$cmd"
+      if [[ -n "${3:-}" ]]; then c="$(python3 -c 'import re,sys; print(re.sub(sys.argv[2],"",sys.argv[1]))' "$cmd" "$3")"; fi
+      if [[ "$c" =~ $1 ]]; then block "$2"; fi
+    else
+      if [[ -n "${3:-}" && "$h" =~ $3 ]]; then continue; fi
+      if [[ "$h" =~ $1 ]]; then block "$2"; fi
+    fi
+  done < <(python3 "$(dirname "$0")/yazma_hedefleri.py" "$cmd" 2>/dev/null || echo "?")
+  return 0  # set -e: eşleşmeyen son test hook'u exit 1 ile düşürmesin (sonraki kurallar atlanırdı)
+}
 S='(^|[;&|(`[:space:]])'   # komut başı / ayırıcı
 E='([[:space:]]|$)'
 # Komut konumu: satır başı ya da ayırıcıdan sonra; isteğe bağlı sarmalayıcılar (env/command/exec/xargs/time/nohup/sudo)
@@ -39,7 +56,9 @@ X='(^|[;&|(]|\$\()[[:space:]]*\./scripts/'
 [[ "$cmd" =~ ${S}gh[[:space:]]+(secret|variable)${E} ]] && block "gh secret/variable"
 [[ "$cmd" =~ ${S}gh[[:space:]]+api[[:space:]].*(-X|--method)[[:space:]]*(PUT|POST|PATCH|DELETE) || "$cmd" =~ ${S}gh[[:space:]]+api[[:space:]].*[[:space:]](-f|-F|--field|--raw-field|--input)${E} ]] && block "gh api yazma isteği"
 # 7. .env erişimi (process.env gibi kod ifadeleri hariç) ve canlı adresler
-[[ "$cmd" =~ (^|[^a-zA-Z0-9_])\.env ]] && block ".env erişimi"
+# rg/grep dışlama desenleri (`-g '!.env*'`, `--exclude=.env*`) .env'yi OKUMAZ, hariç tutar → kontrol dışı (2026-10-07)
+envsiz="$(python3 -c 'import re,sys; print(re.sub(r"(?:-g|--glob|--iglob)(?:\s+|=)([\x27\"]?)!\S*?\1(?=\s|$)|--exclude(?:-dir)?=\S+", "", sys.argv[1]))' "$cmd")"
+[[ "$envsiz" =~ (^|[^a-zA-Z0-9_])\.env ]] && block ".env erişimi"
 [[ "$cmd" == *supabase.co* || "$cmd" == *api.supabase.com* || "$cmd" == *expo.dev* || "$cmd" == *exp.host* ]] && block "canlı servis adresi"
 [[ "$cmd" == *supabase/.temp* && ! "$cmd" =~ ^[[:space:]]*find[[:space:]] ]] && block "supabase/.temp (proje ref'i)"
 [[ "$cmd" == *"/.supabase"* ]] && block "~/.supabase (CLI oturumu)"
@@ -48,17 +67,7 @@ X='(^|[;&|(]|\$\()[[:space:]]*\./scripts/'
 # 9. Edge deploy
 [[ "$cmd" =~ ${C}(deno[[:space:]]+deploy|deployctl)${E} ]] && block "edge deploy"
 # 10. supabase/{migrations,functions,tests} içine Bash ile yazma — tek istisna supabase/tests/zz_otonom_* (README kırmızı koşu)
-W="${S}(cp|mv|tee|ln|install|truncate|rm|touch|dd|patch)${E}|${S}(sed|perl)[[:space:]]+-[a-zA-Z]*i|(^|[^0-9=!<>-])[0-9]*>{1,2}[[:space:]]*[^=&>[:space:][:digit:]]"
-# -m/--body/--title metinleri ayıklanır: PR yorumunda yol anmak yazma değildir (2026-10-05 yanlış pozitifi)
-body_free="$(python3 -c '
-import re,sys
-c=sys.argv[1]
-c=re.sub(r"(?:^|\s)(?:-m|-t|-b|--title|--body|--message)(?:\s+|=)(\"(?:[^\"\\]|\\.)*\"|'"'"'[^'"'"']*'"'"')","",c)
-print(c)' "$cmd")"
-if [[ "$body_free" =~ supabase/(migrations|functions|tests)/ && "$body_free" =~ $W ]]; then
-  rest="$(python3 -c 'import re,sys; print(re.sub(r"supabase/tests/zz_otonom_[A-Za-z0-9_-]+\.test\.sql","",sys.argv[1]))' "$body_free")"
-  [[ "$rest" =~ supabase/(migrations|functions|tests)/ ]] && block "supabase/ şema/fonksiyon/test dosyasına yazma (yalnız zz_otonom_* geçici test)"
-fi
+yazma_kontrol 'supabase/(migrations|functions|tests)(/|[[:space:]]|$)' "supabase/ şema/fonksiyon/test dosyasına yazma (yalnız zz_otonom_* geçici test)" 'supabase/tests/zz_otonom_[A-Za-z0-9_-]+\.test\.sql'
 # Ek: kabuk içinden komut (guard aşma yolu) ve bağımlılık ekleme
 [[ "$cmd" =~ ${C}(bash|sh|zsh)[[:space:]]+-[a-zA-Z]*c || "$cmd" =~ ${C}eval${E} ]] && block "bash -c / eval (komutu doğrudan yaz)"
 [[ "$cmd" =~ ${S}npm[[:space:]]+(install|i|add)${E} ]] && block "bağımlılık ekleme (yalnız npm ci)"
