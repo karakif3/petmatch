@@ -7,6 +7,11 @@ begin;
 
 \echo '  keep-alive: token kapısı, yazma, sabit boyut, erişim'
 
+-- Yardımcılar yalnız authenticated'a açık; bu dosya anon olarak çağırıyor.
+-- Transaction sonunda geri alınır.
+grant usage on schema tests to anon;
+grant execute on all functions in schema tests to anon;
+
 update ops_settings
 set value = encode(sha256(convert_to('test-token', 'UTF8')), 'hex')
 where key = 'keepalive_token_sha256';
