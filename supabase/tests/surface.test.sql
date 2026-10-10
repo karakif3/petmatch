@@ -30,11 +30,14 @@ select tests.assert(
 );
 
 -- Uygulama oturumsuz hiçbir şey yapmıyor; anon'un fonksiyon yüzeyi olmamalı.
+-- Tek istisna keep_alive: dış zamanlayıcı için, token'sız hiçbir şey yapmaz
+-- (ops-keep-alive.test.sql). Listeye ekleme yapmadan önce iki kez düşün.
 select tests.assert(
   (select count(*) from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')) = 0,
-  'anon hiçbir public fonksiyonu çalıştıramıyor'
+   where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
+     and p.proname not in ('keep_alive')) = 0,
+  'anon hiçbir public fonksiyonu çalıştıramıyor (keep_alive hariç)'
 );
 
 -- SECURITY DEFINER + değişken search_path = klasik yetki yükseltme yolu.
