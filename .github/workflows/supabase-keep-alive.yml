@@ -1,26 +1,47 @@
 name: Supabase keep-alive
 
-# Ücretsiz planda Supabase projesi ~7 gün istek almazsa duraklatılıyor
-# (2026-10 başında petmatch bu yüzden INACTIVE'e düştü ve uygulama hiç
-# açılmadı). Bu iş iki günde bir GERÇEK bir veritabanı sorgusu atar.
+# Ücretsiz planda Supabase, "yeterli kullanıcı veritabanı aktivitesi" görmeyen
+# projeyi 7 günde duraklatıyor; dokümana göre "genelde her gün birkaç kullanıcı
+# isteği" yetiyor (supabase.com/docs/guides/platform/free-project-pausing).
+#
+# Geçmiş: 2026-10-03'te iki günde bir anon OKUMA kuruldu; ping'ler başarılı
+# olduğu halde 2026-10-10'da duraklatma uyarısı geldi. Artık günde 3 kez
+# gerçek bir YAZMA (keep_alive RPC: INSERT + DELETE) ve bir okuma yapılıyor.
 #
 # Kalıcı çözüm DEĞİL: Pro plan duraklatmayı tamamen kaldırır. Ayrıca
-# GitHub, 60 gün commit almayan public repolarda zamanlanmış işleri
-# kapatır — o durumda Actions sekmesinden yeniden etkinleştirilmeli.
+# GitHub, 60 gün commit almayan repolarda zamanlanmış işleri kapatır —
+# o durumda Actions sekmesinden yeniden etkinleştirilmeli.
 #
-# Gereken secret'lar: SUPABASE_URL, SUPABASE_ANON_KEY (anon key istemci
-# bundle'ında zaten açık; gizli değil, yine de repoda düz yazılmıyor).
+# Gereken secret'lar: SUPABASE_URL, SUPABASE_ANON_KEY,
+# SUPABASE_KEEPALIVE_TOKEN (özeti ops_settings'te; değiştirirsen ikisini birden).
 
 on:
   schedule:
-    - cron: "17 6 */2 * *"
+    - cron: "23 2,10,18 * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Veritabanına sorgu at
+      - name: Kalpatışı yaz
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          KEEPALIVE_TOKEN: ${{ secrets.SUPABASE_KEEPALIVE_TOKEN }}
+        run: |
+          body=$(jq -n --arg t "$KEEPALIVE_TOKEN" '{p_token: $t}')
+          response=$(curl -s -w "\n%{http_code}" --retry 3 --retry-delay 20 \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/keep_alive" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$body")
+          status=$(echo "$response" | tail -n1)
+          echo "RPC yanıtı: $status $(echo "$response" | sed '$d')"
+          # Duraklamışsa ya da token uyuşmazsa iş kırmızı düşer → GitHub e-posta atar.
+          test "$status" = "200"
+
+      - name: Okuma isteği
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -29,5 +50,4 @@ jobs:
             "$SUPABASE_URL/rest/v1/regions?select=slug&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY")
           echo "REST yanıtı: $status"
-          # Duraklamışsa iş kırmızı düşer → GitHub e-posta ile haber verir.
           test "$status" = "200"
