@@ -460,6 +460,120 @@ deste'nin üstüne binen gradyanlı, gölgeli yüzen düğmelere geçti — canl
 ekran görüntüsüyle doğrulanamadı (simülatörün klavye eşlemesi `@`/`.`
 karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
 
+### 2026-10-24 — Yayın öncesi değer/kalite incelemesi: planda OLMAYANLAR
+
+Kod ve on doküman karşılıklı tarandı; aşağıdakiler kodda eksik **ve** hiçbir
+planda yoktu. Sıra iş değeri × kullanıcı etkisi. Zaten planda olanlar buraya
+tekrar yazılmadı (sunucu taraflı push L386, Sentry L384, buluşma bildirimi ve
+hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
+[`chat-quality.md`](chat-quality.md) P2).
+
+**Yayından önce — ürünü sessizce bozanlar**
+
+- [ ] **Push izni hiç istenmiyor (en kritik).** Açılıştaki
+      `syncPushRegistration` yalnız izin zaten verilmişse kaydediyor
+      (`core/api/notifications.ts:125-131`). İzin isteyen tek iki yer:
+      Profil'de anahtarı değiştirip kaydetmek (`profile.tsx:293`) ve boş
+      destede "Yeni pet gelince bildir" (`index.tsx:427`). Anahtarlar sunucudan
+      AÇIK geldiği için tipik kullanıcı hiç sorulmuyor → eşleşme ve mesaj
+      push'ı fiilen kimseye gitmiyor; iki cihaz testi bunu "geçti" sayabilir
+      çünkü test hesabı anahtara dokunmuştur. Yapılacak: onboarding'in son
+      adımında ya da ilk eşleşme kutlamasında, gerekçeli bir ön ekran
+      (pre-prompt) sonrası sistem izni; red edilirse Profil'de ayarlara
+      götüren satır. Ölçüm: `push_permission_result` olayı.
+- [ ] **Bekleme listesi vaadi tutulmuyor.** "Bölgem açılınca haber ver"
+      kaydediliyor (`0053`, `app/waitlist.tsx`) ama hiçbir kod o bildirimi
+      göndermiyor; `send-notification` event türlerinde yok. Bölge `pilot`'a
+      çekilince e-posta + push atan tek bir yol lazım (Edge Function'a
+      `region_opened` türü, tetik: `regions.status` güncellemesi).
+      Pilot dışı her kayıt şu an kayıp kullanıcı.
+- [ ] **Fotoğraf yükleme: boyutlandırma yok.** Yalnız `quality: 0.85`
+      (`onboarding.tsx:346`, `profile/pet.tsx`, `profile/owner.tsx`);
+      12 MB'a kadar tam çözünürlük, sırayla yükleniyor. Onboarding'in en
+      yavaş adımı ve storage/egress maliyeti. `expo-image-manipulator` ile
+      uzun kenar 1600 px + JPEG 0.8, paralel yükleme. Ayrıca onboarding
+      sabit yola `upsert` yapıyor (`core/api/onboarding.ts:139`): aynı URL
+      → CDN/`expo-image` eski fotoğrafı gösterebilir; dosya adına zaman
+      damgası.
+- [ ] **E-posta doğrulama bağlantısı masaüstünde ölüyor.** Kayıt yalnız
+      e-posta+şifre, doğrulama `petmatch://` şemasıyla; universal link
+      (`associatedDomains`) ve Android `intentFilters` yok (`app.json`).
+      Kullanıcı e-postayı bilgisayarda açarsa kayıt tamamlanmaz. Yayın
+      günü `Confirm email` açılınca (L429) bu kayıt hunisinin ilk kırığı
+      olur. Çözüm: `https://…/auth/callback` universal link + web'de
+      "uygulamada aç" sayfası; alternatif OTP kodu ile doğrulama.
+- [ ] **Mağaza inceleme riskleri (ucuz, bir oturum).** Kamera izin metni
+      yalnız doğrulamadan söz ediyor ama kamera pet/avatar fotoğrafında da
+      kullanılıyor (`app.json:24,64`) — Apple metin/kullanım uyumsuzluğuna
+      ret verebiliyor. `ios.privacyManifests` yok: toplanan veri türleri
+      (fotoğraf, konum, mesaj) app.json'da beyan edilmeli; `ios/` git
+      dışında olduğu için üretilen PrivacyInfo yeterli değil. Android
+      bildirim ikonu yok (varsayılan beyaz kare).
+- [ ] **OTA güncelleme yolu yok.** `expo-updates` ve `runtimeVersion` yok;
+      yayın sonrası her JS düzeltmesi mağaza incelemesi bekler (1–3 gün).
+      İlk haftanın hataları için en ucuz sigorta. SDK 57 geçişiyle (L396)
+      birlikte düşünülebilir ama ondan önce de kurulabilir.
+
+**Yayından önce — "skor"u ölçülebilir kılanlar**
+
+- [ ] **Huni analitiği kayıt tarafında kör.** `product_events` kayıt,
+      e-posta onayı, onboarding adımları (1–4), bekleme listesi, uygulama
+      açılışı, push izni sonucu, bildirime dokunma olaylarını içermiyor
+      (`core/api/observability.ts:5-32`); `message_sent`'in özelliği yok,
+      ilk mesaj/yanıt oranı ayrılamıyor. Eklenecekler:
+      `sign_up_started`, `email_confirmed`, `onboarding_step_completed{step}`,
+      `waitlist_joined`, `app_opened`, `push_permission_result{status}`,
+      `notification_opened{type}`, `message_sent{is_first, is_reply}`,
+      `block`, `unmatch`, `filter_applied`, `empty_deck_seen`. Bunlar
+      olmadan [`launch.md`](launch.md) yoğunluk ölçümü ve P0-6 kararları
+      hisle verilir. Olay adı kısıtı (`0051`) genişletilmeli.
+
+**Yayın sonrası ilk tur — değeri belirgin, riski düşük**
+
+- [ ] **Mesaj push metni kişisiz.** "PetMatch'te yeni bir mesajın var."
+      (`send-notification/index.ts:571-572`); gönderen pet adı + ilk 60
+      karakter (gizlilik tercihi gelene dek adsız seçenek) geri dönüş
+      oranını belirgin artırır. Uygulama rozeti hiç set edilmiyor
+      (`shouldSetBadge: true` ama `badge` gönderilmiyor, `setBadgeCount`
+      çağrılmıyor): okunmamış sayısı `list_my_conversations`'tan.
+- [ ] **Kaydırmayı geri al.** Yanlışlıkla "geç" geri alınamıyor; deste
+      kaydırmasında en çok şikâyet edilen eksik. Son 1 kararı, yalnız
+      `pass` için, 10 sn içinde geri alma (swipe satırını sil, kartı geri
+      koy). Ödeme olmadan da çalışır; sonra premium'a bağlanabilir.
+- [ ] **Davet / paylaş.** `Share` hiç yok. Pilot bölgede yoğunluk tek
+      büyüme kaldıracı; "arkadaşının petini çağır" (eşleşme kutlaması ve
+      boş deste ekranında) + bekleme listesi ekranında "bölgeni erken
+      açtır" paylaşımı. Takip için `invite_shared` olayı ve isteğe bağlı
+      `ref` parametresi.
+- [ ] **Mağaza puanı istemi.** `expo-store-review` yok. Doğru an belli:
+      buluşma geri bildiriminde "iyi geçti" → bir kez iste.
+- [ ] **Buluşma öncesi güvenlik ipuçları.** Yalnız boş sohbette tek satır
+      (`chat:700`); buluşma planlama sayfasında ve onaylanmış kartta 3
+      madde (halka açık yer, tasma, ilk buluşma kısa). Mağaza inceleyicisi
+      ve güven algısı için ucuz kazanım.
+- [ ] **Sohbette iyimser gönderim.** Mesaj sunucu onayına kadar
+      görünmüyor (`chat:292-306`); yavaş ağda "gitmedi" hissi. Geçici
+      balon + başarısızsa balon üstünde "tekrar dene"; offline kuyruk (P2)
+      bunun üstüne gelir.
+- [ ] **Sahip filtreleri cihazda kalıyor.** Sahip cinsiyeti/yaşı
+      AsyncStorage'da (`index.tsx:118-139`), hesapla taşınmıyor;
+      `discovery_filters`'a alınmalı.
+- [ ] **Çevrimdışı şeridi.** NetInfo/`onlineManager` yok; her ekran kendi
+      hatasını gösteriyor. Üstte tek bir "Bağlantı yok" şeridi + sorguların
+      bağlantı dönünce kendiliğinden yenilenmesi.
+
+**Bilerek kapsam dışı (bu turda):** karanlık mod (tasarım sistemi renkleri
+sabit hex, maliyeti yüksek, talebi ölçülmedi) · pet fotoğrafı ön
+moderasyonu (P0-6 içerik filtresiyle birlikte ele alınacak) · süper beğeni
+sayaç/ekonomisi (ödeme kararına bağlı, madde 9).
+
+> Dokümanlar arası bayat kayıtlar, aynı taramada: L153 "Lucide geçişini
+> tamamla" (L275'te bitti) · `experience-roadmap.md` §8'deki iki açık kutu
+> (`0047`/`0054` ile kapandı) · `monetization.md` L139 süper beğeni push'unu
+> kapsam dışı sayıyor (`0048` ile yapıldı) · P0-6'daki `2026-07-29-v2`
+> yeniden kabul maddesi, legal-checklist'teki `2026-08-22-v3` kapısıyla
+> çelişiyor. Bir sonraki doküman turunda temizlenmeli.
+
 ### Kararı bekleyenler
 
 - **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Pilot bugün
