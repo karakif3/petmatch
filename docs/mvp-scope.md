@@ -40,7 +40,7 @@ gerisini kullanıma yayıyor. Akış aynı ilkeye çekildi.
 
 **Ertelenenler — hepsinin varsayılanı var ya da null olabiliyor:**
 ırk, boyut (`medium`), enerji (`3`), kısırlaştırma (`false`), pet doğum
-tarihi, biyografiler, sahip avatarı, sahip görünürlüğü (`public`).
+tarihi, biyografiler, sahip avatarı.
 
 Bunlar keşfetin üstündeki **profil tamamlama kartından** toplanıyor. Kart
 kapatılabilir ve eksik yoksa hiç render edilmiyor.
@@ -51,9 +51,11 @@ kapatılabilir ve eksik yoksa hiç render edilmiyor.
   kullanıcı doğum tarihini bilmiyor. "Bilmiyorum" gerçek bir seçenek ve
   `null` yazıyor — uydurma tarih üretilmiyor. Ayrıntı:
   `core/domain/pet-age.ts`.
-- **Sahip görünürlüğü kayıtta sorulmuyor.** Keşfette görünür başlar;
-  checkbox bunu söyler ve `public_profile_consent` orada yazılır. Kapatmak
-  Sahip profili ayarından.
+- **Sahip görünürlüğü kayıtta ayrı ve önceden seçili olmayan bir seçimdir**
+  (2026-10-24, A18). "Keşfette görünür" önerilen seçenek ama kullanıcı
+  dokunmadan `public` yazılmaz; sunucu `public` yazımını geçerli
+  `public_profile_consent` kaydına bağlar (`20261024150000`). Yeni hesap
+  `after_match` doğar.
 
 ## Kapsam dışı (sonraki faz)
 
@@ -68,7 +70,7 @@ Marka adı **PetMatch** olarak sabittir. Resmi işaret, asset kuralları ve pale
 Kullanıcı iki ayrı ayar tutar:
 
 - **`owner_visibility`** — *benim* sahip profilim karşı tarafa ne zaman görünür:
-  `hidden` · `after_match` · `public` (varsayılan)
+  `hidden` · `after_match` (varsayılan) · `public` (yalnız açık rızayla)
 - **`require_visible_owner`** — *benim* koyduğum zorunluluk: sadece sahibi
   görünen petleri göster.
 

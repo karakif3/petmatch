@@ -101,6 +101,65 @@ her iş Fable; `app/`+`core/` içinde kalan ve kabul kriteri testle verilen iş
 Opus; yalnız test/doküman/konfig dosyası yazan iş Sonnet. Model seçimi PR
 açıklamasına yazılır, `Co-Authored-By` satırı zaten bunu taşıyor.
 
+## 7. Ürün değerlendirmesi — eşleşme süreci uçtan uca
+
+Akış bugün: kayıt (pet adı/tür/cinsiyet, 1 foto, bölge, 18+) → keşfet
+destesi (`discover_playdate_pets`: bölge havuzu, pet filtreleri, mesafe
+kovası → aktiflik kovası sıralaması, "%N uyum" rozeti) → beğen/geç/süper
+beğeni → karşılıklı beğeni = eşleşme + konuşma → hazır mesajlar → buluşma
+kartı (küratörlü halka açık yer, gün/saat, takvim) → "buluştunuz mu?"
+geri bildirimi → sıralamaya sinyal. Güvenlik (engel, şikâyet, unmatch,
+doğrulama rozeti) her adımda var.
+
+**Mantıklı mı?** Mekanik tutarlı ve sektörün iyi desenlerini (Hinge "We
+Met", "sıra sende", Dig buluşma yeri) doğru yerde kullanıyor; teknik olarak
+olgun. Sorun mekanikte değil, **mekaniğin işin doğasına uyup uymadığında**:
+
+1. **Karşılıklı beğeni, pet buluşması için fazla yüksek bir kapı.** Dating'de
+   mutual-like rızadır; park arkadaşı ararken "beğenmek" tuhaf, karşılık
+   beklemek yavaş ve pilotta deste zaten seyrek. İki taraflı onay × düşük
+   yoğunluk = boş gelen kutusu. Bu, ürünün en büyük riski (`launch.md`'de de
+   "boş deste" en büyük risk olarak yazılı) ve mevcut mekanik onu büyütüyor.
+2. **Uygulamayı yarın tekrar açma nedeni yok.** Yeni pet gelmedikçe hiçbir
+   şey değişmiyor; tek tetik `new_candidate` push'u. Dating uygulamaları
+   bunu hacimle kapatır; 3 ilçelik pilotta hacim yok.
+3. **Kedi sahibi için vaat boş.** `species` enum'u kedi+köpek; kedilerin
+   "oyun arkadaşı buluşması" gerçek bir davranış değil. Kedi sahibi kayıt
+   olur, desteyi görür, nedenini bulamaz. Ya kedi için ayrı değer (bakım
+   takası, mahalle, sahiplendirme) ya pilotta köpek odağı.
+4. **Uyum skoru boyutu bilmiyor.** `matching.ts` ağırlıkları enerji 0.3 /
+   tür 0.25 / mizaç 0.25 / yaş 0.2; `pets.size` yok. Köpek parkında ilk
+   sorulan şey boyut. Küçük iş, etkisi büyük.
+5. **Aşı/sağlık beyanı yok** (kısırlaştırma var). Buluşma öncesi güvenin en
+   somut sorusu; beyan + rozet yeterli, doğrulama gerekmez.
+
+**Kaçırılan "game changer" (tek madde):** **"Şimdi parktayım / yürüyüşe
+çıkıyorum"** — kullanıcı bir küratörlü yeri (`meetup_places`) ve 1-2 saatlik
+pencereyi işaretler; aynı bölgedeki uygun petlerin sahiplerine bildirim gider;
+katılmak için eşleşme gerekmez, kimlik yine görünürlük tercihine bağlı.
+Neden bu:
+- Boş deste sorununu atlıyor: 5 kullanıcıyla bile parkta buluşma olur.
+- Günlük açma nedeni: "şu an kim parkta?" — Tinder'ın değil, Strava/Nextdoor'un
+  döngüsü.
+- Güvenlik modeliyle uyumlu: halka açık, küratörlü yer, grup; `benchmark.md`
+  §4'ün istediği "paylaş + yoklama" doğal olarak buraya oturur.
+- Mevcut yapı taşlarının %70'i var: `meetup_places`, bölge izolasyonu,
+  `new_candidate` alıcı seçimi (Y4 ile SQL'e taşınınca aynı fonksiyon),
+  push altyapısı, "buluştunuz mu?" geri bildirimi.
+- Dating katmanıyla çelişmiyor: parkta tanışan iki sahip sonra eşleşir;
+  karşılıklı beğeni "ilgi" sinyali olarak kalır, buluşmanın ön şartı olmaz.
+Boy: M-L (tablo + RPC + alıcı seçimi + ekran + push türü). Model: tasarım
+ve SQL Fable, ekran Opus. Ölçüm: haftalık "parkta buluşma" başına aktif
+kullanıcı — `benchmark.md`'deki asıl metrikle aynı.
+
+**İnsanların kullanma nedeni yeterli mi?** Köpek sahibi için "yakında
+güvenli oyun arkadaşı" gerçek bir ihtiyaç ve ürün bunu dürüstçe çözüyor;
+sahip-sahip katmanı (sosyal/romantik) bir bonus, çekirdek değil. Yeterlilik
+yoğunluğa bağlı: Kadıköy'de 50 aktif köpek olmadan hiçbir mekanik
+tutmaz; yukarıdaki "şimdi parktayım" bu eşiği 50'den ~5'e indirir. Öneri:
+pilotun ilk ayında keşfet destesi değil park buluşması ana ekran olsun,
+deste ikinci sekme.
+
 ## 5. Doğrulanamayanlar
 
 - Y2 cihazda doğrulanmadı (simülatör/cihaz yok); kanıt kod ve kütüphane
