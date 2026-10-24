@@ -13,11 +13,11 @@ export type OnboardingPhoto = {
 /**
  * Kayıt yalnızca ZORUNLU olanı ister.
  *
- * Irk, boyut, enerji, kısırlaştırma ve sahip görünürlüğü buradan çıkarıldı;
- * hepsinin ya şemada makul bir varsayılanı var (`size='medium'`,
- * `energy_level=3`, `is_neutered=false`, `owner_visibility='public'`) ya
- * da null olabiliyor. Kullanıcı bunları profilinden, ürünü gördükten sonra
- * dolduruyor. Görünürlük keşfette açık başlar; kapatmak ayarlardan.
+ * Irk, boyut, enerji ve kısırlaştırma buradan çıkarıldı; hepsinin ya şemada
+ * makul bir varsayılanı var (`size='medium'`, `energy_level=3`,
+ * `is_neutered=false`) ya da null olabiliyor. Kullanıcı bunları profilinden,
+ * ürünü gördükten sonra dolduruyor. Sahip görünürlüğü ise kişisel veri
+ * rızası olduğu için kullanıcının açık seçimidir (`ownerVisibility`).
  *
  * Burada alanları YAZMAMAK bilinçli: mevcut bir peti güncellerken de aynı
  * yol işlediği için, kullanıcının profilden yaptığı seçimler kayıt akışı
@@ -42,6 +42,12 @@ export type OnboardingInput = {
     privacyNoticeAcknowledged: boolean;
     locationConsent: boolean;
   };
+  /**
+   * Kullanıcının kendi dokunuşuyla seçtiği sahip görünürlüğü. Zorunlu yasal
+   * kutudan ayrı; önceden seçili gelmez. `public` ancak bu seçimle yazılır —
+   * sunucu da public yazımını geçerli rızaya bağlar (20261024150000).
+   */
+  ownerVisibility: "public" | "after_match";
 };
 
 function fileExtension(photo: OnboardingPhoto): string {
@@ -66,8 +72,7 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
   }
   await recordLegalAcceptances({
     ...input.legal,
-    // Checkbox metni keşfette görünür başladığını söylüyor; rıza burada.
-    publicProfileConsent: true,
+    publicProfileConsent: input.ownerVisibility === "public",
   });
 
   const city = input.city?.trim() || null;
@@ -87,8 +92,8 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
       display_name: input.displayName?.trim() || null,
       birth_date: input.ownerBirthDate,
       city,
-      // İlk kayıt: keşfette görünür. Tekrar çalışan akış profilden seçileni ezmez.
-      ...(existingPet ? {} : { owner_visibility: "public" as const }),
+      // İlk kayıt: kullanıcının seçimi. Tekrar çalışan akış profilden seçileni ezmez.
+      ...(existingPet ? {} : { owner_visibility: input.ownerVisibility }),
     })
     .eq("id", input.userId);
   if (profileError) throw profileError;

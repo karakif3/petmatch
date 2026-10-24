@@ -21,23 +21,21 @@ set local role authenticated;
 select tests.act_as('11111111-1111-1111-1111-111111111111');
 
 select tests.assert(
-  (select region_slug is null from profiles where id = '11111111-1111-1111-1111-111111111111'),
+  (select region_slug is null from get_my_profile()),
   'yeni kullanıcının bölgesi başlangıçta boş'
 );
 
 select set_my_region('kadikoy');
 
 select tests.assert(
-  (select region_slug = 'kadikoy' from profiles
-   where id = '11111111-1111-1111-1111-111111111111'),
+  (select region_slug = 'kadikoy' from get_my_profile()),
   'bölge seçimi kaydediliyor'
 );
 
 select set_my_region('besiktas');
 
 select tests.assert(
-  (select region_slug = 'besiktas' from profiles
-   where id = '11111111-1111-1111-1111-111111111111'),
+  (select region_slug = 'besiktas' from get_my_profile()),
   'Beşiktaş pilot bölge olarak seçilebiliyor'
 );
 
@@ -54,8 +52,7 @@ select tests.assert_raises(
 
 select set_my_region('other', 'Üsküdar', true);
 select tests.assert(
-  (select region_slug = 'other' from profiles
-   where id = '11111111-1111-1111-1111-111111111111'),
+  (select region_slug = 'other' from get_my_profile()),
   '"Diğer" de gerçek bir seçim — boş bırakmakla aynı şey değil'
 );
 

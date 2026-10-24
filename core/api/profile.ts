@@ -108,6 +108,8 @@ export type OwnerProfileUpdate = {
   birthDate: string;
   gender: "female" | "male" | "other" | null;
   ownerVisibility: OwnerVisibility;
+  /** Sunucudaki mevcut değer; rıza kaydı yalnız değişimde yazılır. */
+  previousOwnerVisibility: OwnerVisibility | null;
   ownerSocialOpen: boolean;
   connectionTag: ConnectionTag | null;
   interests: OwnerInterest[];
@@ -150,11 +152,10 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
   const sb = requireSupabaseClient();
   const [profileResult, petResult, preferencesResult, verificationResult] = await Promise.all([
     sb
-      .from("profiles")
+      .rpc("get_my_profile")
       .select(
         "display_name,city,owner_visibility,bio,birth_date,gender,avatar_url,owner_social_open,connection_tag,interests,verification_status,region_slug",
       )
-      .eq("id", userId)
       .single(),
     sb
       .from("pets")
@@ -392,10 +393,15 @@ export async function loadOwnerPhotos(ownerId: string): Promise<ProfilePhoto[]> 
 export async function saveOwnerProfile(input: OwnerProfileUpdate): Promise<void> {
   const sb = requireSupabaseClient();
 
-  await recordOptionalConsent(
-    "public_profile_consent",
-    input.ownerVisibility === "public",
-  );
+  // Rıza kaydı bir eylemi belgeler: yalnız görünürlük gerçekten değişince
+  // yazılır. Sunucu public yazımını geçerli rızaya bağlar (20261024150000),
+  // bu yüzden sıra: önce rıza, sonra profil.
+  if (input.previousOwnerVisibility !== input.ownerVisibility) {
+    await recordOptionalConsent(
+      "public_profile_consent",
+      input.ownerVisibility === "public",
+    );
+  }
 
   const { error } = await sb.rpc("update_my_owner_details", {
     p_display_name: input.displayName,
@@ -466,7 +472,7 @@ export async function updateOwnerDiscoveryFilters(input: {
 }): Promise<void> {
   if (input.requirePhoto) {
     const { data: me, error: profileError } = await requireSupabaseClient()
-      .from("profiles")
+      .rpc("get_my_profile")
       .select("avatar_url,owner_visibility")
       .single();
     if (profileError) throw profileError;
@@ -615,10 +621,9 @@ export async function updateEditableProfile(input: ProfileUpdate): Promise<strin
   if (input.coordinates) {
     await recordOptionalConsent("location_consent", true);
   }
-  await recordOptionalConsent(
-    "public_profile_consent",
-    input.ownerVisibility === "public",
-  );
+  // Görünürlük rızası burada YAZILMAZ: bu ekran görünürlüğü düzenlemiyor,
+  // mevcut değeri geri gönderiyor. Rıza yalnız kullanıcının seçim yaptığı
+  // yerde (onboarding, sahip profili) kaydedilir.
 
   const { data, error } = await requireSupabaseClient().rpc("update_my_profile", {
     p_city: city,

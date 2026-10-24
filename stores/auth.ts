@@ -30,7 +30,8 @@ type AccountStatus = {
 async function readAccountStatus(userId: string): Promise<AccountStatus> {
   const sb = requireSupabaseClient();
   const [profileResult, legalResult] = await Promise.all([
-    sb.from("profiles").select("onboarded_at,region_slug").eq("id", userId).maybeSingle(),
+    // Hassas kolonlar tablodan kapalı (A17); kendi satırı RPC ile okunur.
+    sb.rpc("get_my_profile").select("onboarded_at,region_slug").maybeSingle(),
     sb
       .from("legal_acceptances")
       .select("document_type")

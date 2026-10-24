@@ -1200,6 +1200,16 @@ export type Database = {
           verified: boolean
         }[]
       }
+      get_my_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["profiles"]["Row"][]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_moderation_queue: {
         Args: { p_limit?: number }
         Returns: {

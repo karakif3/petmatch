@@ -34,15 +34,13 @@ select replace_owner_photo_order(array[
 ]::text[]);
 
 select tests.assert(
-  (select avatar_url from profiles
-    where id = '22222222-2222-2222-2222-222222222222')
+  (select avatar_url from get_my_profile())
     = '22222222-2222-2222-2222-222222222222/cover.jpg',
   'replace_owner_photo_order kapağı avatar_url''e yazar'
 );
 
 select tests.assert(
-  (select verification_status from profiles
-    where id = '22222222-2222-2222-2222-222222222222') = 'approved',
+  (select verification_status from get_my_profile()) = 'approved',
   'galeri değişince onaylı rozet durur'
 );
 
@@ -53,8 +51,7 @@ select update_my_owner_details(
 );
 
 select tests.assert(
-  (select verification_status from profiles
-    where id = '22222222-2222-2222-2222-222222222222') = 'approved',
+  (select verification_status from get_my_profile()) = 'approved',
   'update_my_owner_details kapak değişince rozeti düşürmez'
 );
 
