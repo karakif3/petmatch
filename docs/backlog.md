@@ -460,6 +460,66 @@ deste'nin üstüne binen gradyanlı, gölgeli yüzen düğmelere geçti — canl
 ekran görüntüsüyle doğrulanamadı (simülatörün klavye eşlemesi `@`/`.`
 karakterlerini bozuyor, oturum açılamadı); typecheck/lint/test temiz.
 
+### 2026-10-24 — Kapsamlı inceleme turu (PR #19)
+
+Rapor: [`otonom/raporlar/kapsamli-inceleme-2026-10-24.md`](otonom/raporlar/kapsamli-inceleme-2026-10-24.md)
+(6 yeni bulgu, önceki 10 bulgunun durumu, Fable/Opus/Sonnet ataması, ürün
+değerlendirmesi §7).
+
+**Bu PR'da kapananlar (kod denetimi §2'den 4 bulgu + 2 yeni):**
+
+- [x] A17 profil kolon gizliliği — `20261024140000`, `get_my_profile()`.
+- [x] A18 rıza öncesi public — `20261024150000`; onboarding'de ayrı,
+      önceden seçili olmayan görünürlük seçimi; yeni hesap `after_match`.
+- [x] G03 engel sonrası erişim — `20261024130000`.
+- [x] Karşılıklı beğeni yarışı — `20261024120000` advisory kilit.
+- [x] Y2 mobil auth deep link — `flowType: "pkce"`.
+- [x] Y1 QA kimlik bilgileri dokümandan çıkarıldı.
+
+**Sahipte (kod dışı, sırayla):**
+
+- [ ] Canlıda QA şifresini değiştir; `test1` hesabından moderatör rolünü al;
+      `git filter-repo` ile eski şifreyi geçmişten temizle (L400 ile birlikte).
+- [ ] `supabase db push` (4 migration) → `npm run gen:types` → tip commit'i.
+      Geçiş: mevcut `public` sahipler `after_match`'e döner; QA hesapları
+      profil ekranından yeniden "Keşfette görünür" seçer.
+- [ ] Fiziksel cihazda kayıt e-postası + şifre sıfırlama
+      ([`two-device-release-test.md`](two-device-release-test.md) madde 11).
+- [ ] Karar — G03 B5: engellenen tarafın gelen kutusunda engelleyenin adı
+      gizlensin mi?
+
+**Kalan açıklar (kod denetimi §2):** 2 eşleşilen kişinin tüm petleri (G04),
+3 `new_candidate` sınırsız alıcı (Y4 ile birlikte), 8 `owner_photos` hata
+yutma, 9 rıza sırası (A18 ile kısmen: `updateEditableProfile` artık rıza
+yazmıyor), 10 mesajda istemci `id`. Sıra raporun §3'ünde.
+
+**Ürün — inceleme §7'den çıkan yeni maddeler (karar bekliyor):**
+
+- [x] **"Şimdi parktayım" (anlık, eşleşmesiz buluşma) — v1 bu PR'da.**
+      `20261024160000_park_now.sql` + `send-notification` `park_checkin`
+      türü (alıcılar SQL'de, toplu gönderim) + **Park** sekmesi
+      (`app/(app)/park.tsx`). Yalnız bölgedeki doğrulanmış yerler, 30–180
+      dk pencere, kullanıcı başına tek açık check-in, 24 saatte 4; alıcıya
+      2 saatte en fazla 1 park bildirimi, en fazla 200 alıcı; engel iki
+      yönde, sahip adı yalnız `public`'te; serbest metin/konum yok.
+      Testler: `park-now.test.sql` (16 assert), `core/api/park.test.ts`.
+  - [ ] **Karar:** Park ikinci sekme oldu → 5 sekme (L487 "5. sekme" kararı
+        bununla birlikte verilmeli). Öneri: pilotun ilk ayında Park ana
+        ekran, Keşfet ikinci.
+  - [ ] **Veri:** Beşiktaş'ta doğrulanmış yer yok → orada özellik boş
+        görünür; Nişantaşı'nda 1, Kadıköy'de 3 yer. Saha teyidi (`0052`).
+  - [ ] Sonraki tur: "buluştunuz mu?" (`0036`) park check-in'ine bağlansın;
+        "paylaş + yoklama" (`benchmark.md` §4) buraya otursun; huni ölçümü
+        `park_checkin_started` → aynı yerde ikinci check-in.
+- [ ] **Uyum skoruna boyut.** Köpek buluşmasında en belirleyici değişken
+      (`pets.size`) skorda yok (`core/domain/matching.ts` ağırlıkları: enerji,
+      tür, mizaç, yaş). Küçük iş, Opus.
+- [ ] **Kedi için ayrı değer önermesi ya da pilotta köpek odağı.** Kedi
+      "oyun arkadaşı" buluşması gerçek bir davranış değil; kedi sahibi için
+      ürünün nedeni (sahiplendirme, mahalle topluluğu, bakım takası) ayrı.
+- [ ] **Aşı/sağlık beyanı** pet profilinde (kısırlaştırma var, aşı yok):
+      buluşma öncesi güven ve park etiketi için en çok sorulan soru.
+
 ### Kararı bekleyenler
 
 - **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Pilot bugün

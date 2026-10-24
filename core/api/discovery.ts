@@ -233,11 +233,10 @@ export async function loadDiscoveryDeck(
       .eq("is_active", true)
       .maybeSingle(),
     sb
-      .from("profiles")
+      .rpc("get_my_profile")
       .select(
         "owner_visibility,gender,owner_social_open,require_visible_owner,verification_status,avatar_url",
       )
-      .eq("id", userId)
       .single(),
     sb
       .from("discovery_preferences")

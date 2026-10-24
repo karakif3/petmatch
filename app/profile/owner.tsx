@@ -443,6 +443,7 @@ export default function OwnerProfileScreen() {
         birthDate,
         gender,
         ownerVisibility: visibility,
+        previousOwnerVisibility: profile.data?.ownerVisibility ?? null,
         ownerSocialOpen: socialOpen,
         connectionTag: socialOpen ? connectionTag : null,
         interests,

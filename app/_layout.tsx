@@ -126,6 +126,8 @@ function NotificationEffects() {
         router.push("/(app)/matches");
       } else if (data.type === "new_candidate") {
         router.push("/(app)");
+      } else if (data.type === "park_checkin") {
+        router.push("/(app)/park");
       } else if (data.type === "super_like") {
         router.push("/(app)/likes");
       } else if (data.type === "verification") {

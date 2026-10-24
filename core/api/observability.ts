@@ -30,7 +30,10 @@ export type ProductEventName =
   | "discovery_segment_changed"
   | "adoption_surface_viewed"
   | "adoption_interest_sent"
-  | "account_delete_requested";
+  | "account_delete_requested"
+  | "park_now_viewed"
+  | "park_checkin_started"
+  | "park_checkin_ended";
 
 export async function trackProductEvent(
   eventName: ProductEventName,

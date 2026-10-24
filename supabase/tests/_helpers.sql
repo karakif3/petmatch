@@ -62,6 +62,13 @@ as $$
 begin
   insert into auth.users (id, email) values (p_id, p_id::text || '@test.local');
 
+  -- public ⇒ geçerli rıza (20261024150000); helper kullanıcıyı public
+  -- açıyorsa rızasını da yazar.
+  if p_visibility = 'public' then
+    insert into legal_acceptances (user_id, document_type, document_version, accepted)
+    values (p_id, 'public_profile_consent', 'test', true);
+  end if;
+
   update profiles
   set birth_date       = '1995-01-01',
       onboarded_at     = now(),

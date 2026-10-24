@@ -32,7 +32,7 @@ select update_my_owner_details(
 
 select tests.assert(
   (select owner_visibility = 'after_match' and owner_social_open and connection_tag = 'new_friends'
-   from profiles where id = '11111111-1111-1111-1111-111111111111'),
+   from get_my_profile()),
   'eşleşince görünür + açık artık kaydediliyor, etiket de kalıcı'
 );
 
@@ -50,7 +50,7 @@ select update_my_owner_details(
 );
 
 select tests.assert(
-  (select connection_tag is null from profiles where id = '11111111-1111-1111-1111-111111111111'),
+  (select connection_tag is null from get_my_profile()),
   'sosyal mod kapanınca etiket de temizleniyor — kalıp yanlış sinyal vermesin'
 );
 

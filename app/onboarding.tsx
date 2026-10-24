@@ -50,7 +50,28 @@ type FieldError =
   | "gender"
   | "photos"
   | "legal"
+  | "visibility"
   | "locationConsent";
+
+const visibilityChoices: {
+  value: "public" | "after_match";
+  label: string;
+  detail: string;
+  recommended?: boolean;
+}[] = [
+  {
+    value: "public",
+    label: "Keşfette görünür",
+    recommended: true,
+    detail:
+      "Adın, yaş aralığın ve eklersen sahip fotoğrafın pet kartında çıkar. Dilediğin zaman kapatabilirsin.",
+  },
+  {
+    value: "after_match",
+    label: "Yalnızca eşleşince",
+    detail: "Keşfette yalnızca petin görünür; sahip bilgilerin eşleşince açılır.",
+  },
+];
 
 // `PetPhotoEditor` (kapak seçimi + kaldırma + ekleme) `{id,uri}` şeklinde
 // çalışıyor; onboarding'in gönderdiği `OnboardingPhoto` bunun üstüne
@@ -150,6 +171,8 @@ export default function OnboardingScreen() {
   const [photos, setPhotos] = useState<LocalPhoto[]>([]);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [locationConsent, setLocationConsent] = useState(false);
+  // Önceden seçili gelmez: dokunulmadan yazılan görünürlük geçerli rıza değil.
+  const [ownerVisibility, setOwnerVisibility] = useState<"public" | "after_match" | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [photoDragging, setPhotoDragging] = useState(false);
@@ -406,6 +429,10 @@ export default function OnboardingScreen() {
       setFieldErrors({ photos: "En az bir pet fotoğrafı eklemelisin." });
       return;
     }
+    if (!ownerVisibility) {
+      setFieldErrors({ visibility: "Sahip profilinin nasıl görüneceğini seç." });
+      return;
+    }
     if (!legalAccepted) {
       setFieldErrors({
         legal: "Devam etmek için koşulları ve aydınlatma metnini onaylamalısın.",
@@ -450,6 +477,7 @@ export default function OnboardingScreen() {
           privacyNoticeAcknowledged: legalAccepted,
           locationConsent: coordinates !== null && locationConsent,
         },
+        ownerVisibility,
       });
       if (draftKey) await AsyncStorage.removeItem(draftKey);
       setOnboarded(true);
@@ -833,6 +861,60 @@ export default function OnboardingScreen() {
               </Text>
             ) : null}
 
+            <Text className="mt-6 mb-1 text-sm font-semibold text-text-primary">
+              Sahip profilin nasıl görünsün?
+            </Text>
+            <Text className="mb-3 text-xs leading-4 text-text-secondary">
+              İsteğe bağlı açık rıza; yasal onaydan ayrı. Sonradan profilinden değiştirebilirsin.
+            </Text>
+            <View className="gap-2">
+              {visibilityChoices.map((option) => {
+                const active = ownerVisibility === option.value;
+                return (
+                  <AppPressable
+                    key={option.value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    onPress={() => {
+                      setOwnerVisibility(option.value);
+                      clearFieldError("visibility");
+                    }}
+                    className={`flex-row items-start gap-3 rounded-2xl border p-4 ${
+                      active ? "border-brand bg-brand/5" : "border-border bg-surface"
+                    }`}
+                  >
+                    <View
+                      className={`mt-0.5 h-5 w-5 items-center justify-center rounded-full border-2 ${
+                        active ? "border-brand" : "border-border"
+                      }`}
+                    >
+                      {active ? <View className="h-2.5 w-2.5 rounded-full bg-brand" /> : null}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-sm font-semibold text-text-primary">
+                          {option.label}
+                        </Text>
+                        {option.recommended ? (
+                          <Text className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
+                            Önerilen
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text className="mt-1 text-xs leading-4 text-text-secondary">
+                        {option.detail}
+                      </Text>
+                    </View>
+                  </AppPressable>
+                );
+              })}
+            </View>
+            {fieldErrors.visibility ? (
+              <Text className="mt-2 text-xs font-semibold text-danger">
+                {fieldErrors.visibility}
+              </Text>
+            ) : null}
+
             <View className="mt-5 rounded-2xl border border-border bg-surface p-4">
               <Checkbox
                 checked={legalAccepted}
@@ -843,8 +925,7 @@ export default function OnboardingScreen() {
               >
                 <Text className="text-sm leading-5 text-text-secondary">
                   Kullanım koşullarını kabul ediyor; gizlilik politikası ve KVKK
-                  aydınlatma metnini okuduğumu onaylıyorum. Sahip profilim
-                  keşfette görünür başlar; dilediğim zaman ayarlardan kapatabilirim.
+                  aydınlatma metnini okuduğumu onaylıyorum.
                 </Text>
               </Checkbox>
               <AppPressable onPress={() => router.push("/(auth)/legal")} className="mt-3">
@@ -855,9 +936,8 @@ export default function OnboardingScreen() {
               ) : null}
 
               {/*
-                Konum rızası adım 1'de. Keşfet görünürlüğü checkbox'ta
-                açıklanıyor; `public_profile_consent` completeOnboarding'de
-                yazılıyor. Kapatmak Sahip profili ayarından.
+                Konum rızası adım 1'de; görünürlük rızası yukarıdaki ayrı
+                seçimden türetilip completeOnboarding'de yazılıyor.
               */}
             </View>
           </>
