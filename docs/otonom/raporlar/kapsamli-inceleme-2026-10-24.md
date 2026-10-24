@@ -44,8 +44,8 @@ Canlıya bağlanılmadı; `test:db` koşulmadı (Docker yok).
 | §2-2 / D01 B1 | Eşleşilen kişi karşı tarafın **tüm** petlerini koordinatla okur | **açık** | `0006:133-134`; G04 kuyrukta yok |
 | §2-3 / D01 B2 | `new_candidate` sınırsız alıcı + kullanıcı metni | **açık** | Bu raporda Y4 ile büyüdü |
 | §2-4 / G02 | A18 profil rızadan önce `public` | **açık** | `onboarding.ts:91` istemciden doğrudan yazıyor; PR #7 taslak |
-| §2-5, §2-6 / G03 | Engel sonrası realtime + `blocks_own for all` + `get_conversation_owner_profile` engel kontrolü yok | **açık** | PR #9'da migration + test taslağı hazır, 11 kırmızı assert |
-| §2-7 / D01 B3 | Karşılıklı beğeni yarışı → eşleşme doğmaz | **açık** | `handle_swipe` `0008:114-119` kilitsiz; `pg_advisory_xact_lock` taslağı D01 §6 |
+| §2-5, §2-6 / G03 | Engel sonrası realtime + `blocks_own for all` + `get_conversation_owner_profile` engel kontrolü yok | **düzeltildi (bu dalda)** | `20261024130000_block_after_access.sql` + `block-after-access.test.sql`; kalıcı engel (G03 karar 1a), tek yazma yolu `block_user` (karar 3), B5 gelen kutusu sahip kararına bırakıldı |
+| §2-7 / D01 B3 | Karşılıklı beğeni yarışı → eşleşme doğmaz | **düzeltildi (bu dalda)** | `20261024120000_match_race_lock.sql` çift başına `pg_advisory_xact_lock`; `match-race-lock.test.sql` kilidi ve eşleşmeyi doğrular (iki oturumlu yarış tek oturumda kurulamaz) |
 | §2-8, §2-9 | `owner_photos` hata yutma; rıza RPC'den önce yazılıyor | **açık** | `profile.ts:215-220, :392-397` |
 | §2-10 | Mesajda istemci `id` yok → yeniden denemede mükerrer | **açık** | `conversations.ts:245-251`; DB `id` grant'ı zaten açık (`20260929:65`) |
 | D03 F1/F2 | `moderation_items` 3 kolon tipte yok; eski `update_my_discovery_filters` imzası şemada | **açık** | `types/database.ts` son değişiklik `e11b335` 08-28 |
@@ -58,12 +58,15 @@ Canlıya bağlanılmadı; `test:db` koşulmadı (Docker yok).
 
 **Bugün / bu hafta — güvenlik ve "ürün çalışmıyor"**
 
-1. Y1 şifre/rol temizliği + doküman + git geçmişi.
-2. Y2 `flowType: "pkce"` + cihaz doğrulaması (kayıt + sıfırlama).
-3. G03 migration'ı merge (PR #9 taslağından): engel sonrası erişim.
+1. Y1 — doküman temizliği **bu dalda yapıldı**; canlıda şifre değişikliği,
+   QA hesabından moderatör rolünün alınması ve `git filter-repo` sahipte.
+2. Y2 — `flowType: "pkce"` **bu dalda yapıldı**; cihaz doğrulaması (kayıt +
+   sıfırlama, `two-device-release-test.md` madde 11) sahipte.
+3. G03 — **bu dalda yapıldı** (`20261024130000`), `test:db` 28/28 yeşil.
 4. A17 + A18 migration'ı (G01/G02 taslakları) tek PR: profil kolon grant'ı,
-   rıza öncesi `after_match`, 3 test dosyası, 5 istemci okuma yeri.
-5. §2-7 eşleşme yarışı: `handle_swipe`'a `pg_advisory_xact_lock`.
+   rıza öncesi `after_match`, 3 test dosyası, 5 istemci okuma yeri. Sahip
+   kararı bekliyor (A17: 8 kolon listesi; A18: rıza ekranı yeri).
+5. §2-7 eşleşme yarışı — **bu dalda yapıldı** (`20261024120000`).
 6. Push: izin ön ekranı (PR #18 #1) + sunucu taraflı tetik + receipt (Y3).
 
 **Yayından önce — kalite**

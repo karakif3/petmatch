@@ -24,16 +24,19 @@
 >
 > | Hesap | İçerik |
 > |---|---|
-> | `test1@petmatch.app` | Pet "Luna" · **moderatör (admin)** |
-> | `test2@petmatch.app` | Peti yok |
-> | `deniz` · `ece` · `mert` · `ayse` **@petmatch.test** | Pet + fotoğraf + **herkese açık sahip profili ve avatarı** |
-> | `nisa` · `cem` · `defne` **@petmatch.test** | 2026-08-27 QA tohumu · pet + fotoğraf · **public** (Ada, Fındık, Toprak) |
-> | `selin` · `kaan` · `onur` · `yagmur` **@petmatch.test** | Pet + fotoğraf · görünürlük `after_match` |
-> | `burak` · `elif` · `baran` **@petmatch.test** | Pet + fotoğraf · görünürlük `hidden` |
+> | QA ana hesabı (`PETMATCH_QA_EMAIL`) | Pet "Luna" · **moderatör (admin)** |
+> | QA ikinci hesap | Peti yok |
+> | 4 tohum hesabı | Pet + fotoğraf + **herkese açık sahip profili ve avatarı** |
+> | 3 tohum hesabı | 2026-08-27 QA tohumu · pet + fotoğraf · **public** (Ada, Fındık, Toprak) |
+> | 4 tohum hesabı | Pet + fotoğraf · görünürlük `after_match` |
+> | 3 tohum hesabı | Pet + fotoğraf · görünürlük `hidden` |
 >
-> Şifre (hepsi): `Petmatch2026!`
+> Hesap adresleri `scripts/seed-qa-pet-photos.mjs`'de; şifre **repoya
+> yazılmaz** (`PETMATCH_SEED_PASSWORD`, parola yöneticisi). Bu dosyada daha
+> önce açık yazılıydı (2026-10-24 incelemesi Y1): o şifre canlıda
+> değiştirilmeli ve moderatör rolü QA hesabından yayına kadar alınmalı.
 >
-> `@petmatch.test` hesapları keşfet destesini doldurmak için 2026-08-04'te
+> Tohum hesapları keşfet destesini doldurmak için 2026-08-04'te
 > üretilen **tohum veriydi**; 2026-08-27'de altı hesap daha eklendi (`nisa`,
 > `cem`, `defne`, `onur`, `yagmur`, `baran`) çünkü `test1` (Luna) ilk sekiz
 > petin hepsini beğenmiş, deste boşalmıştı. Hepsi Kadıköy, `playdate`.

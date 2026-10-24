@@ -12,15 +12,16 @@ Simülatör push tokenı üretmediği için yayın onayı olarak kabul edilmez.
 
 ### Hazır QA çifti
 
-- Cihaz A: `nisa@petmatch.test` — Ada
-- Cihaz B: `cem@petmatch.test` — Fındık
-- Şifre: `Petmatch2026!`
+- Cihaz A: `<qa-hesabı-A>` — Ada
+- Cihaz B: `<qa-hesabı-B>` — Fındık
+- Şifre: repoya yazılmaz; `PETMATCH_SEED_PASSWORD` / `PETMATCH_QA_EMAIL`
+  ortam değişkenleri ve parola yöneticisinden alınır.
 
 Bu çift 2026-08-29'da iki yönde de Keşfet destesinden doğrulandı. Senaryo
 başlamadan hemen önce iki hesapta da karşı petin hâlâ görünmesi kontrol edilir;
-bir önceki koşum ilişkiyi tükettiyse `defne@petmatch.test` (Toprak) yedek
-hesaptır. Test hesapları yayın gününde silineceği için bu bilgiler production
-hesabı veya kalıcı credential değildir.
+bir önceki koşum ilişkiyi tükettiyse üçüncü QA hesabı (Toprak) yedektir.
+Repo herkese açık: QA hesap adresi ve şifresi hiçbir dokümana yazılmaz
+(2026-10-24 incelemesi Y1).
 
 ## Akış
 

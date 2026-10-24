@@ -35,6 +35,9 @@ export function createSupabaseClient({
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl,
+      // implicit flow token'ı URL fragment'ında döndürür; expo-router fragment'ı
+      // ayrı parametre olarak vermediği için mobil callback onu hiç görmüyordu.
+      flowType: "pkce",
     },
   });
 }
