@@ -149,7 +149,8 @@ Neden bu:
 - Dating katmanıyla çelişmiyor: parkta tanışan iki sahip sonra eşleşir;
   karşılıklı beğeni "ilgi" sinyali olarak kalır, buluşmanın ön şartı olmaz.
 Boy: M-L (tablo + RPC + alıcı seçimi + ekran + push türü). Model: tasarım
-ve SQL Fable, ekran Opus. Ölçüm: haftalık "parkta buluşma" başına aktif
+ve SQL Fable, ekran Opus. **Durum: v1 aynı dalda yapıldı**
+(`20261024160000_park_now.sql`, Park sekmesi; ayrıntı `backlog.md`). Ölçüm: haftalık "parkta buluşma" başına aktif
 kullanıcı — `benchmark.md`'deki asıl metrikle aynı.
 
 **İnsanların kullanma nedeni yeterli mi?** Köpek sahibi için "yakında

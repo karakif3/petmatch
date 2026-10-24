@@ -217,6 +217,7 @@ export type Database = {
           notify_on_match: boolean
           notify_on_message: boolean
           notify_on_new_candidates: boolean
+          notify_on_park: boolean
           pet_genders: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo: boolean
           require_owner_social: boolean
@@ -234,6 +235,7 @@ export type Database = {
           notify_on_match?: boolean
           notify_on_message?: boolean
           notify_on_new_candidates?: boolean
+          notify_on_park?: boolean
           pet_genders?: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo?: boolean
           require_owner_social?: boolean
@@ -251,6 +253,7 @@ export type Database = {
           notify_on_match?: boolean
           notify_on_message?: boolean
           notify_on_new_candidates?: boolean
+          notify_on_park?: boolean
           pet_genders?: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo?: boolean
           require_owner_social?: boolean
@@ -1201,7 +1204,7 @@ export type Database = {
         }[]
       }
       get_my_profile: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Tables"]["profiles"]["Row"][]
         SetofOptions: {
           from: "*"
@@ -1276,6 +1279,32 @@ export type Database = {
           region_name: string
           region_slug: string
         }[]
+      }
+      end_my_park_checkin: { Args: never; Returns: undefined }
+      list_park_now: {
+        Args: never
+        Returns: {
+          checkin_id: string
+          ends_at: string
+          is_mine: boolean
+          owner_name: string | null
+          pet_id: string
+          pet_name: string
+          pet_photo_path: string | null
+          place_id: string
+          place_name: string
+          size: Database["public"]["Enums"]["pet_size"]
+          species: Database["public"]["Enums"]["species"]
+        }[]
+      }
+      my_park_notifications_enabled: { Args: never; Returns: boolean }
+      set_park_notifications: {
+        Args: { p_enabled: boolean }
+        Returns: undefined
+      }
+      start_park_checkin: {
+        Args: { p_duration_minutes: number; p_place_id: string }
+        Returns: string
       }
       list_meetup_places: {
         Args: never

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Platform, Text, View } from "react-native";
 import { usePathname, useRouter } from "expo-router";
-import { Bell, Heart, MessageCircle, ShieldCheck, Sparkles, Star } from "lucide-react-native";
+import { Bell, Heart, MapPin, MessageCircle, ShieldCheck, Sparkles, Star } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Notification } from "expo-notifications";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,6 +30,7 @@ function targetFor(data: Record<string, unknown>) {
   if (type === "super_like") return "/(app)/likes" as const;
   if (type === "new_candidate") return "/(app)" as const;
   if (type === "verification") return "/profile/owner" as const;
+  if (type === "park_checkin") return "/(app)/park" as const;
   return null;
 }
 
@@ -47,6 +48,7 @@ function iconFor(type: unknown) {
   if (type === "super_like") return Star;
   if (type === "new_candidate") return Sparkles;
   if (type === "verification") return ShieldCheck;
+  if (type === "park_checkin") return MapPin;
   return Bell;
 }
 
@@ -92,6 +94,8 @@ export function InAppNotificationBanner({ enabled }: { enabled: boolean }) {
             void queryClient.invalidateQueries({ queryKey: ["pending-likes"] });
           } else if (data.type === "new_candidate") {
             void queryClient.invalidateQueries({ queryKey: ["discovery"] });
+          } else if (data.type === "park_checkin") {
+            void queryClient.invalidateQueries({ queryKey: ["park-now"] });
           }
 
           if (dismissTimer.current) clearTimeout(dismissTimer.current);

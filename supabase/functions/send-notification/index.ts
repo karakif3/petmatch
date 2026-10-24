@@ -10,7 +10,8 @@ type EventBody =
   | { type: "message"; messageId: string }
   | { type: "new_candidate"; petId: string }
   | { type: "super_like"; swipeId: string }
-  | { type: "verification"; moderationItemId: string };
+  | { type: "verification"; moderationItemId: string }
+  | { type: "park_checkin"; checkinId: string };
 
 type PushContent = {
   title: string;
@@ -52,7 +53,114 @@ function eventBody(value: unknown): EventBody | null {
   if (body.type === "verification" && isUuid(body.moderationItemId)) {
     return { type: "verification", moderationItemId: body.moderationItemId };
   }
+  if (body.type === "park_checkin" && isUuid(body.checkinId)) {
+    return { type: "park_checkin", checkinId: body.checkinId };
+  }
   return null;
+}
+
+/**
+ * Çok alıcılı olay için toplu yol: alıcılar SQL'de seçilir (tercih, engel,
+ * tekrar sınırı orada), teslimat satırları tek insert, Expo'ya 100'lük
+ * parçalar. `claimAndSend`'in alıcı başına 3-4 sorgusu burada yok.
+ */
+async function sendToMany(
+  admin: SupabaseClient,
+  input: {
+    eventType: EventBody["type"];
+    eventId: string;
+    recipientIds: string[];
+    content: PushContent;
+  },
+): Promise<{ sent: number; skipped: number }> {
+  if (!input.recipientIds.length) return { sent: 0, skipped: 0 };
+
+  const { data: claimed, error: claimError } = await admin
+    .from("notification_deliveries")
+    .upsert(
+      input.recipientIds.map((recipientId) => ({
+        event_type: input.eventType,
+        event_id: input.eventId,
+        recipient_id: recipientId,
+        status: "processing",
+      })),
+      { onConflict: "event_type,event_id,recipient_id", ignoreDuplicates: true },
+    )
+    .select("recipient_id");
+  if (claimError) throw claimError;
+  const claimedIds = (claimed ?? []).map(({ recipient_id }) => recipient_id as string);
+  if (!claimedIds.length) return { sent: 0, skipped: input.recipientIds.length };
+
+  const { data: tokens, error: tokenError } = await admin
+    .from("push_tokens")
+    .select("token,user_id")
+    .in("user_id", claimedIds);
+  if (tokenError) throw tokenError;
+
+  const withToken = new Set((tokens ?? []).map(({ user_id }) => user_id as string));
+  const withoutToken = claimedIds.filter((id) => !withToken.has(id));
+  if (withoutToken.length) {
+    await admin
+      .from("notification_deliveries")
+      .update({ status: "skipped" })
+      .eq("event_type", input.eventType)
+      .eq("event_id", input.eventId)
+      .in("recipient_id", withoutToken);
+  }
+
+  const expoAccessToken = Deno.env.get("EXPO_ACCESS_TOKEN");
+  const messages = (tokens ?? []).map(({ token }) => ({
+    to: token,
+    sound: "default",
+    channelId: "petmatch",
+    title: input.content.title,
+    body: input.content.body,
+    data: input.content.data,
+  }));
+  const invalidTokens: string[] = [];
+  let failed = false;
+  for (let index = 0; index < messages.length; index += 100) {
+    const chunk = messages.slice(index, index + 100);
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(expoAccessToken ? { Authorization: `Bearer ${expoAccessToken}` } : {}),
+      },
+      body: JSON.stringify(chunk),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      failed = true;
+      continue;
+    }
+    const tickets = Array.isArray(payload?.data) ? payload.data : [];
+    tickets.forEach((ticket: Record<string, unknown>, ticketIndex: number) => {
+      const details = ticket.details as Record<string, unknown> | undefined;
+      if (details?.error === "DeviceNotRegistered") {
+        invalidTokens.push(chunk[ticketIndex].to);
+      }
+    });
+  }
+  if (invalidTokens.length) {
+    await admin.from("push_tokens").delete().in("token", invalidTokens);
+  }
+
+  const deliveredIds = claimedIds.filter((id) => withToken.has(id));
+  if (deliveredIds.length) {
+    await admin
+      .from("notification_deliveries")
+      .update(
+        failed
+          ? { status: "failed", last_error: "Expo Push API chunk failed" }
+          : { status: "sent", sent_at: new Date().toISOString() },
+      )
+      .eq("event_type", input.eventType)
+      .eq("event_id", input.eventId)
+      .in("recipient_id", deliveredIds);
+  }
+  return { sent: failed ? 0 : deliveredIds.length, skipped: withoutToken.length };
 }
 
 function haversineKm(
@@ -302,6 +410,50 @@ Deno.serve(async (request) => {
             ? "Sahip + pet doğrulama rozetin artık aktif."
             : "Başvurun için açıklama ve yeniden gönderim adımları hazır.",
           data: { type: "verification" },
+        },
+      });
+      return json({ status: result });
+    }
+
+    if (body.type === "park_checkin") {
+      const { data: checkin, error: checkinError } = await admin
+        .from("park_checkins")
+        .select("id,user_id,pet_id,place_id,ended_at,ends_at")
+        .eq("id", body.checkinId)
+        .single();
+      if (
+        checkinError ||
+        !checkin ||
+        checkin.user_id !== authData.user.id ||
+        checkin.ended_at !== null ||
+        new Date(checkin.ends_at).getTime() <= Date.now()
+      ) {
+        return json({ error: "Park check-in not found" }, 404);
+      }
+
+      const [{ data: pet }, { data: place }, { data: recipients, error: recipientsError }] =
+        await Promise.all([
+          admin.from("pets").select("name").eq("id", checkin.pet_id).single(),
+          admin.from("meetup_places").select("name").eq("id", checkin.place_id).single(),
+          admin.rpc("park_checkin_recipients", { p_checkin_id: checkin.id }),
+        ]);
+      if (recipientsError) throw recipientsError;
+      if (!pet || !place) return json({ error: "Park check-in not found" }, 404);
+
+      const minutesLeft = Math.max(
+        0,
+        Math.round((new Date(checkin.ends_at).getTime() - Date.now()) / 60_000),
+      );
+      const result = await sendToMany(admin, {
+        eventType: "park_checkin",
+        eventId: checkin.id,
+        recipientIds: ((recipients ?? []) as { user_id: string }[]).map(
+          ({ user_id }) => user_id,
+        ),
+        content: {
+          title: `${pet.name} şimdi ${place.name}'nda 🐾`,
+          body: `Yaklaşık ${minutesLeft} dk orada. Katılmak için eşleşmen gerekmiyor.`,
+          data: { type: "park_checkin" },
         },
       });
       return json({ status: result });

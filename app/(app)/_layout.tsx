@@ -22,7 +22,7 @@ function TabIcon({
   color,
   focused,
 }: {
-  name: "paw-print" | "heart" | "message-circle" | "user";
+  name: "paw-print" | "map-pin" | "heart" | "message-circle" | "user";
   color: string;
   focused: boolean;
 }) {
@@ -98,6 +98,15 @@ export default function AppLayout() {
           title: "Keşfet",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="paw-print" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="park"
+        options={{
+          title: "Park",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="map-pin" color={color} focused={focused} />
           ),
         }}
       />

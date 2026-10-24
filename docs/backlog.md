@@ -495,9 +495,22 @@ yazmıyor), 10 mesajda istemci `id`. Sıra raporun §3'ünde.
 
 **Ürün — inceleme §7'den çıkan yeni maddeler (karar bekliyor):**
 
-- [ ] **"Şimdi parktayım" (anlık, eşleşmesiz buluşma).** Boş deste ve
-      günlük geri dönüş nedeni sorununu birlikte çözen tek özellik; pilotun
-      üç ilçesinde yoğunluk kaldıracı. Rapor §7.1.
+- [x] **"Şimdi parktayım" (anlık, eşleşmesiz buluşma) — v1 bu PR'da.**
+      `20261024160000_park_now.sql` + `send-notification` `park_checkin`
+      türü (alıcılar SQL'de, toplu gönderim) + **Park** sekmesi
+      (`app/(app)/park.tsx`). Yalnız bölgedeki doğrulanmış yerler, 30–180
+      dk pencere, kullanıcı başına tek açık check-in, 24 saatte 4; alıcıya
+      2 saatte en fazla 1 park bildirimi, en fazla 200 alıcı; engel iki
+      yönde, sahip adı yalnız `public`'te; serbest metin/konum yok.
+      Testler: `park-now.test.sql` (16 assert), `core/api/park.test.ts`.
+  - [ ] **Karar:** Park ikinci sekme oldu → 5 sekme (L487 "5. sekme" kararı
+        bununla birlikte verilmeli). Öneri: pilotun ilk ayında Park ana
+        ekran, Keşfet ikinci.
+  - [ ] **Veri:** Beşiktaş'ta doğrulanmış yer yok → orada özellik boş
+        görünür; Nişantaşı'nda 1, Kadıköy'de 3 yer. Saha teyidi (`0052`).
+  - [ ] Sonraki tur: "buluştunuz mu?" (`0036`) park check-in'ine bağlansın;
+        "paylaş + yoklama" (`benchmark.md` §4) buraya otursun; huni ölçümü
+        `park_checkin_started` → aynı yerde ikinci check-in.
 - [ ] **Uyum skoruna boyut.** Köpek buluşmasında en belirleyici değişken
       (`pets.size`) skorda yok (`core/domain/matching.ts` ağırlıkları: enerji,
       tür, mizaç, yaş). Küçük iş, Opus.

@@ -61,6 +61,7 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   swipes: "Çok hızlı karar veriyorsun. Biraz bekleyip tekrar dene.",
   super_likes: "Bugünkü süper beğeni hakkın doldu. Yarın tekrar dene.",
   reports: "Kısa sürede çok fazla şikâyet gönderdin. Biraz sonra tekrar dene.",
+  park_checkins: "Bugün yeterince park bildirimi açtın. Yarın tekrar dene.",
 };
 
 const RATE_LIMIT_FALLBACK = "Çok hızlı işlem yapıyorsun. Biraz bekleyip tekrar dene.";
