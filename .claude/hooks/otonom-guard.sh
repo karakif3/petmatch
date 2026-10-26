@@ -15,9 +15,10 @@
 #     eşleşmeden ÖNCE silinir (kuyruk/rapor yazan heredoc'ta "gh pr merge" geçmesi yanlış pozitif üretmez).
 #   - Kural her segmentin BAŞINA bakar (zincirdeki `--base main` argümanı push kuralını tetiklemez).
 #   - git push: yalnız `otonom/*` dalına (açıkça ya da HEAD mevcut dal otonom/* ise). Force her biçimde yasak.
+#   - `with-secrets NAME=ENV -- cmd` sarmalayıcısı delinir: kurallar `cmd`'ye uygulanır (F10).
 #   - Engellenince stderr'e "otonom-guard: engellendi: <kural> — <segment>" ve exit 2.
 # Girdi: stdin'de Claude Code hook JSON'u ({"tool_input":{"command":"..."}}).
-OTONOM_GUARD_SURUM=2
+OTONOM_GUARD_SURUM=3
 
 # --- repoya özel ek yasaklar (yalnız bu blok düzenlenir; düzenli ifade, segment başına uygulanır) ---
 EK_YASAK=(   # petmatch — repos.yaml harita.tehlikeli + gorev-petmatch.md 'Kesin yasaklar' (QA script'leri prod'a yazar; test:db serbest)
@@ -69,6 +70,7 @@ for seg in re.split(r"&&|\|\||;|\||\n",s):
     seg=seg.strip()
     seg=re.sub(r"^(sudo|env|time|nice|nohup|command)\s+","",seg)
     seg=re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+","",seg)   # FOO=bar cmd
+    seg=re.sub(r"^(\S*/)?with-secrets\s+.*?\s--\s+","",seg)   # with-secrets … -- CMD → CMD (sarmalayıcı yetki vermez)
     if seg: print(seg)
 ')"
 
