@@ -79,6 +79,27 @@ fiziksel cihaz build'i üzerinde denenir.
 > repoda henüz yok. Bu makinede başka bir projenin yerel yığını ayakta
 > olabilir — portlar çakışırsa `config.toml` içinde değiştir.
 
+### EAS hesabı ve build kotası
+
+Expo Free planda bulut build kotası **hesap/organizasyon başına aylık 30**
+build'dir (Ekim 2026'da kontrol edildi: `karakif` ve `karakifs-team` ayrı ayrı 30).
+Projenin `app.json` → `expo.owner` alanı hangi hesabın kotasını harcadığını belirler.
+
+- `karakif` (kişisel) hesabın kotasını **Doktorumla** kullanıyor (Ekim 2026: 30'un 26'sı).
+  Bu projenin bulut build'leri oraya düşerse Doktorumla'nın mağaza build'lerini
+  engelleyebilir. Tellora ayrı organizasyonda (`karakifs-team`).
+- **Kural:** bu proje bulut build almaya başlamadan önce kendi Expo
+  organizasyonuna alınır (sahibe sorulur; organizasyon adı sahip kararı).
+- Kota kontrolü: `npx eas-cli account:usage <hesap> --non-interactive`.
+- Bulut build son çare: doğrulama `eas build --local` / `expo run:*` ile yapılır,
+  kotaya dokunmaz.
+- Ayrı organizasyon gerçek ürün ayrımı içindir; aynı uygulamayı limit aşmak için
+  hesaplara bölmeyin. Kota yetmezse ücretli Expo planı değerlendirilir.
+- **PetMatch durumu:** `owner` şu an `karakif` (projectId
+  `d6007ab9-…`). Ayrı organizasyona geçiş = Expo Project settings → Transfer
+  project (sınırlı sayıda yapılabilir), sonra `owner` güncellenir. Mağaza
+  sürümü yokken yapmak en kolayı; önce `eas credentials` yedeği alınır.
+
 ### iOS simülatöründe çalıştırma
 
 `npm run ios` (`expo run:ios`) bu geliştirme makinesinde **simülatör için
