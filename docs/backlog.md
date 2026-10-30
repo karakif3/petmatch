@@ -470,17 +470,18 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
 
 **Yayından önce — ürünü sessizce bozanlar**
 
-- [ ] **Push izni hiç istenmiyor (en kritik).** Açılıştaki
-      `syncPushRegistration` yalnız izin zaten verilmişse kaydediyor
-      (`core/api/notifications.ts:125-131`). İzin isteyen tek iki yer:
-      Profil'de anahtarı değiştirip kaydetmek (`profile.tsx:293`) ve boş
-      destede "Yeni pet gelince bildir" (`index.tsx:427`). Anahtarlar sunucudan
-      AÇIK geldiği için tipik kullanıcı hiç sorulmuyor → eşleşme ve mesaj
-      push'ı fiilen kimseye gitmiyor; iki cihaz testi bunu "geçti" sayabilir
-      çünkü test hesabı anahtara dokunmuştur. Yapılacak: onboarding'in son
-      adımında ya da ilk eşleşme kutlamasında, gerekçeli bir ön ekran
-      (pre-prompt) sonrası sistem izni; red edilirse Profil'de ayarlara
-      götüren satır. Ölçüm: `push_permission_result` olayı.
+- [x] **Push izni hiç istenmiyor (en kritik) — 2026-10-31'de kapandı.**
+      Açılıştaki `syncPushRegistration` yalnız izin zaten verilmişse
+      kaydediyordu; izin isteyen tek iki yer Profil anahtarı ve boş destede
+      "haber ver"di, tipik kullanıcı hiç sorulmuyordu. Şimdi: gerekçeli ön
+      ekran (`components/push-permission-prompt.tsx`), ana uygulamaya
+      girişten 1,5 sn sonra ve eşleşme kutlaması kapanınca; karar saf ve
+      testli (`core/domain/push-prompt.ts`: izinliyse/kalıcı redse yok,
+      kaynak başına bir kez, iki istem arası ≥ 24 saat). Profil'de kalıcı
+      red için "Ayarlar'ı aç" satırı. Ölçüm: `push_permission_result`,
+      `notification_opened` (`20261031120000`, canlıda). Simülatörde
+      doğrulandı; gerçek token yalnız fiziksel cihazda — iki cihaz testine
+      (⛔ 3) "ön ekrandan izin ver" adımı eklenmeli.
 - [ ] **Bekleme listesi vaadi tutulmuyor.** "Bölgem açılınca haber ver"
       kaydediliyor (`0053`, `app/waitlist.tsx`) ama hiçbir kod o bildirimi
       göndermiyor; `send-notification` event türlerinde yok. Bölge `pilot`'a
