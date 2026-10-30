@@ -31,6 +31,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppErrorBoundary } from "../components/app-error-boundary";
 import { InAppNotificationBanner } from "../components/in-app-notification-banner";
+import { PushPermissionPromptHost } from "../components/push-permission-prompt";
+import { trackProductEvent } from "../core/api/observability";
 import { AppPressable } from "../components/ui/pressable";
 
 if (__DEV__) {
@@ -115,6 +117,9 @@ function NotificationEffects() {
       handledResponseId.current = responseId;
 
       const data = response.notification.request.content.data;
+      void trackProductEvent("notification_opened", {
+        type: typeof data.type === "string" ? data.type : "unknown",
+      });
       const conversationId =
         typeof data.conversationId === "string" ? data.conversationId : null;
       if ((data.type === "message" || data.type === "match") && conversationId) {
@@ -280,6 +285,7 @@ export default function RootLayout() {
             ) : (
               <>
                 <NotificationEffects />
+                <PushPermissionPromptHost />
                 <ActivityEffects />
                 <LocalizationEffects />
                 <StatusBar style="dark" />

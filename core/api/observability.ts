@@ -30,7 +30,12 @@ export type ProductEventName =
   | "discovery_segment_changed"
   | "adoption_surface_viewed"
   | "adoption_interest_sent"
-  | "account_delete_requested";
+  | "account_delete_requested"
+  // Push'un değeri ölçülmeden yönetilemez: izin hunisi (ön ekran → sistem
+  // penceresi → sonuç) ve bildirime dokunup gelen oturumlar. 2026-10-24
+  // incelemesine kadar ikisi de kördü.
+  | "push_permission_result"
+  | "notification_opened";
 
 export async function trackProductEvent(
   eventName: ProductEventName,

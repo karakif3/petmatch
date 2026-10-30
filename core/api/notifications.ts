@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 
 import { requireSupabaseClient } from "./supabase.client";
 import { errorMessage } from "../../core/domain/error-message";
+import type { PushPermissionStatus } from "../../core/domain/push-prompt";
 
 const PUSH_TOKEN_STORAGE_KEY = "petmatch:expo-push-token";
 const NOTIFICATION_CHANNEL_ID = "petmatch";
@@ -120,6 +121,28 @@ export async function registerForPushNotifications(
         errorMessage(error, "Push bildirimi kaydedilemedi."),
     };
   }
+}
+
+export type PushPermissionSnapshot = {
+  status: PushPermissionStatus;
+  canAskAgain: boolean;
+};
+
+/**
+ * Cihazdaki izin durumu. Web'de null: orada push yok, soru da yok.
+ * Simülatörde gerçek durum döner — ön ekran orada da denenebilsin.
+ */
+export async function loadPushPermission(): Promise<PushPermissionSnapshot | null> {
+  if (Platform.OS === "web") return null;
+  const Notifications = await import("expo-notifications");
+  const permission = await Notifications.getPermissionsAsync();
+  const status: PushPermissionStatus =
+    permission.status === "granted"
+      ? "granted"
+      : permission.status === "denied"
+        ? "denied"
+        : "undetermined";
+  return { status, canAskAgain: permission.canAskAgain };
 }
 
 export async function syncPushRegistration(): Promise<void> {

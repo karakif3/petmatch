@@ -50,6 +50,7 @@ import { blockUser } from "../../core/api/safety";
 import { FEATURES } from "../../core/features";
 import type { SwipeDirection } from "../../core/domain/types";
 import { useAuthStore } from "../../stores/auth";
+import { requestPushPrompt } from "../../stores/push-prompt";
 import {
   setDiscoverProfileSession,
   takeDiscoverProfileSwiped,
@@ -971,10 +972,14 @@ export default function DiscoverScreen() {
             void trackProductEvent("match_chat_opened");
             router.push(`/chat/${conversationId}`);
           }
+          // İlk eşleşme izin istemek için en motive an; ev sahibi zaten
+          // izinliyse ya da bugün sorulduysa göstermez.
+          requestPushPrompt("first_match");
         }}
         onKeepBrowsing={() => {
           void trackProductEvent("match_celebration_dismissed");
           setMatch(null);
+          requestPushPrompt("first_match");
         }}
       />
     </SafeAreaView>

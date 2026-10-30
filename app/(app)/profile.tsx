@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   RefreshControl,
   ScrollView,
@@ -31,6 +32,7 @@ import {
 import { listRegions, setMyRegion } from "../../core/api/regions";
 import { deleteAccount } from "../../core/api/safety";
 import {
+  loadPushPermission,
   registerForPushNotifications,
   unregisterCurrentPushToken,
 } from "../../core/api/notifications";
@@ -130,6 +132,16 @@ export default function ProfileScreen() {
       coordinates !== null);
 
   const regions = useQuery({ queryKey: ["regions"], queryFn: listRegions });
+  // Cihaz izni kalıcı reddedildiyse anahtarlar AÇIK görünse de push gitmez;
+  // uygulama bir daha soramaz, tek yol Ayarlar. Odağa her dönüşte tazelenir
+  // ki kullanıcı Ayarlar'dan dönünce satır kendiliğinden kaybolsun.
+  const pushPermission = useQuery({
+    queryKey: ["push-permission"],
+    queryFn: loadPushPermission,
+    staleTime: 0,
+  });
+  const pushBlockedBySystem =
+    pushPermission.data?.status === "denied" && !pushPermission.data.canAskAgain;
   const pilotRegions = useMemo(
     () => (regions.data ?? []).filter((region) => region.isPilot),
     [regions.data],
@@ -713,6 +725,20 @@ export default function ProfileScreen() {
               value={notifyOnMessage}
               onValueChange={setNotifyOnMessage}
             />
+            {pushBlockedBySystem ? (
+              <>
+                <RowSeparator />
+                <Row
+                  icon="circle-alert"
+                  iconColor="#E5484D"
+                  iconBackground="bg-danger/10"
+                  title="Bildirim izni cihazda kapalı"
+                  detail="Eşleşme ve mesaj bildirimleri gelmiyor. Ayarlar'dan PetMatch için izni aç."
+                  onPress={() => void Linking.openSettings()}
+                  accessibilityHint="Cihaz ayarlarını açar"
+                />
+              </>
+            ) : null}
             <RowSeparator inset={false} />
             <Text className="px-4 py-3 text-xs leading-4 text-text-tertiary">
               {Platform.OS === "web"
