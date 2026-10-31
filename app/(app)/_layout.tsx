@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { Tabs } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +7,7 @@ import { AppIcon } from "../../components/ui/icon";
 import { listConversations } from "../../core/api/conversations";
 import { loadPendingLikesCount } from "../../core/api/likes";
 import { useAuthStore } from "../../stores/auth";
+import { requestPushPrompt } from "../../stores/push-prompt";
 
 /**
  * Sekme ikonu: seçiliyken DOLU, değilken ÇİZGİ (outline) yüz + seçili
@@ -45,6 +47,16 @@ function TabIcon({
 
 export default function AppLayout() {
   const user = useAuthStore((state) => state.user);
+
+  // Ana uygulamaya ilk girişte (onboarding biter bitmez) push izni ön ekranı.
+  // Deste önce çizilsin, soru boş ekranın üstüne gelmesin diye kısa gecikme.
+  // Bir kez sorulduğu ve izin verildiyse hiç sorulmadığı ev sahibinde
+  // (`PushPermissionPromptHost`) garanti; burası yalnız sinyal verir.
+  useEffect(() => {
+    if (!user) return;
+    const timer = setTimeout(() => requestPushPrompt("first_session"), 1500);
+    return () => clearTimeout(timer);
+  }, [user]);
 
   // Aynı sorgu anahtarları Beğeniler/Eşleşmeler ekranlarının kendisiyle
   // paylaşılıyor (`likes.tsx`, `matches.tsx`) — React Query önbelleği
