@@ -575,6 +575,29 @@ sayaç/ekonomisi (ödeme kararına bağlı, madde 9).
 > yeniden kabul maddesi, legal-checklist'teki `2026-08-22-v3` kapısıyla
 > çelişiyor. Bir sonraki doküman turunda temizlenmeli.
 
+### 2026-11-03 — Premium his + kalite adayları (karar: planda kalsın, sıra gelince)
+
+İkisi de Faz 0 ilkesiyle uyumlu: mekanik şimdi ücretsiz yazılır, Faz 1'de
+sunucu ayarıyla ücretli katmana bağlanır ([`monetization.md`](monetization.md)).
+
+- [ ] **"Şimdi parkta" — canlı buluşma durumu.** Tek dokunuşla "Şu an
+      Maçka Parkı'ndayım, ~1 saat"; yalnız doğrulanmış mekân listesinden
+      (`meetup_places`), 2 saatte kendiliğinden düşer; yalnız eşleşmeler
+      görür, eşleşmelere push ("Kömür şu an Maçka Parkı'nda — gelmek ister
+      misin?"), Mesajlar'da rozet, sohbette tek dokunuşla "Geliyorum"
+      (`MeetupCard` deseni). Sohbet → buluşma dönüşümünü günlerden
+      dakikalara indirir; kuzey yıldızı metriğe (buluşma) doğrudan vurur.
+      Ham konum yok, 0007 üçgenleme savunmasıyla uyumlu. Faz 1 premium
+      kapısı: "eşleşmelerim dışında yakınımda şu an parkta olanlar".
+      Kapsam: `park_checkins` tablosu + RLS, RPC, `park_checkin` push türü,
+      3 ekran dokunuşu. ~2-3 gün.
+- [ ] **"Neden %83 uyum?" — açıklanabilir uyum.** Rozet opak; skor dört
+      bileşenden geliyor (`core/domain/matching.ts`: enerji, tür, mizaç,
+      yaş). Profilde 2-3 gerekçe çipi ("Enerjisi Luna'ya yakın · Yaşıtlar ·
+      İkisi de kedilerle iyi") ve eksikse dürtü ("Luna kedilerle iyi mi?
+      Bilinmiyor — profilde işaretle"). Tamamen istemci tarafı, ~yarım gün.
+      Faz 1'de "detaylı uyum raporu" premium'a bağlanabilir.
+
 ### Kararı bekleyenler
 
 - **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Pilot bugün
