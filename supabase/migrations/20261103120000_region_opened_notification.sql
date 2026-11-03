@@ -29,15 +29,23 @@ alter table notification_deliveries
     'match', 'message', 'new_candidate', 'super_like', 'verification', 'region_opened'
   ));
 
-/** Türkçe harfleri katlayıp küçültür: "Beşiktaş " → "besiktas". */
+/**
+ * Türkçe harfleri katlayıp küçültür: "Beşiktaş " → "besiktas".
+ * Büyük harfler lower()'dan ÖNCE katlanır: lower('İ') birçok locale'de
+ * "i + birleşik nokta" üretiyor, C locale'de ise ASCII dışını hiç
+ * küçültmüyor — ikisi de eşlemeyi bozar.
+ */
 create function normalize_location(p_text text)
 returns text
 language sql
 immutable
 strict
 as $$
-  select translate(lower(trim(p_text)), 'çğıöşüâîû', 'cgiosuaiu');
+  select lower(translate(trim(p_text), 'ÇĞİIÖŞÜÂÎÛçğıöşüâîû', 'CGIIOSUAIUcgiosuaiu'));
 $$;
+
+revoke all on function normalize_location(text) from public, anon;
+grant execute on function normalize_location(text) to authenticated;
 
 create function region_opening_recipients(p_region_slug text)
 returns table (
