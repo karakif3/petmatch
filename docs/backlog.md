@@ -482,12 +482,18 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
       `notification_opened` (`20261031120000`, canlıda). Simülatörde
       doğrulandı; gerçek token yalnız fiziksel cihazda — iki cihaz testine
       (⛔ 3) "ön ekrandan izin ver" adımı eklenmeli.
-- [ ] **Bekleme listesi vaadi tutulmuyor.** "Bölgem açılınca haber ver"
-      kaydediliyor (`0053`, `app/waitlist.tsx`) ama hiçbir kod o bildirimi
-      göndermiyor; `send-notification` event türlerinde yok. Bölge `pilot`'a
-      çekilince e-posta + push atan tek bir yol lazım (Edge Function'a
-      `region_opened` türü, tetik: `regions.status` güncellemesi).
-      Pilot dışı her kayıt şu an kayıp kullanıcı.
+- [x] **Bekleme listesi vaadi tutulmuyor — 2026-11-03'te kapandı.**
+      "Bölgem açılınca haber ver" kaydediliyordu ama hiçbir kod göndermiyordu.
+      Şimdi: bölge migration'la pilot'a çekilince moderatör Operasyon
+      merkezindeki "Bölge açılışı" panelinden "Haber ver (N)" der;
+      `send-notification` (`region_opened`) alıcıları
+      `region_opening_recipients`'tan alır (Türkçe harfler katlanır, bölge
+      adı ya da şehri geçen ve haber isteyenler), bölge başına kullanıcıya
+      bir kez (`regions.opened_event_id`). Bekleme ekranı "haber ver"
+      işaretlenince push izni ister ve açılan bölgeye tek dokunuşla
+      geçirir. `20261103120000`, canlıda; fonksiyon deploy edildi.
+      Runbook: yeni pilot bölge açarken migration'dan sonra paneldeki
+      düğmeye basmayı unutma.
 - [ ] **Fotoğraf yükleme: boyutlandırma yok.** Yalnız `quality: 0.85`
       (`onboarding.tsx:346`, `profile/pet.tsx`, `profile/owner.tsx`);
       12 MB'a kadar tam çözünürlük, sırayla yükleniyor. Onboarding'in en
