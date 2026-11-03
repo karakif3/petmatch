@@ -113,6 +113,8 @@ describe("isPermanentError", () => {
     expect(isPermanentError(new TypeError("Network request failed"))).toBe(false);
     expect(isPermanentError({ message: "timeout", code: "57014" })).toBe(false);
     expect(isPermanentError({ status: 503 })).toBe(false);
+    // Saat farkı: yeni yenilenmiş token birkaç saniye "gelecekten" sayılır.
+    expect(isPermanentError({ message: "JWT issued at future", code: "PGRST303" })).toBe(false);
     expect(isPermanentError(null)).toBe(false);
   });
 });
