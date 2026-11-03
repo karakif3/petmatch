@@ -133,10 +133,18 @@ describe("sendMessage", () => {
   it("başarıda message_sent analytics olayı bir kez gönderilir", async () => {
     buildClient({ data: messageRow, error: null });
 
-    await sendMessage({ conversationId: "conv-1", senderId: "user-1", body: "Merhaba" });
+    await sendMessage({
+      conversationId: "conv-1",
+      senderId: "user-1",
+      body: "Merhaba",
+      context: { is_first: true, is_reply: false },
+    });
 
     expect(mocks.trackProductEvent).toHaveBeenCalledTimes(1);
-    expect(mocks.trackProductEvent).toHaveBeenCalledWith("message_sent");
+    expect(mocks.trackProductEvent).toHaveBeenCalledWith("message_sent", {
+      is_first: true,
+      is_reply: false,
+    });
   });
 
   it("bildirim isteği reddedilirse mesaj yine döner (hata loglanır, fırlatılmaz)", async () => {

@@ -1,11 +1,13 @@
-import { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { AppState, StyleSheet, View } from "react-native";
 import { Tabs } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppIcon } from "../../components/ui/icon";
 
 import { listConversations } from "../../core/api/conversations";
 import { loadPendingLikesCount } from "../../core/api/likes";
+import { trackProductEvent } from "../../core/api/observability";
+import { shouldTrackAppOpen } from "../../core/domain/funnel";
 import { useAuthStore } from "../../stores/auth";
 import { requestPushPrompt } from "../../stores/push-prompt";
 
@@ -56,6 +58,24 @@ export default function AppLayout() {
     if (!user) return;
     const timer = setTimeout(() => requestPushPrompt("first_session"), 1500);
     return () => clearTimeout(timer);
+  }, [user]);
+
+  // Huni: aktif kullanım. Arka plandan her dönüş değil, 30 dk'dan uzun
+  // aradan sonraki dönüş yeni açılış sayılır.
+  const lastAppOpenRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    const track = () => {
+      const now = Date.now();
+      if (!shouldTrackAppOpen(lastAppOpenRef.current, now)) return;
+      lastAppOpenRef.current = now;
+      void trackProductEvent("app_opened");
+    };
+    track();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") track();
+    });
+    return () => subscription.remove();
   }, [user]);
 
   // Aynı sorgu anahtarları Beğeniler/Eşleşmeler ekranlarının kendisiyle

@@ -1,3 +1,4 @@
+import { trackProductEvent } from "../core/api/observability";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -290,6 +291,12 @@ export default function OnboardingScreen() {
     });
   };
 
+  // Huni: kayıt hangi adımda kopuyor. 4. adımın sonu `onboarding_completed`.
+  const completeStep = (next: 1 | 2 | 3) => {
+    void trackProductEvent("onboarding_step_completed", { step: next });
+    setStep(next);
+  };
+
   const next = () => {
     setError(null);
     setFieldErrors({});
@@ -303,7 +310,7 @@ export default function OnboardingScreen() {
       if (needsManualCity && city.trim().length < 2) {
         return setFieldErrors({ city: "Bulunduğun ilçe veya şehri yazmalısın." });
       }
-      setStep(1);
+      completeStep(1);
       return;
     }
     if (step === 1) {
@@ -313,7 +320,7 @@ export default function OnboardingScreen() {
             "Yaklaşık konum için açık rıza vermeli veya konumu kaldırmalısın.",
         });
       }
-      setStep(2);
+      completeStep(2);
       return;
     }
     if (step === 2) {
@@ -322,7 +329,7 @@ export default function OnboardingScreen() {
       }
       if (!species) return setFieldErrors({ species: "Petinin türünü seçmelisin." });
       if (!gender) return setFieldErrors({ gender: "Petinin cinsiyetini seçmelisin." });
-      setStep(3);
+      completeStep(3);
     }
   };
 
