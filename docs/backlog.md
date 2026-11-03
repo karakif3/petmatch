@@ -509,13 +509,17 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
       günü `Confirm email` açılınca (L429) bu kayıt hunisinin ilk kırığı
       olur. Çözüm: `https://…/auth/callback` universal link + web'de
       "uygulamada aç" sayfası; alternatif OTP kodu ile doğrulama.
-- [ ] **Mağaza inceleme riskleri (ucuz, bir oturum).** Kamera izin metni
-      yalnız doğrulamadan söz ediyor ama kamera pet/avatar fotoğrafında da
-      kullanılıyor (`app.json:24,64`) — Apple metin/kullanım uyumsuzluğuna
-      ret verebiliyor. `ios.privacyManifests` yok: toplanan veri türleri
-      (fotoğraf, konum, mesaj) app.json'da beyan edilmeli; `ios/` git
-      dışında olduğu için üretilen PrivacyInfo yeterli değil. Android
-      bildirim ikonu yok (varsayılan beyaz kare).
+- [x] **Mağaza inceleme riskleri — 2026-11-04'te kapandı.** Kamera izin
+      metni artık pet/sahip fotoğrafını da söylüyor (`app.json` iki yer +
+      `locales/tr.json`). `ios.privacyManifests`: 12 toplanan veri türü
+      (`legal-release-checklist.md` envanteriyle aynı; hepsi kimliğe bağlı,
+      izleme yok) + RN'nin 4 API beyanı — `ios/` git dışında olduğu için
+      artık CNG'de kayboluyor değil. Android bildirim ikonu ve tema
+      (monochrome) ikonu beyaz siluet olarak üretildi; önceden varsayılan
+      kare ve renkli ön plan kullanılıyordu. Geçici `prebuild` ile üretilen
+      native dosyalar doğrulandı. **Kalan (manuel, yayın sahibinde):** App
+      Store Connect "App Privacy" ve Google Play "Data safety" formları bu
+      manifestle aynı içerikle doldurulmalı.
 - [ ] **OTA güncelleme yolu yok.** `expo-updates` ve `runtimeVersion` yok;
       yayın sonrası her JS düzeltmesi mağaza incelemesi bekler (1–3 gün).
       İlk haftanın hataları için en ucuz sigorta. SDK 57 geçişiyle (L396)
