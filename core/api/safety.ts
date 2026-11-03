@@ -34,11 +34,15 @@ export async function reportContent(input: {
   return data;
 }
 
-export async function blockUser(userId: string): Promise<void> {
+export async function blockUser(
+  userId: string,
+  source: "discovery" | "chat",
+): Promise<void> {
   const { error } = await requireSupabaseClient().rpc("block_user", {
     p_blocked_id: userId,
   });
   if (error) throw error;
+  void trackProductEvent("user_blocked", { source });
 }
 
 export async function unmatchConversation(conversationId: string): Promise<void> {
@@ -46,6 +50,7 @@ export async function unmatchConversation(conversationId: string): Promise<void>
     p_conversation_id: conversationId,
   });
   if (error) throw error;
+  void trackProductEvent("match_unmatched");
 }
 
 export async function deleteAccount(): Promise<void> {

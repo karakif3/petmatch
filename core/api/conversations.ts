@@ -238,6 +238,8 @@ export async function sendMessage(input: {
   conversationId: string;
   senderId: string;
   body: string;
+  /** Huni: ilk mesaj / yanıt ayrımı (`outgoingMessageContext`). */
+  context?: { is_first: boolean; is_reply: boolean };
 }): Promise<ChatMessage> {
   const body = input.body.trim();
   if (!body) throw new Error("Mesaj boş olamaz.");
@@ -258,7 +260,7 @@ export async function sendMessage(input: {
       console.error("Mesaj bildirimi gönderilemedi:", notificationError);
     },
   );
-  void trackProductEvent("message_sent");
+  void trackProductEvent("message_sent", input.context ?? {});
   return message;
 }
 

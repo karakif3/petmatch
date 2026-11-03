@@ -60,6 +60,7 @@ import {
 } from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
+import { outgoingMessageContext } from "../../core/domain/funnel";
 import { captureClientError } from "../../core/api/observability";
 import { OwnerSheet } from "../../components/owner-sheet";
 import {
@@ -281,6 +282,11 @@ export default function ChatScreen() {
         conversationId,
         senderId: user.id,
         body: text,
+        context: outgoingMessageContext(
+          messageItems,
+          user.id,
+          Boolean(messages.hasNextPage),
+        ),
       });
     },
     onMutate: (text) => {
@@ -392,7 +398,7 @@ export default function ChatScreen() {
     setSafetyBusy(true);
     setSendError(null);
     try {
-      if (action === "block") await blockUser(counterpartUserId!);
+      if (action === "block") await blockUser(counterpartUserId!, "chat");
       else await unmatchConversation(conversationId);
       setSafetyVisible(false);
       await Promise.all([

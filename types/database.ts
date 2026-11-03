@@ -1220,6 +1220,7 @@ export type Database = {
         }[]
       }
       get_operations_metrics: { Args: never; Returns: Json }
+      get_signup_funnel: { Args: { p_days?: number }; Returns: Json }
       haversine_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number

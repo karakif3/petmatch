@@ -1,3 +1,4 @@
+import type { FunnelStepKey } from "../domain/funnel";
 import { STORAGE_BUCKETS } from "./config";
 import { requireSupabaseClient } from "./supabase.client";
 import { requestNotificationDelivery } from "./notifications";
@@ -44,17 +45,29 @@ export type OperationsMetrics = {
   }[];
 };
 
+/** `get_signup_funnel`: son N günde kaydolanların kohort hunisi (tablolardan). */
+export type SignupFunnel = {
+  days: number;
+  steps: { key: FunnelStepKey; count: number }[];
+};
+
+export const SIGNUP_FUNNEL_DAYS = 30;
+
 export async function loadModerationOperations(): Promise<{
   items: ModerationQueueItem[];
   metrics: OperationsMetrics;
+  funnel: SignupFunnel | null;
 }> {
   const sb = requireSupabaseClient();
-  const [queueResult, metricsResult] = await Promise.all([
+  const [queueResult, metricsResult, funnelResult] = await Promise.all([
     sb.rpc("get_moderation_queue", { p_limit: 50 }),
     sb.rpc("get_operations_metrics"),
+    sb.rpc("get_signup_funnel", { p_days: SIGNUP_FUNNEL_DAYS }),
   ]);
   if (queueResult.error) throw queueResult.error;
   if (metricsResult.error) throw metricsResult.error;
+  // Huni ikincil bilgi: yüklenemezse moderasyon kuyruğu yine açılmalı.
+  if (funnelResult.error) console.warn("Kayıt hunisi alınamadı:", funnelResult.error.message);
 
   const items = await Promise.all(
     (queueResult.data ?? []).map(async (row) => {
@@ -93,6 +106,7 @@ export async function loadModerationOperations(): Promise<{
   return {
     items,
     metrics: metricsResult.data as unknown as OperationsMetrics,
+    funnel: funnelResult.error ? null : (funnelResult.data as unknown as SignupFunnel),
   };
 }
 

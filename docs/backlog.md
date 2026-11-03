@@ -527,7 +527,7 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
 
 **Yayından önce — "skor"u ölçülebilir kılanlar**
 
-- [ ] **Huni analitiği kayıt tarafında kör.** `product_events` kayıt,
+- [x] **Huni analitiği kayıt tarafında kör.** `product_events` kayıt,
       e-posta onayı, onboarding adımları (1–4), bekleme listesi, uygulama
       açılışı, push izni sonucu, bildirime dokunma olaylarını içermiyor
       (`core/api/observability.ts:5-32`); `message_sent`'in özelliği yok,
@@ -538,6 +538,16 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
       `block`, `unmatch`, `filter_applied`, `empty_deck_seen`. Bunlar
       olmadan [`launch.md`](launch.md) yoğunluk ölçümü ve P0-6 kararları
       hisle verilir. Olay adı kısıtı (`0051`) genişletilmeli.
+      **Yapıldı (2026-11-04, `20261104120000`):** `track_product_event` oturum
+      istediği için kayıt/e-posta onayı istemciden ölçülemiyor — bunlar
+      `get_signup_funnel(p_days)` kohort hunisinde tablolardan sayılıyor
+      (kayıt → onay → profil → kaydırma → eşleşme → mesaj → karşılıklı
+      konuşma → buluşma önerisi/kabulü), Operasyon merkezinde "Kayıt hunisi
+      · 30 gün". İstemci olayları: `onboarding_step_completed{step}`,
+      `waitlist_joined{notify}`, `app_opened` (30 dk oturum aralığı),
+      `message_sent{is_first,is_reply}`, `user_blocked{source}`,
+      `match_unmatched`, `filter_applied{active_count}`,
+      `empty_deck_seen{dismissed_count}`.
 
 **Yayın sonrası ilk tur — değeri belirgin, riski düşük**
 

@@ -60,6 +60,25 @@ import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
 import { AppIcon } from "../../components/ui/icon";
 
+/** Filtre düğmesindeki sayaç ve `filter_applied` olayı aynı sayıyı konuşur. */
+function countActiveFilters(
+  settings: DiscoveryFilterSettings,
+  owner: OwnerDiscoveryFilterInput,
+): number {
+  return (
+    Number(settings.species.length !== 2) +
+    Number(settings.petGenders.length !== 2) +
+    Number(settings.maxDistanceKm !== 25) +
+    Number(settings.minPetAgeYears !== null || settings.maxPetAgeYears !== null) +
+    Number(settings.requireVisibleOwner) +
+    Number(settings.requirePhoto) +
+    Number(settings.requireSocial) +
+    Number(settings.requireVerified) +
+    Number(owner.genders.length > 0) +
+    Number(owner.minAge !== null || owner.maxAge !== null)
+  );
+}
+
 export default function DiscoverScreen() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
@@ -174,6 +193,19 @@ export default function DiscoverScreen() {
   );
   const activeCards = segment === "owner_visible" ? ownerVisibleCards : visibleCards;
   const currentCard = activeCards[0] ?? null;
+
+  // Huni: deste bitti / hiç aday yok. Boş ekrana her GEÇİŞ bir kez sayılır;
+  // aynı boş ekranda yeniden çizim tekrar saymaz.
+  const deckEmpty = Boolean(deck.isSuccess && deck.data?.viewer && !currentCard);
+  const deckEmptyRef = useRef(false);
+  useEffect(() => {
+    if (deckEmpty && !deckEmptyRef.current) {
+      void trackProductEvent("empty_deck_seen", {
+        dismissed_count: dismissedIds.length,
+      });
+    }
+    deckEmptyRef.current = deckEmpty;
+  }, [deckEmpty, dismissedIds.length]);
   const stackedCards = activeCards.slice(1, 4);
 
   useEffect(() => {
@@ -372,7 +404,7 @@ export default function DiscoverScreen() {
           style: "destructive",
           onPress: () => {
             setSafetyBusy(true);
-            void blockUser(card.ownerId)
+            void blockUser(card.ownerId, "discovery")
               .then(async () => {
                 setDismissedIds((ids) => (ids.includes(card.id) ? ids : [...ids, card.id]));
                 setError(null);
@@ -409,6 +441,9 @@ export default function DiscoverScreen() {
       setOwnerFilters(local);
       setDismissedIds([]);
       setFilterVisible(false);
+      void trackProductEvent("filter_applied", {
+        active_count: countActiveFilters(persistent, local),
+      });
       await queryClient.invalidateQueries({ queryKey: ["discovery", user.id] });
     } catch (filterError) {
       const message = errorMessage(filterError, "Filtreler kaydedilemedi.");
@@ -445,16 +480,7 @@ export default function DiscoverScreen() {
   // yükleme sırasında olmayan filtreler sayılıyordu. Pet cinsiyeti filtresi
   // (0064) sayaca hiç girmiyordu.
   const activeFilterCount = filterSettings
-    ? Number(filterSettings.species.length !== 2) +
-      Number(filterSettings.petGenders.length !== 2) +
-      Number(filterSettings.maxDistanceKm !== 25) +
-      Number(filterSettings.minPetAgeYears !== null || filterSettings.maxPetAgeYears !== null) +
-      Number(filterSettings.requireVisibleOwner) +
-      Number(filterSettings.requirePhoto) +
-      Number(filterSettings.requireSocial) +
-      Number(filterSettings.requireVerified) +
-      Number(ownerFilters.genders.length > 0) +
-      Number(ownerFilters.minAge !== null || ownerFilters.maxAge !== null)
+    ? countActiveFilters(filterSettings, ownerFilters)
     : 0;
 
   return (

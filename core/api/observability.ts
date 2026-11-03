@@ -35,7 +35,17 @@ export type ProductEventName =
   // penceresi → sonuç) ve bildirime dokunup gelen oturumlar. 2026-10-24
   // incelemesine kadar ikisi de kördü.
   | "push_permission_result"
-  | "notification_opened";
+  | "notification_opened"
+  // Huni (20261104120000). Kayıt öncesi adımlar (kayıt, e-posta onayı)
+  // oturum gerektirdiği için burada değil, `get_signup_funnel`'da
+  // tablolardan sayılıyor.
+  | "onboarding_step_completed"
+  | "waitlist_joined"
+  | "app_opened"
+  | "user_blocked"
+  | "match_unmatched"
+  | "filter_applied"
+  | "empty_deck_seen";
 
 export async function trackProductEvent(
   eventName: ProductEventName,

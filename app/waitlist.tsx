@@ -1,3 +1,4 @@
+import { trackProductEvent } from "../core/api/observability";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -74,6 +75,7 @@ export default function RegionWaitlistScreen() {
         selectedSlug,
         isOutside ? { requestedLocation, notifyWhenOpen } : undefined,
       );
+      if (isOutside) void trackProductEvent("waitlist_joined", { notify: notifyWhenOpen });
       // "Haber ver" push demek; izin yoksa vaat boşa gider. Tercih kaydı
       // izinden bağımsız kalır — red edilse de talep sayılır.
       if (isOutside && notifyWhenOpen) {

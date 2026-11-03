@@ -24,6 +24,7 @@ import {
 } from "../../core/api/moderation";
 import { errorMessage } from "../../core/domain/error-message";
 import { RegionOpeningPanel } from "../../components/region-opening-panel";
+import { SignupFunnelCard } from "../../components/signup-funnel-card";
 
 export default function ModerationScreen() {
   const queryClient = useQueryClient();
@@ -80,7 +81,7 @@ export default function ModerationScreen() {
     );
   }
 
-  const { items, metrics } = operations.data;
+  const { items, metrics, funnel } = operations.data;
   return (
     <SafeAreaView className="flex-1 bg-bg-primary">
       <ScrollView
@@ -111,7 +112,9 @@ export default function ModerationScreen() {
           ))}
         </View>
 
-        <Text className="mb-3 text-lg font-bold text-text-primary">7 günlük funnel</Text>
+        {funnel ? <SignupFunnelCard funnel={funnel} /> : null}
+
+        <Text className="mb-3 text-lg font-bold text-text-primary">Olaylar · 7 gün</Text>
         <View className="mb-5 rounded-2xl border border-border bg-surface p-4">
           {Object.keys(metrics.funnel_7d).length ? (
             Object.entries(metrics.funnel_7d).map(([name, count]) => (
