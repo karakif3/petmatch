@@ -66,6 +66,21 @@ export function configureForegroundNotifications(): void {
     .catch(() => undefined);
 }
 
+/**
+ * Uygulama ikonundaki sayı = okunmamış mesaj toplamı. Push da aynı sayıyı
+ * taşıyor (`unread_message_count`); uygulama açıkken okununca burada
+ * düşüyor. Hata kullanıcıya gösterilmez — rozet kozmetik.
+ */
+export async function syncAppBadge(count: number): Promise<void> {
+  if (Platform.OS === "web") return;
+  try {
+    const Notifications = await import("expo-notifications");
+    await Notifications.setBadgeCountAsync(Math.max(0, count));
+  } catch (error) {
+    console.warn("Uygulama rozeti güncellenemedi:", error);
+  }
+}
+
 export async function registerForPushNotifications(
   requestPermission = true,
 ): Promise<PushRegistrationResult> {

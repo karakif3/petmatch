@@ -6,6 +6,7 @@ import { AppIcon } from "../../components/ui/icon";
 
 import { listConversations } from "../../core/api/conversations";
 import { loadPendingLikesCount } from "../../core/api/likes";
+import { syncAppBadge } from "../../core/api/notifications";
 import { trackProductEvent } from "../../core/api/observability";
 import { shouldTrackAppOpen } from "../../core/domain/funnel";
 import { useAuthStore } from "../../stores/auth";
@@ -95,6 +96,11 @@ export default function AppLayout() {
     (sum, conversation) => sum + conversation.unreadCount,
     0,
   );
+  // İkon rozeti sekme rozetiyle aynı sayıyı söylesin: push sayıyı artırıyor,
+  // okununca burada düşüyor. Yalnız başarılı yüklemede — hata 0 değildir.
+  useEffect(() => {
+    if (conversations.isSuccess) void syncAppBadge(unreadTotal);
+  }, [conversations.isSuccess, unreadTotal]);
 
   return (
     <Tabs

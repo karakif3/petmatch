@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 
-import { unregisterCurrentPushToken } from "../core/api/notifications";
+import { syncAppBadge, unregisterCurrentPushToken } from "../core/api/notifications";
 import { queryClient } from "../core/api/query-client";
 import { getSupabaseClient, requireSupabaseClient } from "../core/api/supabase.client";
 import { LEGAL_DOCUMENT_VERSION } from "../core/domain/legal";
@@ -267,6 +267,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // engellenmez. Sonraki girişte token yeni kullanıcıya yeniden atanır.
       console.error("Push tokenı kaldırılamadı:", error);
     }
+    // Rozet önceki hesabın okunmamışlarını göstermesin.
+    void syncAppBadge(0);
     const { error } = (await sb?.auth.signOut()) ?? { error: null };
     if (error) console.error("Oturum kapatılamadı:", error);
     // signOut ağ hatasında bile yerel oturumu siliyor; önbellek de gitmeli.

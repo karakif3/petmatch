@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.110.8";
 
+import { messagePushContent } from "./message-preview.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -17,6 +19,8 @@ type PushContent = {
   title: string;
   body: string;
   data: Record<string, string>;
+  /** Uygulama ikonundaki sayı. Verilmezse cihazdaki rozet değişmez. */
+  badge?: number;
 };
 
 function json(body: unknown, status = 200): Response {
@@ -85,6 +89,37 @@ function petAgeYears(birthDate: string | null): number | null {
   if (!birthDate) return null;
   return (Date.now() - new Date(`${birthDate}T00:00:00Z`).getTime()) /
     (365.25 * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Push başlığındaki gönderen: eşleşme konuşmasında gönderenin PET adı
+ * (uygulamada kimlik pet), bulunamazsa (sahiplendirme) sahibin adı.
+ */
+async function messageSenderLabel(
+  admin: SupabaseClient,
+  conversationId: string,
+  senderId: string,
+): Promise<string | null> {
+  const { data: match } = await admin
+    .from("matches")
+    .select("pet_a_id,pet_b_id")
+    .eq("conversation_id", conversationId)
+    .maybeSingle();
+  if (match) {
+    const { data: pet } = await admin
+      .from("pets")
+      .select("name")
+      .in("id", [match.pet_a_id, match.pet_b_id])
+      .eq("owner_id", senderId)
+      .maybeSingle();
+    if (pet?.name) return pet.name;
+  }
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("display_name")
+    .eq("id", senderId)
+    .maybeSingle();
+  return profile?.display_name ?? null;
 }
 
 async function claimAndSend(
@@ -178,6 +213,7 @@ async function claimAndSend(
           title: input.content.title,
           body: input.content.body,
           data: input.content.data,
+          ...(input.content.badge !== undefined ? { badge: input.content.badge } : {}),
         })),
       ),
     });
@@ -591,7 +627,7 @@ Deno.serve(async (request) => {
 
     const { data: message, error: messageError } = await admin
       .from("messages")
-      .select("id,conversation_id,sender_id")
+      .select("id,conversation_id,sender_id,body")
       .eq("id", body.messageId)
       .single();
     if (messageError || message?.sender_id !== authData.user.id) {
@@ -616,22 +652,40 @@ Deno.serve(async (request) => {
     const recipients = (participants ?? []).filter(
       ({ user_id }) => user_id !== authData.user.id,
     );
+    const senderLabel = await messageSenderLabel(
+      admin,
+      message.conversation_id,
+      authData.user.id,
+    );
     const results = await Promise.all(
-      recipients.map(({ user_id }) =>
-        claimAndSend(admin, {
+      recipients.map(async ({ user_id }) => {
+        const [{ data: preferences }, { data: unread }] = await Promise.all([
+          admin
+            .from("discovery_preferences")
+            .select("notify_message_preview")
+            .eq("user_id", user_id)
+            .maybeSingle(),
+          admin.rpc("unread_message_count", { p_user: user_id }),
+        ]);
+        return claimAndSend(admin, {
           eventType: "message",
           eventId: message.id,
           recipientId: user_id,
           content: {
-            title: "Yeni mesaj",
-            body: "PetMatch’te yeni bir mesajın var.",
+            ...messagePushContent({
+              // Satır yoksa kolon varsayılanı: açık.
+              previewEnabled: preferences?.notify_message_preview ?? true,
+              senderLabel,
+              body: message.body,
+            }),
             data: {
               type: "message",
               conversationId: message.conversation_id,
             },
+            ...(typeof unread === "number" ? { badge: unread } : {}),
           },
-        }),
-      ),
+        });
+      }),
     );
     return json({ status: results });
   } catch (error) {

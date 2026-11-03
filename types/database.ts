@@ -216,6 +216,7 @@ export type Database = {
           min_age_years: number | null
           notify_on_match: boolean
           notify_on_message: boolean
+          notify_message_preview: boolean
           notify_on_new_candidates: boolean
           pet_genders: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo: boolean
@@ -233,6 +234,7 @@ export type Database = {
           min_age_years?: number | null
           notify_on_match?: boolean
           notify_on_message?: boolean
+          notify_message_preview?: boolean
           notify_on_new_candidates?: boolean
           pet_genders?: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo?: boolean
@@ -250,6 +252,7 @@ export type Database = {
           min_age_years?: number | null
           notify_on_match?: boolean
           notify_on_message?: boolean
+          notify_message_preview?: boolean
           notify_on_new_candidates?: boolean
           pet_genders?: Database["public"]["Enums"]["pet_gender"][]
           require_owner_photo?: boolean
@@ -1610,8 +1613,13 @@ export type Database = {
         }
         Returns: string
       }
+      unread_message_count: { Args: { p_user: string }; Returns: number }
       update_notification_preferences: {
-        Args: { p_notify_on_match: boolean; p_notify_on_message: boolean }
+        Args: {
+          p_message_preview?: boolean
+          p_notify_on_match: boolean
+          p_notify_on_message: boolean
+        }
         Returns: undefined
       }
       update_owner_discovery_filters: {

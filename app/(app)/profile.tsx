@@ -109,6 +109,7 @@ export default function ProfileScreen() {
 
   const [notifyOnMatch, setNotifyOnMatch] = useState(true);
   const [notifyOnMessage, setNotifyOnMessage] = useState(true);
+  const [messagePreview, setMessagePreview] = useState(true);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
   const [regionBusy, setRegionBusy] = useState(false);
@@ -129,6 +130,7 @@ export default function ProfileScreen() {
     Boolean(profile.data) &&
     (notifyOnMatch !== profile.data!.notifications.onMatch ||
       notifyOnMessage !== profile.data!.notifications.onMessage ||
+      messagePreview !== profile.data!.notifications.messagePreview ||
       coordinates !== null);
 
   const regions = useQuery({ queryKey: ["regions"], queryFn: listRegions });
@@ -155,6 +157,7 @@ export default function ProfileScreen() {
     if (!profile.data) return;
     setNotifyOnMatch(profile.data.notifications.onMatch);
     setNotifyOnMessage(profile.data.notifications.onMessage);
+    setMessagePreview(profile.data.notifications.messagePreview);
     setCoordinates(null);
     setLeavingPool(false);
     setWaitlistLocation("");
@@ -177,6 +180,7 @@ export default function ProfileScreen() {
     if (!profile.data) return;
     setNotifyOnMatch(profile.data.notifications.onMatch);
     setNotifyOnMessage(profile.data.notifications.onMessage);
+    setMessagePreview(profile.data.notifications.messagePreview);
     setCoordinates(null);
     setLeavingPool(false);
     setWaitlistLocation("");
@@ -296,6 +300,7 @@ export default function ProfileScreen() {
         updateNotificationPreferences({
           onMatch: notifyOnMatch,
           onMessage: notifyOnMessage,
+          messagePreview,
         }),
       ]);
 
@@ -725,6 +730,18 @@ export default function ProfileScreen() {
               value={notifyOnMessage}
               onValueChange={setNotifyOnMessage}
             />
+            {notifyOnMessage ? (
+              <>
+                <RowSeparator />
+                <NotificationToggle
+                  icon="eye-off"
+                  label="Mesaj önizlemesi"
+                  detail="Bildirimde gönderen pet adını ve mesajın başını göster. Kapalıyken yalnızca 'Yeni mesaj' yazar."
+                  value={messagePreview}
+                  onValueChange={setMessagePreview}
+                />
+              </>
+            ) : null}
             {pushBlockedBySystem ? (
               <>
                 <RowSeparator />
