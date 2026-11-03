@@ -101,10 +101,21 @@ export function isRateLimited(error: unknown): boolean {
  * (42xxx, 23xxx, 22xxx), iş kuralı (P0001), PostgREST istek hatası ve hız
  * sınırı. Bunları tekrar denemek yalnızca kullanıcıyı bekletir.
  */
+/**
+ * Kalıcı görünen ama birkaç saniyede geçen PostgREST kodları.
+ *
+ * PGRST303 "JWT issued at future": oturum yeni yenilendiğinde Auth ile
+ * PostgREST arasındaki saat farkı yüzünden token birkaç saniye "gelecekten"
+ * sayılıyor. 2026-11-04'te soğuk açılışta tam ekran "Hesap bilgilerin
+ * alınamadı" olarak görüldü; ikinci deneme geçti.
+ */
+const TRANSIENT_CODES = new Set(["PGRST303"]);
+
 export function isPermanentError(error: unknown): boolean {
   if (isRateLimited(error)) return true;
   if (!error || typeof error !== "object") return false;
   const { code, status } = error as { code?: unknown; status?: unknown };
+  if (typeof code === "string" && TRANSIENT_CODES.has(code)) return false;
   if (typeof code === "string" && /^(42|23|22|P0|PGRST)/.test(code)) return true;
   return typeof status === "number" && status >= 400 && status < 500;
 }

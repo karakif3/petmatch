@@ -7,6 +7,7 @@ import { queryClient } from "../core/api/query-client";
 import { getSupabaseClient, requireSupabaseClient } from "../core/api/supabase.client";
 import { LEGAL_DOCUMENT_VERSION } from "../core/domain/legal";
 import { errorMessage } from "../core/domain/error-message";
+import { retryTransient } from "../core/domain/retry";
 import { clearDiscoverProfileSession } from "./discover-profile";
 
 /**
@@ -107,7 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (user) {
       try {
-        const status = await readAccountStatus(user.id);
+        const status = await retryTransient(() => readAccountStatus(user.id));
         onboarded = status.onboarded;
         set({ regionAccess: status.regionAccess, legalRequired: status.legalRequired });
       } catch (error) {
@@ -184,7 +185,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return;
     set({ onboardingStatusError: false });
     try {
-      const status = await readAccountStatus(user.id);
+      const status = await retryTransient(() => readAccountStatus(user.id));
       if (get().user?.id === user.id) {
         set({
           onboarded: status.onboarded,
