@@ -50,6 +50,48 @@ export async function setMyRegion(
   if (error) throw error;
 }
 
+export type RegionOpeningRecipient = {
+  userId: string;
+  requestedLocation: string;
+  alreadyNotified: boolean;
+};
+
+/** Moderatör: bu pilot bölge için "haber ver" diyen bekleme listesi. */
+export async function loadRegionOpeningRecipients(
+  regionSlug: string,
+): Promise<RegionOpeningRecipient[]> {
+  const { data, error } = await requireSupabaseClient().rpc("region_opening_recipients", {
+    p_region_slug: regionSlug,
+  });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    userId: row.user_id,
+    requestedLocation: row.requested_location,
+    alreadyNotified: row.already_notified,
+  }));
+}
+
+/**
+ * Moderatör: bölge açılış push'unu gönderir. Alıcıları Edge Function aynı
+ * RPC'den alır; daha önce bildirilenler tekilleştirmeyle atlanır, bu
+ * yüzden tekrar basmak güvenli.
+ */
+export async function notifyRegionOpened(
+  regionSlug: string,
+): Promise<{ sent: number; skipped: number; duplicate: number }> {
+  const { data, error } = await requireSupabaseClient().functions.invoke(
+    "send-notification",
+    { body: { type: "region_opened", regionSlug } },
+  );
+  if (error) throw error;
+  const statuses: string[] = Array.isArray(data?.status) ? data.status : [];
+  return {
+    sent: statuses.filter((status) => status === "sent").length,
+    skipped: statuses.filter((status) => status === "skipped").length,
+    duplicate: statuses.filter((status) => status === "duplicate").length,
+  };
+}
+
 export async function loadMyRegionWaitlist(): Promise<{
   requestedLocation: string;
   notifyWhenOpen: boolean;

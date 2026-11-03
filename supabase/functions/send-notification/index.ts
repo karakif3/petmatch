@@ -10,7 +10,8 @@ type EventBody =
   | { type: "message"; messageId: string }
   | { type: "new_candidate"; petId: string }
   | { type: "super_like"; swipeId: string }
-  | { type: "verification"; moderationItemId: string };
+  | { type: "verification"; moderationItemId: string }
+  | { type: "region_opened"; regionSlug: string };
 
 type PushContent = {
   title: string;
@@ -51,6 +52,13 @@ function eventBody(value: unknown): EventBody | null {
   }
   if (body.type === "verification" && isUuid(body.moderationItemId)) {
     return { type: "verification", moderationItemId: body.moderationItemId };
+  }
+  if (
+    body.type === "region_opened" &&
+    typeof body.regionSlug === "string" &&
+    /^[a-z0-9_-]{1,40}$/.test(body.regionSlug)
+  ) {
+    return { type: "region_opened", regionSlug: body.regionSlug };
   }
   return null;
 }
@@ -266,6 +274,53 @@ Deno.serve(async (request) => {
   if (!body) return json({ error: "Invalid notification event" }, 400);
 
   try {
+    if (body.type === "region_opened") {
+      // Alıcı seçimi tek yerde (SQL `region_opening_recipients`, moderatör
+      // kapılı). RPC çağıranın kendi oturumuyla yapılır: yetki kontrolü
+      // orada, burada ikinci bir rol sorgusu gerekmiyor.
+      const caller = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+        global: { headers: { Authorization: authorization } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const [{ data: recipients, error: recipientsError }, { data: region, error: regionError }] =
+        await Promise.all([
+          caller.rpc("region_opening_recipients", { p_region_slug: body.regionSlug }),
+          admin
+            .from("regions")
+            .select("slug,name,opened_event_id,is_pilot,is_active")
+            .eq("slug", body.regionSlug)
+            .single(),
+        ]);
+      if (recipientsError) {
+        return json(
+          { error: "Region recipients unavailable" },
+          recipientsError.code === "42501" ? 403 : 400,
+        );
+      }
+      if (regionError || !region?.is_pilot || !region.is_active) {
+        return json({ error: "Region is not open" }, 404);
+      }
+
+      const pending = (recipients ?? []).filter(
+        (recipient: { already_notified: boolean }) => !recipient.already_notified,
+      );
+      const results = await Promise.all(
+        pending.map((recipient: { user_id: string }) =>
+          claimAndSend(admin, {
+            eventType: "region_opened",
+            eventId: region.opened_event_id,
+            recipientId: recipient.user_id,
+            content: {
+              title: `${region.name} açıldı! 🎉`,
+              body: "Beklediğin bölge artık PetMatch'te. Bölgeni güncelle, keşfete başla.",
+              data: { type: "region_opened", regionSlug: region.slug },
+            },
+          }),
+        ),
+      );
+      return json({ status: results });
+    }
+
     if (body.type === "verification") {
       const [{ data: role }, { data: item, error: itemError }] = await Promise.all([
         admin

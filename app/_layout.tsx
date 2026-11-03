@@ -135,6 +135,11 @@ function NotificationEffects() {
         router.push("/(app)/likes");
       } else if (data.type === "verification") {
         router.push("/profile/owner");
+      } else if (data.type === "region_opened") {
+        // Kullanıcı hâlâ bekleme listesinde; ekran "bölgen açıldı" kartını
+        // gösterip tek dokunuşla geçirir. Bölge zaten değiştiyse guard
+        // ana uygulamaya yönlendirir.
+        router.push("/waitlist");
       }
     };
 
