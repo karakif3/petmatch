@@ -8,8 +8,10 @@ import { BrandMark } from "../components/brand-mark";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { AppPressable } from "../components/ui/pressable";
+import { registerForPushNotifications } from "../core/api/notifications";
 import { listRegions, loadMyRegionWaitlist, setMyRegion } from "../core/api/regions";
 import { errorMessage } from "../core/domain/error-message";
+import { findOpenedRegion } from "../core/domain/location-match";
 import { useAuthStore } from "../stores/auth";
 
 export default function RegionWaitlistScreen() {
@@ -30,6 +32,29 @@ export default function RegionWaitlistScreen() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [requestedLocation, setRequestedLocation] = useState("");
   const [notifyWhenOpen, setNotifyWhenOpen] = useState(false);
+  const [pushNotice, setPushNotice] = useState<string | null>(null);
+
+  // Talep ettiği yer bu arada açıldıysa (push'tan ya da kendiliğinden
+  // gelmiş olabilir) tek dokunuşla geçsin; "bölgeler listesinde kendin bul"
+  // demeyelim.
+  const openedRegion = useMemo(
+    () => findOpenedRegion(waitlist.data?.requestedLocation, pilotRegions),
+    [pilotRegions, waitlist.data?.requestedLocation],
+  );
+  const switchToOpenedRegion = useMutation({
+    mutationFn: async () => {
+      if (!openedRegion) return;
+      await setMyRegion(openedRegion.slug);
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["region-waitlist"] }),
+        queryClient.invalidateQueries({ queryKey: ["discovery"] }),
+        queryClient.invalidateQueries({ queryKey: ["pending-likes"] }),
+      ]);
+      await retryAccountStatus();
+    },
+  });
 
   useEffect(() => {
     if (!waitlist.data || editing) return;
@@ -49,6 +74,14 @@ export default function RegionWaitlistScreen() {
         selectedSlug,
         isOutside ? { requestedLocation, notifyWhenOpen } : undefined,
       );
+      // "Haber ver" push demek; izin yoksa vaat boşa gider. Tercih kaydı
+      // izinden bağımsız kalır — red edilse de talep sayılır.
+      if (isOutside && notifyWhenOpen) {
+        const registration = await registerForPushNotifications();
+        setPushNotice(registration.status === "registered" ? null : registration.message);
+      } else {
+        setPushNotice(null);
+      }
     },
     onSuccess: async () => {
       await Promise.all([
@@ -159,6 +192,27 @@ export default function RegionWaitlistScreen() {
           </View>
         ) : (
           <>
+            {openedRegion ? (
+              <View className="mt-5 rounded-2xl border border-brand/30 bg-brand/10 p-4">
+                <Text className="text-lg font-bold text-text-primary">
+                  {openedRegion.name} açıldı! 🎉
+                </Text>
+                <Text className="mt-1 text-sm leading-6 text-text-secondary">
+                  Beklediğin bölge artık PetMatch&apos;te. Geçince keşfet hemen başlar.
+                </Text>
+                {switchToOpenedRegion.error ? (
+                  <Text accessibilityRole="alert" className="mt-2 text-sm font-semibold text-danger">
+                    {errorMessage(switchToOpenedRegion.error, "Bölge değiştirilemedi.")}
+                  </Text>
+                ) : null}
+                <Button
+                  label={`${openedRegion.name} bölgesine geç`}
+                  onPress={() => switchToOpenedRegion.mutate()}
+                  loading={switchToOpenedRegion.isPending}
+                  className="mt-3"
+                />
+              </View>
+            ) : null}
             {waitlist.isLoading ? (
               <ActivityIndicator className="mt-6 self-start" color="#F97362" />
             ) : (
@@ -177,9 +231,14 @@ export default function RegionWaitlistScreen() {
               )}
               <Text className="mt-3 text-xs leading-5 text-text-tertiary">
                 {waitlist.data?.notifyWhenOpen
-                  ? "Bölgen açıldığında kayıtlı bildirim tercihin üzerinden haber vereceğiz."
+                  ? "Bölgen açıldığında bu cihaza bildirim göndereceğiz."
                   : "Talebin sayılıyor; açılış bildirimi istemedin."}
               </Text>
+              {pushNotice ? (
+                <Text className="mt-2 text-xs font-semibold leading-5 text-danger">
+                  {pushNotice}
+                </Text>
+              ) : null}
             </View>
             {waitlist.isError || regions.isError ? (
               <Text accessibilityRole="alert" className="mt-4 text-sm text-danger">

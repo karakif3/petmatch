@@ -26,7 +26,8 @@ type NotificationEvent =
   | { type: "message"; messageId: string }
   | { type: "new_candidate"; petId: string }
   | { type: "super_like"; swipeId: string }
-  | { type: "verification"; moderationItemId: string };
+  | { type: "verification"; moderationItemId: string }
+  | { type: "region_opened"; regionSlug: string };
 
 function easProjectId(): string | null {
   const configured =

@@ -23,6 +23,7 @@ import {
   type VerificationRejectionReason,
 } from "../../core/api/moderation";
 import { errorMessage } from "../../core/domain/error-message";
+import { RegionOpeningPanel } from "../../components/region-opening-panel";
 
 export default function ModerationScreen() {
   const queryClient = useQueryClient();
@@ -149,6 +150,8 @@ export default function ModerationScreen() {
             </View>
           </>
         ) : null}
+
+        <RegionOpeningPanel />
 
         <Text className="mb-3 text-lg font-bold text-text-primary">En eski bekleyenler</Text>
         {items.length === 0 ? (

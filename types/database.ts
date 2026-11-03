@@ -1013,6 +1013,7 @@ export type Database = {
           is_active: boolean
           is_pilot: boolean
           name: string
+          opened_event_id: string
           slug: string
           sort_order: number
         }
@@ -1021,6 +1022,7 @@ export type Database = {
           is_active?: boolean
           is_pilot?: boolean
           name: string
+          opened_event_id?: string
           slug: string
           sort_order?: number
         }
@@ -1029,6 +1031,7 @@ export type Database = {
           is_active?: boolean
           is_pilot?: boolean
           name?: string
+          opened_event_id?: string
           slug?: string
           sort_order?: number
         }
@@ -1398,6 +1401,14 @@ export type Database = {
         Args: { p_document_version: string }
         Returns: undefined
       }
+      region_opening_recipients: {
+        Args: { p_region_slug: string }
+        Returns: {
+          already_notified: boolean
+          requested_location: string
+          user_id: string
+        }[]
+      }
       region_demand: {
         Args: never
         Returns: {
@@ -1468,6 +1479,10 @@ export type Database = {
       set_meetup_place_verification: {
         Args: { p_note?: string; p_place_id: string; p_verified: boolean }
         Returns: undefined
+      }
+      normalize_location: {
+        Args: { p_text: string }
+        Returns: string
       }
       set_my_region: {
         Args: {
