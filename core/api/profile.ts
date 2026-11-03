@@ -9,6 +9,8 @@ import type {
   Size,
   Temperament,
 } from "../domain/types";
+import { mapWithConcurrency, UPLOAD_CONCURRENCY } from "../domain/image-upload";
+import { prepareImageForUpload } from "../media/prepare-upload";
 import { STORAGE_BUCKETS } from "./config";
 import { requireSupabaseClient } from "./supabase.client";
 import { trackProductEvent } from "./observability";
@@ -317,29 +319,12 @@ export async function saveOwnerPhotos(input: {
   }
 
   const sb = requireSupabaseClient();
-  const uploadedPaths: string[] = [];
-  const orderedPaths: string[] = [];
+  const { orderedPaths, uploadedPaths } = await uploadOrderedPhotos({
+    bucket: STORAGE_BUCKETS.ownerAvatars,
+    photos: input.photos,
+    pathFor: (nonce, extension) => `${input.userId}/${nonce}.${extension}`,
+  });
   try {
-    for (const [index, photo] of input.photos.entries()) {
-      if (photo.kind === "remote") {
-        orderedPaths.push(photo.storagePath);
-        continue;
-      }
-      const extension = fileExtension(photo);
-      const nonce = `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 10)}`;
-      const storagePath = `${input.userId}/${nonce}.${extension}`;
-      const response = await fetch(photo.uri);
-      const { error } = await sb.storage
-        .from(STORAGE_BUCKETS.ownerAvatars)
-        .upload(storagePath, await response.arrayBuffer(), {
-          contentType: photo.mimeType ?? "image/jpeg",
-          upsert: false,
-        });
-      if (error) throw error;
-      uploadedPaths.push(storagePath);
-      orderedPaths.push(storagePath);
-    }
-
     const { error } = await sb.rpc("replace_owner_photo_order", {
       p_storage_paths: orderedPaths,
     });
@@ -417,16 +402,15 @@ export async function submitOwnerVerification(input: {
   photo: LocalProfilePhoto;
 }): Promise<string> {
   const sb = requireSupabaseClient();
-  const extension = fileExtension(input.photo);
+  const prepared = await prepareImageForUpload(input.photo);
   const storagePath = `${input.userId}/${input.petId}/${Date.now()}-${Math.random()
     .toString(36)
-    .slice(2, 10)}.${extension}`;
+    .slice(2, 10)}.${prepared.extension}`;
 
-  const response = await fetch(input.photo.uri);
   const { error: uploadError } = await sb.storage
     .from(STORAGE_BUCKETS.verificationPhotos)
-    .upload(storagePath, await response.arrayBuffer(), {
-      contentType: input.photo.mimeType ?? "image/jpeg",
+    .upload(storagePath, prepared.body, {
+      contentType: prepared.contentType,
       upsert: false,
     });
   if (uploadError) {
@@ -538,12 +522,46 @@ export async function updatePetProfile(input: PetProfileUpdate): Promise<string>
   return data;
 }
 
-function fileExtension(photo: LocalProfilePhoto): string {
-  const fromName = photo.fileName?.split(".").pop()?.toLowerCase();
-  if (fromName && /^[a-z0-9]+$/.test(fromName)) return fromName;
-  if (photo.mimeType === "image/png") return "png";
-  if (photo.mimeType === "image/webp") return "webp";
-  return "jpg";
+/**
+ * Yerel fotoğrafları küçültüp en fazla 3 eşzamanlı yükler; uzak olanları
+ * olduğu gibi bırakır. Dönen sıra girdiyle aynı (profil fotoğraf sırası).
+ * Biri düşerse bu turda yüklenenler silinir ve hata fırlatılır — yarım
+ * galeri oluşmaz. Çağıran, sonraki adım (sıra RPC'si) düşerse
+ * `uploadedPaths`'i kendisi temizler.
+ */
+async function uploadOrderedPhotos(input: {
+  bucket: string;
+  photos: ({ kind: "remote"; storagePath: string } | ({ kind: "local" } & LocalProfilePhoto))[];
+  pathFor: (nonce: string, extension: string) => string;
+}): Promise<{ orderedPaths: string[]; uploadedPaths: string[] }> {
+  const sb = requireSupabaseClient();
+  const results = await mapWithConcurrency(input.photos, UPLOAD_CONCURRENCY, async (photo, index) => {
+    if (photo.kind === "remote") return { path: photo.storagePath, uploaded: false };
+    const prepared = await prepareImageForUpload(photo);
+    const nonce = `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 10)}`;
+    const path = input.pathFor(nonce, prepared.extension);
+    const { error } = await sb.storage.from(input.bucket).upload(path, prepared.body, {
+      contentType: prepared.contentType,
+      upsert: false,
+    });
+    if (error) throw error;
+    return { path, uploaded: true };
+  });
+
+  const uploadedPaths = results.flatMap((result) =>
+    result.status === "fulfilled" && result.value.uploaded ? [result.value.path] : [],
+  );
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed) {
+    if (uploadedPaths.length) await sb.storage.from(input.bucket).remove(uploadedPaths);
+    throw (failed as PromiseRejectedResult).reason;
+  }
+  return {
+    orderedPaths: results.map(
+      (result) => (result as PromiseFulfilledResult<{ path: string }>).value.path,
+    ),
+    uploadedPaths,
+  };
 }
 
 export async function savePetPhotos(input: {
@@ -557,29 +575,12 @@ export async function savePetPhotos(input: {
   }
 
   const sb = requireSupabaseClient();
-  const uploadedPaths: string[] = [];
-  const orderedPaths: string[] = [];
+  const { orderedPaths, uploadedPaths } = await uploadOrderedPhotos({
+    bucket: "pet-photos",
+    photos: input.photos,
+    pathFor: (nonce, extension) => `${input.userId}/${input.petId}/${nonce}.${extension}`,
+  });
   try {
-    for (const [index, photo] of input.photos.entries()) {
-      if (photo.kind === "remote") {
-        orderedPaths.push(photo.storagePath);
-        continue;
-      }
-      const extension = fileExtension(photo);
-      const nonce = `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 10)}`;
-      const storagePath = `${input.userId}/${input.petId}/${nonce}.${extension}`;
-      const response = await fetch(photo.uri);
-      const { error } = await sb.storage
-        .from("pet-photos")
-        .upload(storagePath, await response.arrayBuffer(), {
-          contentType: photo.mimeType ?? "image/jpeg",
-          upsert: false,
-        });
-      if (error) throw error;
-      uploadedPaths.push(storagePath);
-      orderedPaths.push(storagePath);
-    }
-
     const { error } = await sb.rpc("replace_pet_photo_order", {
       p_pet_id: input.petId,
       p_storage_paths: orderedPaths,

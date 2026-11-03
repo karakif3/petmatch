@@ -1,4 +1,6 @@
+import { mapWithConcurrency, UPLOAD_CONCURRENCY } from "../domain/image-upload";
 import type { Coordinates, Species } from "../domain/types";
+import { prepareImageForUpload } from "../media/prepare-upload";
 import { recordLegalAcceptances } from "./legal";
 import { trackProductEvent } from "./observability";
 import { requestNotificationDelivery } from "./notifications";
@@ -44,20 +46,13 @@ export type OnboardingInput = {
   };
 };
 
-function fileExtension(photo: OnboardingPhoto): string {
-  const fromName = photo.fileName?.split(".").pop()?.toLowerCase();
-  if (fromName && /^[a-z0-9]+$/.test(fromName)) return fromName;
-  if (photo.mimeType === "image/png") return "png";
-  if (photo.mimeType === "image/webp") return "webp";
-  return "jpg";
-}
-
 /**
  * Tekrar çalıştırılabilir onboarding kaydı.
  *
  * Fotoğraf yüklemesi yarıda kalırsa profil onboard edilmiş sayılmaz. Kullanıcı
- * tekrar deneyince mevcut aktif pet güncellenir ve aynı fotoğraf konumları
- * upsert edilir; yarım kayıt ikinci bir aktif pet üretmez.
+ * tekrar deneyince mevcut aktif pet güncellenir ve fotoğraf konumları
+ * upsert edilir; yarım kayıt ikinci bir aktif pet üretmez. Bir fotoğraf
+ * yüklenemezse o turda yüklenenler geri silinir.
  */
 export async function completeOnboarding(input: OnboardingInput): Promise<string> {
   const sb = requireSupabaseClient();
@@ -125,27 +120,44 @@ export async function completeOnboarding(input: OnboardingInput): Promise<string
     .eq("pet_id", petId);
   if (previousPhotosError) throw previousPhotosError;
 
-  const nextStoragePaths: string[] = [];
-  for (const [position, photo] of input.photos.entries()) {
-    const extension = fileExtension(photo);
-    const storagePath = `${input.userId}/${petId}/${position}.${extension}`;
-    nextStoragePaths.push(storagePath);
-    const response = await fetch(photo.uri);
-
+  // Her yüklemeye benzersiz ad: eskiden sabit `{position}.{ext}` yoluna
+  // upsert ediliyordu — aynı URL kaldığı için CDN ve expo-image önbelleği
+  // fotoğraf değişse de ESKİSİNİ gösterebiliyordu. Eski nesneler aşağıdaki
+  // temizlikte siliniyor.
+  const batch = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const uploads = await mapWithConcurrency(input.photos, UPLOAD_CONCURRENCY, async (photo, position) => {
+    const prepared = await prepareImageForUpload(photo);
+    const storagePath = `${input.userId}/${petId}/${batch}-${position}.${prepared.extension}`;
     const { error: uploadError } = await sb.storage
       .from("pet-photos")
-      .upload(storagePath, await response.arrayBuffer(), {
-        contentType: photo.mimeType ?? "image/jpeg",
-        upsert: true,
+      .upload(storagePath, prepared.body, {
+        contentType: prepared.contentType,
+        upsert: false,
       });
     if (uploadError) throw uploadError;
-
-    const { error: photoError } = await sb.from("pet_photos").upsert(
-      { pet_id: petId, storage_path: storagePath, position },
-      { onConflict: "pet_id,position" },
+    return storagePath;
+  });
+  const failed = uploads.find((result) => result.status === "rejected");
+  if (failed) {
+    const uploaded = uploads.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : [],
     );
-    if (photoError) throw photoError;
+    if (uploaded.length) await sb.storage.from("pet-photos").remove(uploaded);
+    throw (failed as PromiseRejectedResult).reason;
   }
+  const nextStoragePaths = uploads.map(
+    (result) => (result as PromiseFulfilledResult<string>).value,
+  );
+
+  const { error: photoError } = await sb.from("pet_photos").upsert(
+    nextStoragePaths.map((storagePath, position) => ({
+      pet_id: petId,
+      storage_path: storagePath,
+      position,
+    })),
+    { onConflict: "pet_id,position" },
+  );
+  if (photoError) throw photoError;
 
   const staleStoragePaths = (previousPhotos ?? [])
     .map((photo) => photo.storage_path)
