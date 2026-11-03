@@ -58,6 +58,8 @@ type RowProps = {
    * yap") ok gösterilmez — ok "burada bir alt ekran var" demektir.
    */
   hideChevron?: boolean;
+  /** Verilirse satır bir anahtar gibi okunur (VoiceOver: "anahtar, açık"). */
+  checked?: boolean;
 };
 
 /**
@@ -81,6 +83,7 @@ export function Row({
   destructive,
   accessibilityHint,
   hideChevron,
+  checked,
 }: RowProps) {
   const content = (
     <View className="min-h-[56px] flex-row items-center px-4 py-3">
@@ -121,7 +124,8 @@ export function Row({
     <AppPressable
       onPress={onPress}
       disabled={disabled}
-      accessibilityRole="button"
+      accessibilityRole={checked === undefined ? "button" : "switch"}
+      accessibilityState={checked === undefined ? undefined : { checked }}
       accessibilityLabel={value ? `${title}: ${value}` : title}
       accessibilityHint={accessibilityHint}
       className="disabled:opacity-50"

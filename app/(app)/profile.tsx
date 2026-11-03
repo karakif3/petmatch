@@ -83,13 +83,26 @@ function NotificationToggle({
       // Satırın TAMAMI anahtarı çeviriyor: önceden yalnızca ~50×30 pt'lik
       // `Switch` dokunulabilirdi, satırın geri kalanı ölüydü.
       onPress={() => onValueChange(!value)}
+      checked={value}
+      // Anahtar dokunuşu ALMAZ: satır zaten dokunulabilir. İkisi birden
+      // dinlerken anahtara dokunmak değeri iki kez çeviriyordu (önce
+      // `onValueChange`, sonra satırın `onPress`'i) — anahtar yerinde
+      // kalıyordu. Dokunuş satıra düşüyor; ekran okuyucu da tek öğe görüyor.
       accessory={
-        <Switch
-          value={value}
-          onValueChange={onValueChange}
-          trackColor={{ false: "#E8DDD5", true: "#F97362" }}
-          thumbColor={value ? "#F97362" : "#FFFFFF"}
-        />
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {/* `onValueChange` olmayan Switch iOS'ta pasif çiziliyor (başparmak
+              kayboluyor); dokunuş zaten buraya ulaşmıyor. */}
+          <Switch
+            value={value}
+            onValueChange={onValueChange}
+            trackColor={{ false: "#E8DDD5", true: "#F97362" }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
       }
     />
   );
