@@ -551,12 +551,18 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
 
 **Yayın sonrası ilk tur — değeri belirgin, riski düşük**
 
-- [ ] **Mesaj push metni kişisiz.** "PetMatch'te yeni bir mesajın var."
+- [x] **Mesaj push metni kişisiz.** "PetMatch'te yeni bir mesajın var."
       (`send-notification/index.ts:571-572`); gönderen pet adı + ilk 60
       karakter (gizlilik tercihi gelene dek adsız seçenek) geri dönüş
       oranını belirgin artırır. Uygulama rozeti hiç set edilmiyor
       (`shouldSetBadge: true` ama `badge` gönderilmiyor, `setBadgeCount`
       çağrılmıyor): okunmamış sayısı `list_my_conversations`'tan.
+      **Yapıldı (2026-11-05, `20261105120000`):** başlık gönderen pet adı
+      (sahiplendirmede sahibin adı), gövde mesajın ilk ~80 karakteri;
+      Profil → Bildirimler'de "Mesaj önizlemesi" anahtarı (kapalıyken eski
+      adsız metin). Push `badge` = `unread_message_count` (yalnız
+      service_role); uygulama açıkken rozet sekmedeki okunmamış toplamla
+      eşitleniyor, çıkışta sıfırlanıyor.
 - [ ] **Kaydırmayı geri al.** Yanlışlıkla "geç" geri alınamıyor; deste
       kaydırmasında en çok şikâyet edilen eksik. Son 1 kararı, yalnız
       `pass` için, 10 sn içinde geri alma (swipe satırını sil, kartı geri

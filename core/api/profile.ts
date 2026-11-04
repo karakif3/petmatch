@@ -67,6 +67,7 @@ export type EditableProfile = {
   notifications: {
     onMatch: boolean;
     onMessage: boolean;
+    messagePreview: boolean;
   };
   ownerFilters: {
     requirePhoto: boolean;
@@ -169,7 +170,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
     sb
       .from("discovery_preferences")
       .select(
-        "notify_on_match,notify_on_message,require_owner_photo,require_owner_social,require_verified_owner",
+        "notify_on_match,notify_on_message,notify_message_preview,require_owner_photo,require_owner_social,require_verified_owner",
       )
       .eq("user_id", userId)
       .single(),
@@ -289,6 +290,7 @@ export async function loadEditableProfile(userId: string): Promise<EditableProfi
     notifications: {
       onMatch: preferencesResult.data.notify_on_match,
       onMessage: preferencesResult.data.notify_on_message,
+      messagePreview: preferencesResult.data.notify_message_preview,
     },
     ownerFilters: {
       requirePhoto: preferencesResult.data.require_owner_photo,
@@ -640,12 +642,14 @@ export async function updateEditableProfile(input: ProfileUpdate): Promise<strin
 export async function updateNotificationPreferences(input: {
   onMatch: boolean;
   onMessage: boolean;
+  messagePreview: boolean;
 }): Promise<void> {
   const { error } = await requireSupabaseClient().rpc(
     "update_notification_preferences",
     {
       p_notify_on_match: input.onMatch,
       p_notify_on_message: input.onMessage,
+      p_message_preview: input.messagePreview,
     },
   );
   if (error) throw error;
