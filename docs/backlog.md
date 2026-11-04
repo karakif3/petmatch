@@ -563,10 +563,14 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
       adsız metin). Push `badge` = `unread_message_count` (yalnız
       service_role); uygulama açıkken rozet sekmedeki okunmamış toplamla
       eşitleniyor, çıkışta sıfırlanıyor.
-- [ ] **Kaydırmayı geri al.** Yanlışlıkla "geç" geri alınamıyor; deste
+- [x] **Kaydırmayı geri al.** Yanlışlıkla "geç" geri alınamıyor; deste
       kaydırmasında en çok şikâyet edilen eksik. Son 1 kararı, yalnız
       `pass` için, 10 sn içinde geri alma (swipe satırını sil, kartı geri
       koy). Ödeme olmadan da çalışır; sonra premium'a bağlanabilir.
+      **Yapıldı (2026-11-06, `20261106120000`):** `undo_pass` yalnız kendi,
+      30 sn içindeki "geç"i siliyor (beğeni geri alınmaz); Keşfet'te 10 sn
+      "Geri al" hapı, araya giren her karar onu kaldırıyor. `swipe_undone`
+      olayı.
 - [ ] **Davet / paylaş.** `Share` hiç yok. Pilot bölgede yoğunluk tek
       büyüme kaldıracı; "arkadaşının petini çağır" (eşleşme kutlaması ve
       boş deste ekranında) + bekleme listesi ekranında "bölgeni erken

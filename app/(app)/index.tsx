@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   RefreshControl,
   ScrollView,
@@ -40,6 +41,7 @@ import { loadConversationIdForMatch } from "../../core/api/conversations";
 import {
   loadDiscoveryDeck,
   swipePet,
+  undoPass,
   updateDiscoveryFilters,
   type DiscoveryDeckCard,
   type DiscoveryFilterSettings,
@@ -59,6 +61,11 @@ import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
 import { AppIcon } from "../../components/ui/icon";
+import { lightHaptic } from "../../core/ui/haptics";
+import {
+  type LastPass,
+  undoPassRemainingMs,
+} from "../../core/domain/undo-pass";
 
 /** Filtre düğmesindeki sayaç ve `filter_applied` olayı aynı sayıyı konuşur. */
 function countActiveFilters(
@@ -83,6 +90,19 @@ export default function DiscoverScreen() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  // Son "geç" — 10 sn boyunca "Geri al" düğmesi. Yalnız SON karar: araya
+  // giren her karar bunu siler.
+  const [lastPass, setLastPass] = useState<LastPass | null>(null);
+  useEffect(() => {
+    const remaining = undoPassRemainingMs(lastPass, Date.now());
+    if (!lastPass) return;
+    if (remaining === 0) {
+      setLastPass(null);
+      return;
+    }
+    const timer = setTimeout(() => setLastPass(null), remaining);
+    return () => clearTimeout(timer);
+  }, [lastPass]);
   const [error, setError] = useState<string | null>(null);
   const [match, setMatch] = useState<{
     matchId: string;
@@ -325,9 +345,11 @@ export default function DiscoverScreen() {
     // karar veriyordu. Hata olursa kart geri gelir ve konumu sıfırlanır.
     onMutate: ({ toPetId }) => {
       setError(null);
+      setLastPass(null);
       setDismissedIds((ids) => (ids.includes(toPetId) ? ids : [...ids, toPetId]));
     },
-    onSuccess: ({ direction, matchId, toPetId }) => {
+    onSuccess: ({ direction, matchId, toPetId }, { isSuper }) => {
+      if (direction === "pass" && !isSuper) setLastPass({ toPetId, at: Date.now() });
       const swipedCard = deck.data?.cards.find((card) => card.id === toPetId);
       // Karşı taraf zaten beni beğenmişse bu karar (eşleşme ya da geçme)
       // "Beğeniler" sekmesindeki bekleyen listeden onu düşürür.
@@ -355,6 +377,34 @@ export default function DiscoverScreen() {
       setError(
         errorMessage(mutationError, "Karar kaydedilemedi. Kart geri geldi, tekrar dene."),
       );
+    },
+  });
+
+  const undo = useMutation({
+    mutationFn: async (toPetId: string) => {
+      const viewer = deck.data?.viewer;
+      if (!viewer) throw new Error("Aktif pet bulunamadı.");
+      await undoPass({ fromPetId: viewer.id, toPetId });
+      return toPetId;
+    },
+    onMutate: () => {
+      setError(null);
+      setLastPass(null);
+    },
+    onSuccess: (toPetId) => {
+      lightHaptic();
+      // Kart hâlâ eldeki destedeyse aynı sırasıyla en üste döner (öncesindeki
+      // kartlar zaten kararlı). Deste arada tazelendiyse kart sunucudan
+      // yeniden gelsin.
+      setDismissedIds((ids) => ids.filter((id) => id !== toPetId));
+      if (!deck.data?.cards.some((card) => card.id === toPetId)) {
+        void queryClient.invalidateQueries({ queryKey: ["discovery", user?.id] });
+      }
+      void queryClient.invalidateQueries({ queryKey: ["pending-likes"] });
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    },
+    onError: (undoError) => {
+      setError(errorMessage(undoError, "Geri alınamadı."));
     },
   });
 
@@ -886,6 +936,29 @@ export default function DiscoverScreen() {
         çizgi yerine yumuşak bir geçiş. Düğmeler kendi gölgeleriyle
         yüzüyor (Tinder/Bumble referansı).
       */}
+      {lastPass ? (
+        <View
+          pointerEvents="box-none"
+          className="absolute inset-x-0 items-center"
+          style={{ bottom: currentCard ? 112 : 24 }}
+        >
+          <AppPressable
+            onPress={() => undo.mutate(lastPass.toPetId)}
+            disabled={undo.isPending}
+            accessibilityRole="button"
+            accessibilityLabel="Son geçtiğin kartı geri al"
+            className="min-h-11 flex-row items-center rounded-full bg-text-primary px-4 py-2.5"
+            style={{ shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 }}
+          >
+            {undo.isPending ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <AppIcon name="undo-2" size={16} color="#FFFFFF" />
+            )}
+            <Text className="ml-2 text-sm font-semibold text-white">Geri al</Text>
+          </AppPressable>
+        </View>
+      ) : null}
       {currentCard ? (
         // NativeWind'in ürettiği stil ile elle verilen `style` prop'u AYNI
         // View'da çakışınca (burada `flex-row` gibi layout sınıfları)

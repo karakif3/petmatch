@@ -1613,6 +1613,10 @@ export type Database = {
         }
         Returns: string
       }
+      undo_pass: {
+        Args: { p_from_pet_id: string; p_to_pet_id: string }
+        Returns: undefined
+      }
       unread_message_count: { Args: { p_user: string }; Returns: number }
       update_notification_preferences: {
         Args: {

@@ -68,6 +68,7 @@ const RATE_LIMIT_FALLBACK = "Çok hızlı işlem yapıyorsun. Biraz bekleyip tek
 const KNOWN_MESSAGES: { pattern: RegExp; message: string }[] = [
   { pattern: /owner must be 18 or older/i, message: "PetMatch 18 yaş ve üzeri içindir." },
   { pattern: /jwt expired/i, message: "Oturumunun süresi doldu. Tekrar giriş yap." },
+  { pattern: /undo_expired/, message: "Geri alma süresi doldu." },
 ];
 
 const KNOWN_CODES: Record<string, string> = {
