@@ -397,6 +397,19 @@ export async function updateDiscoveryFilters(
   if (error) throw error;
 }
 
+/**
+ * Son "geç" kararını geri alır (`undo_pass`). Sunucu yalnız kendi, taze
+ * (30 sn) geç kararını siler; aksi halde `undo_expired`.
+ */
+export async function undoPass(input: { fromPetId: string; toPetId: string }): Promise<void> {
+  const { error } = await requireSupabaseClient().rpc("undo_pass", {
+    p_from_pet_id: input.fromPetId,
+    p_to_pet_id: input.toPetId,
+  });
+  if (error) throw error;
+  void trackProductEvent("swipe_undone");
+}
+
 export async function swipePet(input: {
   fromPetId: string;
   toPetId: string;
