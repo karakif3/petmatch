@@ -59,6 +59,7 @@ import {
   listMeetupPlaces,
 } from "../../core/api/meetup-places";
 import { blockUser, unmatchConversation } from "../../core/api/safety";
+import { maybeRequestStoreReview } from "../../core/api/store-review";
 import { buildChatItems, type ChatListItem } from "../../core/domain/chat-items";
 import { outgoingMessageContext } from "../../core/domain/funnel";
 import { captureClientError } from "../../core/api/observability";
@@ -767,6 +768,7 @@ export default function ChatScreen() {
             meetupScheduledAt={conversation.data.meetupScheduledAt}
             onAnswer={async (outcome) => {
               await recordMeetupFeedback(conversationId, outcome);
+              if (user) void maybeRequestStoreReview({ userId: user.id, outcome });
               await queryClient.invalidateQueries({ queryKey: ["conversations"] });
               await queryClient.invalidateQueries({
                 queryKey: ["conversation", conversationId],

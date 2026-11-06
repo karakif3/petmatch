@@ -584,8 +584,13 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
       metin mağazada aratıyor. Eşleşme kutlamasına BİLEREK konmadı: oradaki
       tek eylem mesaj yazmak. `ref` atfı alan adı (universal link) kararına
       bağlı.
-- [ ] **Mağaza puanı istemi.** `expo-store-review` yok. Doğru an belli:
+- [x] **Mağaza puanı istemi.** `expo-store-review` yok. Doğru an belli:
       buluşma geri bildiriminde "iyi geçti" → bir kez iste.
+      **Yapıldı (2026-11-08, `20261108120000`):** "Buluştunuz mu?" →
+      "Buluştuk" sonrası 1,5 sn bekleyip `expo-store-review`; kullanıcı
+      başına bir kez (AsyncStorage). `store_review_requested` olayı.
+      Yerel modül: yeni geliştirme istemcisi / mağaza derlemesi gerekir;
+      eski istemcide sessizce atlanır.
 - [ ] **Buluşma öncesi güvenlik ipuçları.** Yalnız boş sohbette tek satır
       (`chat:700`); buluşma planlama sayfasında ve onaylanmış kartta 3
       madde (halka açık yer, tasma, ilk buluşma kısa). Mağaza inceleyicisi
