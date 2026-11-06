@@ -641,6 +641,30 @@ sunucu ayarıyla ücretli katmana bağlanır ([`monetization.md`](monetization.m
       Bilinmiyor — profilde işaretle"). Tamamen istemci tarafı, ~yarım gün.
       Faz 1'de "detaylı uyum raporu" premium'a bağlanabilir.
 
+### 2026-11-08 — Durum: yayın sonrası ilk tur
+
+Birleşenler (canlı migration'larla): huni analitiği (#27), kişisel mesaj
+push'u + rozet (#28), "geç"i geri al (#29), davet/paylaş (#30), mağaza
+puanı istemi (#31). Sıradaki: buluşma öncesi güvenlik ipuçları → sohbette
+iyimser gönderim → sahip filtreleri DB'ye → çevrimdışı şeridi.
+
+**Elle doğrulama bekleyenler** (simülatör o sırada başka oturumdaydı):
+
+- [ ] Keşfet: geç → "Geri al" hapı 10 sn görünüyor, kart en üste dönüyor;
+      boş destede de çalışıyor.
+- [ ] Paylaşım sayfası üç yüzeyden açılıyor (boş deste, bekleme listesi,
+      Profil → Hesap); `invite_shared` yalnız paylaşınca yazılıyor.
+- [ ] Puan istemi: YENİ geliştirme istemcisi gerekir (`expo-store-review`
+      yerel modül; `pod install` + derleme). "Buluştuk" → pencere bir kez.
+- [ ] Mesaj push'u iki fiziksel cihazda: başlık pet adı, gövde önizleme,
+      ikon rozeti; "Mesaj önizlemesi" kapalıyken adsız metin.
+
+**Karar/kurulum bekleyenler:**
+
+- [ ] Alan adı → e-posta doğrulama (masaüstü) + davet bağlantısı
+      (`EXPO_PUBLIC_INVITE_URL`) + davet `ref` atfı.
+- [ ] EAS Update kurulumu (OTA).
+
 ### Kararı bekleyenler
 
 - **Beğeniler ödeme duvarı gerçek olsun mu, hangi sağlayıcıyla.** Pilot bugün
