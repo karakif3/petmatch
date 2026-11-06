@@ -57,6 +57,7 @@ import {
   setDiscoverProfileSession,
   takeDiscoverProfileSwiped,
 } from "../../stores/discover-profile";
+import { shareInvite } from "../../core/api/invite";
 import { trackProductEvent } from "../../core/api/observability";
 import { registerForPushNotifications } from "../../core/api/notifications";
 import { errorMessage } from "../../core/domain/error-message";
@@ -767,6 +768,26 @@ export default function DiscoverScreen() {
                 </Text>
               </AppPressable>
             )}
+            {/*
+              Deste boşaldığında beklemekten başka gerçek bir hamle: yoğunluğu
+              artırmak. İkincil ağırlıkta — birincil eylemin önüne geçmesin.
+            */}
+            <AppPressable
+              onPress={() =>
+                void shareInvite("discovery_empty", {
+                  petName: deck.data.viewer?.name,
+                }).catch((shareError) =>
+                  setError(errorMessage(shareError, "Paylaşım açılamadı.")),
+                )
+              }
+              accessibilityRole="button"
+              className="mt-3 w-full flex-row items-center justify-center rounded-xl border border-border bg-surface px-5 py-3"
+            >
+              <AppIcon name="share-2" size={16} color="#3D312B" />
+              <Text className="ml-2 font-semibold text-text-primary">
+                Arkadaşını davet et
+              </Text>
+            </AppPressable>
             <View className="mt-4 flex-row flex-wrap items-center justify-center gap-x-4 gap-y-1">
               <AppPressable
                 onPress={() =>

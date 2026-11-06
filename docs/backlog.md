@@ -571,11 +571,19 @@ hatırlatıcı P1-11, Google/Apple giriş P1-14, ödeme 9, offline kuyruk
       30 sn içindeki "geç"i siliyor (beğeni geri alınmaz); Keşfet'te 10 sn
       "Geri al" hapı, araya giren her karar onu kaldırıyor. `swipe_undone`
       olayı.
-- [ ] **Davet / paylaş.** `Share` hiç yok. Pilot bölgede yoğunluk tek
+- [x] **Davet / paylaş.** `Share` hiç yok. Pilot bölgede yoğunluk tek
       büyüme kaldıracı; "arkadaşının petini çağır" (eşleşme kutlaması ve
       boş deste ekranında) + bekleme listesi ekranında "bölgeni erken
       açtır" paylaşımı. Takip için `invite_shared` olayı ve isteğe bağlı
       `ref` parametresi.
+      **Yapıldı (2026-11-07, `20261107120000`):** boş deste ("Arkadaşını
+      davet et"), bekleme listesi ("Bölgeni erken açtır → Paylaş") ve Profil
+      → Hesap satırı; sistem paylaşım sayfası, yüzeye göre metin
+      (`core/domain/invite.ts`), `invite_shared{surface, channel, has_url}`.
+      Bağlantı `EXPO_PUBLIC_INVITE_URL` — alan adı/mağaza kaydı gelene dek boş,
+      metin mağazada aratıyor. Eşleşme kutlamasına BİLEREK konmadı: oradaki
+      tek eylem mesaj yazmak. `ref` atfı alan adı (universal link) kararına
+      bağlı.
 - [ ] **Mağaza puanı istemi.** `expo-store-review` yok. Doğru an belli:
       buluşma geri bildiriminde "iyi geçti" → bir kez iste.
 - [ ] **Buluşma öncesi güvenlik ipuçları.** Yalnız boş sohbette tek satır

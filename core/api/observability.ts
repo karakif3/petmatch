@@ -46,7 +46,8 @@ export type ProductEventName =
   | "match_unmatched"
   | "filter_applied"
   | "empty_deck_seen"
-  | "swipe_undone";
+  | "swipe_undone"
+  | "invite_shared";
 
 export async function trackProductEvent(
   eventName: ProductEventName,
