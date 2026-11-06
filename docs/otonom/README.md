@@ -146,6 +146,8 @@ Hook `supabase/(migrations|functions|tests)/` içine Bash ile yazmayı (`cp`, `m
 
 Eski dallar (`feat/onboarding-simplification`, `hardening/audit-fixes`, `ops/supabase-keep-alive`, `cursor/discover-geography-48d4`, `schema/goal-model-and-hardening`, `docs/deploy-status-2026-10-03`) **dokunulmaz, silinmez** (sahip siler). Otonom branch yalnız `otonom/<hat>/<id>-<kisa-ad>`, `origin/main`'den. Sahip A17/A18'i kendi etkileşimli oturumunda düzeltir; o dallara ve `supabase/` altına otonom yazım yok.
 
+**İnteraktif oturumlarla uyum (OC ANAYASA §10, sahip kararı 2026-11-06):** sahibin elle açtığı Claude oturumları (1) `~/otonom/` altında açılmaz, masası `~/Desktop/cursor_claude/petmatch/` ya da `_worktrees/petmatch-<iş>/`; (2) `otonom/*` branch'lerine commit/push etmez, döngünün PR'larını elle merge etmez (akşam toplu merge butonu ya da sahip); (3) toplu merge sonrası işe `git fetch` + `origin/<ana>`'dan branch/rebase ile başlar. Aynı kuyruk maddesi elle alınırsa kuyrukta `sahip+claude yapıyor` notu düşülür; dispatcher o maddeyi almaz.
+
 ## Kuyruk kaynağı (tech-lead)
 
 - `docs/backlog.md` — ürün günlüğü (`main`'de 748 satır, PR #5 dalında 756); başlık "Güncel durum 2026-08-08" bayat; gerçek açıklar 2026-09-30 bölümü (~satır 370-402) + "Kararı bekleyenler" + P0/P1. **D01 raporu çıkana kadar her maddeyi kodda doğrula.** PR #5 merge edilmediyse `main`'deki backlog bir günlük eksik olabilir — raporda not düş.
