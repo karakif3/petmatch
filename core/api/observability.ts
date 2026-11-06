@@ -45,7 +45,8 @@ export type ProductEventName =
   | "user_blocked"
   | "match_unmatched"
   | "filter_applied"
-  | "empty_deck_seen";
+  | "empty_deck_seen"
+  | "invite_shared";
 
 export async function trackProductEvent(
   eventName: ProductEventName,

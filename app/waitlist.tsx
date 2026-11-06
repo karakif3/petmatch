@@ -1,3 +1,4 @@
+import { shareInvite } from "../core/api/invite";
 import { trackProductEvent } from "../core/api/observability";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Text, TextInput, View } from "react-native";
@@ -241,6 +242,23 @@ export default function RegionWaitlistScreen() {
                   {pushNotice}
                 </Text>
               ) : null}
+            </View>
+            <View className="mt-4 rounded-xl border border-brand/20 bg-brand/5 p-4">
+              <Text className="text-sm font-bold text-text-primary">Bölgeni erken açtır</Text>
+              <Text className="mt-1 text-sm leading-6 text-text-secondary">
+                Bölgeleri talep yoğunluğuna göre açıyoruz. Çevrendeki pet sahiplerine haber ver;
+                ne kadar çok kişi isterse o kadar erken.
+              </Text>
+              <Button
+                label="Paylaş"
+                onPress={() =>
+                  void shareInvite("waitlist", {
+                    location: waitlist.data?.requestedLocation,
+                  }).catch(() => undefined)
+                }
+                variant="secondary"
+                className="mt-3"
+              />
             </View>
             {waitlist.isError || regions.isError ? (
               <Text accessibilityRole="alert" className="mt-4 text-sm text-danger">

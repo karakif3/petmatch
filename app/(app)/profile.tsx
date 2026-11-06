@@ -30,6 +30,7 @@ import {
   updateNotificationPreferences,
 } from "../../core/api/profile";
 import { listRegions, setMyRegion } from "../../core/api/regions";
+import { shareInvite } from "../../core/api/invite";
 import { deleteAccount } from "../../core/api/safety";
 import {
   loadPushPermission,
@@ -788,6 +789,13 @@ export default function ProfileScreen() {
               icon="mail"
               title="E-posta"
               value={user?.email ?? "—"}
+            />
+            <RowSeparator />
+            <Row
+              icon="share-2"
+              title="Arkadaşını davet et"
+              onPress={() => void shareInvite("profile").catch(() => undefined)}
+              accessibilityHint="Paylaşım sayfasını açar"
             />
             <RowSeparator />
             <Row
