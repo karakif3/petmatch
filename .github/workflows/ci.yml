@@ -5,10 +5,17 @@ name: CI
 # zinciri yalnızca gerçek bir Postgres'te doğrulanabiliyor.
 
 on:
-  push:
-    branches: [main]
+  # CI tasarrufu (2026-11-08, GitHub Actions kotası): belge/metin değişikliği CI çalıştırmaz,
+  # main'e merge sonrası ayrı koşu yok (main günde bir kez zamanlanmış koşuyla doğrulanır).
   pull_request:
-
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".claude/**"
+      - "LICENSE"
+  schedule:
+    - cron: "17 1 * * *"
+  workflow_dispatch: {}
 # Aynı dalda üst üste gelen push'larda eskisini iptal et.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +23,7 @@ concurrency:
 
 jobs:
   static:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft || startsWith(github.head_ref, 'otonom/') }}
     name: Lint · typecheck · birim testleri
     runs-on: ubuntu-latest
     steps:
@@ -38,6 +46,7 @@ jobs:
         run: npm test
 
   database:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft || startsWith(github.head_ref, 'otonom/') }}
     name: Veritabanı davranış testleri
     runs-on: ubuntu-latest
     steps:
@@ -56,6 +65,7 @@ jobs:
         run: npm run test:db
 
   edge-functions:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft || startsWith(github.head_ref, 'otonom/') }}
     name: Edge function tip kontrolü
     runs-on: ubuntu-latest
     steps:
